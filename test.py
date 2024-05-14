@@ -33,7 +33,7 @@ def test(config):
             model=model,
             config=config,
             beam_size=beam_size,
-            val_dataloader=val_dataloader
+            val_dataloader=test_dataloader
         )
 
         data_frame = figure_list_to_csv(
