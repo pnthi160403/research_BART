@@ -22,9 +22,8 @@ def read_ds(config: dict):
     elif train_ds:
         num_train = len(train_ds)
         num_val = int(num_train * 0.1)
-        val_ds = train_ds.sample(n=num_val)
-        train_ds = train_ds.drop(val_ds.index)
-        val_ds.reset_index(drop=True, inplace=True)
+        val_ds = train_ds[:num_val]
+        train_ds = train_ds[num_val:]
     
     if test_ds_path and os.path.exists(test_ds_path):
         test_ds = pd.read_csv(test_ds_path)
