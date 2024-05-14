@@ -14,13 +14,19 @@ def read_ds(config: dict):
 
     train_ds, val_ds, test_ds = None, None, None
     
-    if train_ds_path:
+    if os.path.exists(train_ds_path):
         train_ds = pd.read_csv(train_ds_path)
 
-    if val_ds_path:
+    if os.path.exists(val_ds_path):
         val_ds = pd.read_csv(val_ds_path)
+    elif train_ds:
+        num_train = len(train_ds)
+        num_val = int(num_train * 0.1)
+        val_ds = train_ds.sample(n=num_val)
+        train_ds = train_ds.drop(val_ds.index)
+        val_ds.reset_index(drop=True, inplace=True)
     
-    if test_ds_path:
+    if os.path.exists(test_ds_path):
         test_ds = pd.read_csv(test_ds_path)
 
     if not train_ds and not val_ds and not test_ds:
