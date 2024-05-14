@@ -12,7 +12,7 @@ def get_config(base_dir: str=None):
         config["base_dir"] = "./"
     else:
         config["base_dir"] = base_dir
-    config["tokenizer_dir"] = join_base(config['base_dir'], "/bpe_tokenizer")
+    config["tokenizer_dir"] = None
     config["special_tokens"] = [
         "<s>",
         "</s>",
@@ -30,10 +30,10 @@ def get_config(base_dir: str=None):
     config["preload"] = "latest"
     config["data"] = join_base(config["base_dir"], "/data")
     config["log_dir"] = join_base(config["base_dir"], "/log")
-    config["train_ds"] = join_base(config["data"], "/train.csv")
-    config["val_ds"] = join_base(config["data"], "/val.csv")
-    config["test_ds"] = join_base(config["data"], "/test.csv")
-    config["corpus"] = join_base(config["data"], "/corpus.csv")
+    config["train_ds"] = None
+    config["val_ds"] = None
+    config["test_ds"] = None
+    config["corpus"] = None
     config["vocab_size"] = 50000
     config['min_frequency'] = 2
     config["batch_train"] = 32
