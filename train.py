@@ -4,7 +4,8 @@ from tqdm import tqdm
 
 from .model import get_bart_model
 from .prepare_dataset import read_ds, read_tokenizer, get_dataloader
-from .utils import set_seed, create_dirs, lambda_lr, get_weights_file_path, weights_file_path
+from .utils import set_seed, create_dirs, lambda_lr, get_weights_file_path, weights_file_path, save_model
+from .utils import draw_graph
 
 def train(config):
     # create dirs
@@ -129,3 +130,13 @@ def train(config):
                 loss = loss_fn(logits.view(-1, tokenizer.vocab_size), label.view(-1))
                 losses_val.append(loss.item())
                 batch_iterator.set_postfix({"loss": f"{loss.item():6.3f}"})
+
+    # save model
+    save_model(
+        model=model,
+        epoch=epoch,
+        global_step=global_step,
+        optimizer=optimizer,
+        lr_scheduler=lr_scheduler,
+        config=config
+    )

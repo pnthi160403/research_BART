@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 import os
 import glob
+import matplotlib.pyplot as plt
+from torchmetrics import Recall, Precision, FBetaScore, Accuracy
 
 def set_seed(seed: int=42):
     torch.manual_seed(seed)
@@ -46,3 +48,32 @@ def lambda_lr(global_step: int, config):
 
 def join_base(base_dir: str, path: str):
     return f"{base_dir}{path}"
+
+import matplotlib.pyplot as plt
+
+def draw_graph(config, title, xlabel, ylabel, vals):
+    x = list(range(len(vals)))
+    
+    save_path = join_base(config['log_dir'], f"/{title}.png")
+    plt.plot(x, vals)
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.savefig(save_path)
+    plt.show()
+
+def calc_recall(preds, target, tgt_vocab_size: int, pad_index: int, device):
+    recall = Recall(task="multiclass", average='weighted', num_classes=tgt_vocab_size, ignore_index=pad_index).to(device)
+    return recall(preds, target)
+
+def calc_precision(preds, target, tgt_vocab_size: int, pad_index: int, device):
+    precision = Precision(task="multiclass", average='weighted', num_classes=tgt_vocab_size, ignore_index=pad_index).to(device)
+    return precision(preds, target)
+
+def calc_accuracy(preds, target, tgt_vocab_size: int, pad_index: int, device):
+    accuracy = Accuracy(task="multiclass", average='weighted', num_classes=tgt_vocab_size, ignore_index=pad_index).to(device)
+    return accuracy(preds, target)
+
+def calc_f_beta(preds, target, beta: float, tgt_vocab_size: int, pad_index: int, device):
+    f_beta = FBetaScore(task="multiclass", average='weighted', num_classes=tgt_vocab_size, beta=beta, ignore_index=pad_index).to(device)
+    return f_beta(preds, target)
