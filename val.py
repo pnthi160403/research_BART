@@ -54,9 +54,9 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
             labels.append(label_ids)
             preds.append(pred_ids)
 
-            source_texts.append(src_text.split(" "))
-            expected.append([tgt_text.split(" ")])
-            predicted.append(pred_text.split(" "))
+            source_texts.append(tokenizer.encode(src_text).tokens)
+            expected.append([tokenizer.encode(tgt_text).tokens])
+            predicted.append(tokenizer.encode(pred_text).tokens)
 
             count += 1
 
@@ -67,8 +67,10 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
                 print(f"{f'SOURCE: ':>12}{src_text}")
                 print(f"{f'TARGET: ':>12}{tgt_text}")
                 print(f"{f'PREDICTED: ':>12}{pred_text}")
-                scores = calc_bleu_score(refs=[[tgt_text.split(" ")]],
-                                        cands=[pred_text.split(" ")])
+                print(f"{f'TOKENS TARGET: ':>12}{[tokenizer.encode(tgt_text).tokens]}")
+                print(f"{f'TOKENS PREDICTED: ':>12}{tokenizer.encode(pred_text).tokens}")
+                scores = calc_bleu_score(refs=[[tokenizer.encode(tgt_text).tokens]],
+                                        cands=[tokenizer.encode(pred_text).tokens])
                 print(f'BLEU OF SENTENCE {count}')
                 for i in range(0, len(scores)):
                     print(f'BLEU_{i + 1}: {scores[i]}')
@@ -105,7 +107,8 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
                 print(f"{recall = }")
                 print(f"{precision = }")
                 print(f"{f_05 = }")
-            break
+            if count == 10:
+                break
 
         labels = torch.cat(labels, dim=0)
         preds = torch.cat(preds, dim=0)
