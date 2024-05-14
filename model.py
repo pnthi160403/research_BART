@@ -25,11 +25,11 @@ def get_bart_config(config: dict, tokenizer: ByteLevelBPETokenizer):
         encoder_layerdrop=config["encoder_layerdrop"],
         decoder_layerdrop=config["decoder_layerdrop"],
         scale_embedding=config["scale_embedding"],
-        eos_token_id=config["eos_token_id"],
-        forced_bos_token_id=config["forced_bos_token_id"],
-        forced_eos_token_id=config["forced_eos_token_id"],
+        eos_token_id=tokenizer.token_to_id("</s>"),
+        forced_bos_token_id=tokenizer.token_to_id("<s>"),
+        forced_eos_token_id=tokenizer.token_to_id("</s>"),
+        pad_token_id=tokenizer.token_to_id("<pad>"),
         num_beams=config["num_beams"],
-        pad_token_id=config["pad_token_id"],
         vocab_size=tokenizer.vocab_size
     )
 

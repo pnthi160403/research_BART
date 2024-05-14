@@ -65,10 +65,6 @@ def get_config(base_dir: str=None):
     config["decoder_layerdrop"] = 0.0 # Dropout decoder layer
     config["scale_embedding"] = False # Scale embeddings with sqrt(d_model)
     config["num_beams"] = 4
-    config["eos_token_id"] = config["token_id"]["</s>"]
-    config["forced_bos_token_id"] = config["token_id"]["<s>"]
-    config["forced_eos_token_id"] = config["token_id"]["</s>"]
-    config["pad_token_id"] = config["token_id"]["<pad>"]
 
     # Optimizer Adam
     config["weight_decay"] = 0
