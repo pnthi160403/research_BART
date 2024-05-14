@@ -31,17 +31,14 @@ def read_ds(config: dict):
         test_ds = pd.read_csv(test_ds_path)
 
     print("Read dataset successfully")
-    if train_ds:
-        print("Train dataset")
-        print(train_ds.head())
+    print("Train dataset")
+    print(train_ds.head())
 
-    if val_ds:
-        print("Val dataset")
-        print(val_ds.head())
+    print("Val dataset")
+    print(val_ds.head())
 
-    if test_ds:
-        print("Test dataset")
-        print(test_ds.head())
+    print("Test dataset")
+    print(test_ds.head())
     print("====================================")
 
     return train_ds, val_ds, test_ds
@@ -136,65 +133,55 @@ def get_dataloader(config: dict):
     train_dataset, val_dataset, test_dataset = None, None, None
     train_dataloader, val_dataloader, test_dataloader = None, None, None
 
-    if train_ds:
-        train_dataset = CustomDataset(
-            ds=train_ds,
-            tokenizer=tokenizer,
-            config=config
-        )
+    train_dataset = CustomDataset(
+        ds=train_ds,
+        tokenizer=tokenizer,
+        config=config
+    )
 
-    if val_ds:
-        val_dataset = CustomDataset(
-            ds=val_ds,
-            tokenizer=tokenizer,
-            config=config
-        )
+    val_dataset = CustomDataset(
+        ds=val_ds,
+        tokenizer=tokenizer,
+        config=config
+    )
 
-    if test_ds:
-        test_dataset = CustomDataset(
-            ds=test_ds,
-            tokenizer=tokenizer,
-            config=config
-        )
+    test_dataset = CustomDataset(
+        ds=test_ds,
+        tokenizer=tokenizer,
+        config=config
+    )
 
-    if train_dataset:
-        train_dataloader = DataLoader(
-            train_dataset,
-            batch_size=batch_train,
-            shuffle=True,
-            collate_fn=lambda x: collate_fn(x, tokenizer)
-        )
+    train_dataloader = DataLoader(
+        train_dataset,
+        batch_size=batch_train,
+        shuffle=True,
+        collate_fn=lambda x: collate_fn(x, tokenizer)
+    )
 
-    if val_dataset:
-        val_dataloader = DataLoader(
-            val_dataset,
-            batch_size=batch_val,
-            shuffle=False,
-            collate_fn=lambda x: collate_fn(x, tokenizer)
-        )
+    val_dataloader = DataLoader(
+        val_dataset,
+        batch_size=batch_val,
+        shuffle=False,
+        collate_fn=lambda x: collate_fn(x, tokenizer)
+    )
 
-    if test_dataset:
-        test_dataloader = DataLoader(
-            test_dataset,
-            batch_size=batch_test,
-            shuffle=False,
-            collate_fn=lambda x: collate_fn(x, tokenizer)
-        )
+    test_dataloader = DataLoader(
+        test_dataset,
+        batch_size=batch_test,
+        shuffle=False,
+        collate_fn=lambda x: collate_fn(x, tokenizer)
+    )
 
-    if not train_dataloader and not val_dataloader and not test_dataloader:
-        ValueError("Dataloader not found")
+    ValueError("Dataloader not found")
 
     print("Get dataloader successfully")
-    if train_dataloader:
-        print("Train dataloader")
-        print(train_dataloader)
+    print("Train dataloader")
+    print(train_dataloader)
 
-    if val_dataloader:
-        print("Val dataloader")
-        print(val_dataloader)
+    print("Val dataloader")
+    print(val_dataloader)
     
-    if test_dataloader:
-        print("Test dataloader")
-        print(test_dataloader)
+    print("Test dataloader")
+    print(test_dataloader)
 
     return train_dataloader, val_dataloader, test_dataloader
