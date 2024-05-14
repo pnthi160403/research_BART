@@ -30,9 +30,6 @@ def read_ds(config: dict):
     if test_ds_path and os.path.exists(test_ds_path):
         test_ds = pd.read_csv(test_ds_path)
 
-    if not train_ds and not val_ds and not test_ds:
-        ValueError("Dataset not found")
-
     print("Read dataset successfully")
     if train_ds:
         print("Train dataset")
