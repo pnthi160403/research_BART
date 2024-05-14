@@ -19,7 +19,7 @@ def read_ds(config: dict):
 
     if val_ds_path and os.path.exists(val_ds_path):
         val_ds = pd.read_csv(val_ds_path)
-    elif train_ds:
+    elif train_ds_path and os.path.exists(train_ds_path):
         num_train = len(train_ds)
         num_val = int(num_train * 0.1)
         val_ds = train_ds[:num_val]
