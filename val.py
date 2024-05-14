@@ -5,7 +5,7 @@ from .utils import calc_f_beta, calc_recall, calc_precision, calc_bleu_score, se
 from torch.nn.utils.rnn import pad_sequence
 from .prepare_dataset import read_tokenizer
 
-def validate(model, config, beam_size, num_example, val_dataloader):
+def validate(model, config, beam_size, val_dataloader, num_example=5):
     set_seed()
     device = config["device"]
     
