@@ -11,7 +11,7 @@ def validate(model, config, beam_size, num_example, val_dataloader):
     
     # read tokenizer
     tokenizer = read_tokenizer(config=config)
-    vocab_size=tokenizer.get_vocab
+    vocab_size=tokenizer.get_vocab_size()
 
     pad_token_id = tokenizer.token_to_id("<pad>")
 

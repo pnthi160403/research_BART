@@ -100,7 +100,7 @@ def train(config):
                 decoder_attention_mask=tgt_attention_mask,
             )
             
-            loss = loss_fn(logits.view(-1, tokenizer.vocab_size), label.view(-1))
+            loss = loss_fn(logits.view(-1, tokenizer.get_vocab_size()), label.view(-1))
             sum_loss_train += loss.item()
             batch_iterator.set_postfix({"loss": f"{loss.item():6.3f}"})
             loss.backward()
@@ -129,7 +129,7 @@ def train(config):
                     decoder_attention_mask=tgt_attention_mask,
                 )
                 
-                loss = loss_fn(logits.view(-1, tokenizer.vocab_size), label.view(-1))
+                loss = loss_fn(logits.view(-1, tokenizer.get_vocab_size()), label.view(-1))
                 sum_loss_val += loss.item()
                 batch_iterator.set_postfix({"loss": f"{loss.item():6.3f}"})
 
