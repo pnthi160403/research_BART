@@ -66,7 +66,7 @@ def train(config):
     lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
         optimizer=optimizer,
         lr_lambda=lambda golbal_step: lambda_lr(
-            golbal_step=golbal_step,
+            global_step=global_step,
             config=config
         )
     )
