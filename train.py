@@ -87,6 +87,7 @@ def train(config):
         model.train()
         batch_iterator = tqdm(train_dataloader, desc=f"Trainning Epoch {epoch:02d}")
         for batch in batch_iterator:
+            break
             src = batch["src"].to(device)
             tgt = batch["tgt"].to(device)
             src_attention_mask = (src != tokenizer.token_to_id("<pad>")).type(torch.int64)
@@ -116,6 +117,7 @@ def train(config):
             model.eval()
             batch_iterator = tqdm(val_dataloader, desc=f"Validating Epoch {epoch:02d}")
             for batch in batch_iterator:
+                break
                 src = batch["src"].to(device)
                 tgt = batch["tgt"].to(device)
                 src_attention_mask = (src != tokenizer.token_to_id("<pad>")).type(torch.int64)
