@@ -112,6 +112,10 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
 
         labels = torch.cat(labels, dim=0)
         preds = torch.cat(preds, dim=0)
+        print(f"{labels = }")
+        print(f"{preds = }")
+        print(f"{labels.size() = }")
+        print(f"{preds.size() = }")
 
         recall = calc_recall(
             preds=preds,
