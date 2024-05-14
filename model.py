@@ -30,7 +30,7 @@ def get_bart_config(config: dict, tokenizer: ByteLevelBPETokenizer):
         forced_eos_token_id=tokenizer.token_to_id("</s>"),
         pad_token_id=tokenizer.token_to_id("<pad>"),
         num_beams=config["num_beams"],
-        vocab_size=tokenizer.vocab_size
+        vocab_size=tokenizer.get_vocab_size()
     )
 
     if not bart_config:
@@ -65,7 +65,7 @@ class CustomBartModel(nn.Module):
         super().__init__()
         self.config = config
         self.bart_model = BartModel(config)
-        self.out = nn.Linear(config.d_model, tokenizer.vocab_size)
+        self.out = nn.Linear(config.d_model, tokenizer.get_vocab_size())
         
     def forward(self,**kwargs):
         outputs = self.bart_model(**kwargs)
