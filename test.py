@@ -1,6 +1,5 @@
 import torch
-from .config import weights_file_path
-from .utils import set_seed, figure_list_to_csv
+from .utils import set_seed, figure_list_to_csv, weights_file_path
 from .prepare_dataset import get_dataloader, read_tokenizer
 from .model import get_bart_model
 from .val import validate
