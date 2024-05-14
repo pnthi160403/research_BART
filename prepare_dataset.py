@@ -16,10 +16,12 @@ def read_ds(config: dict):
     
     if train_ds_path and os.path.exists(train_ds_path):
         train_ds = pd.read_csv(train_ds_path)
+    else:
+        ValueError("Train dataset not found")
 
     if val_ds_path and os.path.exists(val_ds_path):
         val_ds = pd.read_csv(val_ds_path)
-    elif train_ds_path and os.path.exists(train_ds_path):
+    else:
         num_train = len(train_ds)
         num_val = int(num_train * 0.1)
         val_ds = train_ds[:num_val]
