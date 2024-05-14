@@ -15,7 +15,7 @@ def train(config):
     )
     
     # set seed
-    set_seed(config["seed"])
+    set_seed()
 
     # device
     device = config["device"]
