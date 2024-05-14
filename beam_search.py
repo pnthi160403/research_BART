@@ -16,8 +16,7 @@ def beam_search(model, config, beam_size, tokenizer, src):
     device = config["device"]
     max_len = config["max_len"]
 
-    src_tokens = [tokenizer.bos_token] + tokenizer.tokenize(src) + [tokenizer.eos_token]
-    src = tokenizer.convert_tokens_to_ids(src_tokens)
+    src = [sos_token_id] + tokenizer.encode(src).ids + [eos_token_id]
     src = torch.tensor(src, dtype=torch.int64).unsqueeze(0).to(device)
     src_attention_mask = (src != pad_token_id).type(torch.int64).to(device)
     
