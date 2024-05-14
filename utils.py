@@ -6,6 +6,8 @@ import os
 import glob
 import matplotlib.pyplot as plt
 from torchmetrics import Recall, Precision, FBetaScore, Accuracy
+from torchtext.data.metrics import bleu_score
+import pandas as pd
 
 def set_seed(seed: int=42):
     torch.manual_seed(seed)
@@ -51,29 +53,50 @@ def join_base(base_dir: str, path: str):
 
 import matplotlib.pyplot as plt
 
-def draw_graph(config, title, xlabel, ylabel, vals):
-    x = list(range(len(vals)))
+def draw_graph(config, title, xlabel, ylabel, data):
+    x = list(range(len(data)))
     
     save_path = join_base(config['log_dir'], f"/{title}.png")
-    plt.plot(x, vals)
+    plt.plot(x, data)
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.savefig(save_path)
     plt.show()
+    plt.close()
 
-def calc_recall(preds, target, tgt_vocab_size: int, pad_index: int, device):
-    recall = Recall(task="multiclass", average='weighted', num_classes=tgt_vocab_size, ignore_index=pad_index).to(device)
+def figure_list_to_csv(config, column_names, data, name_csv):
+    obj = {}
+    for i in range(len(column_names)):
+        obj[column_names[i]] = data[i]
+
+    data_frame = pd.DataFrame(obj)
+    save_path = join_base(config['log_dir'], f"/{name_csv}.csv")
+    data_frame.to_csv(save_path, index=False)
+    return data_frame
+
+def calc_recall(preds, target, num_classes: int, pad_index: int, device):
+    recall = Recall(task="multiclass", average='weighted', num_classes=num_classes, ignore_index=pad_index).to(device)
     return recall(preds, target)
 
-def calc_precision(preds, target, tgt_vocab_size: int, pad_index: int, device):
-    precision = Precision(task="multiclass", average='weighted', num_classes=tgt_vocab_size, ignore_index=pad_index).to(device)
+def calc_precision(preds, target, num_classes: int, pad_index: int, device):
+    precision = Precision(task="multiclass", average='weighted', num_classes=num_classes, ignore_index=pad_index).to(device)
     return precision(preds, target)
 
-def calc_accuracy(preds, target, tgt_vocab_size: int, pad_index: int, device):
-    accuracy = Accuracy(task="multiclass", average='weighted', num_classes=tgt_vocab_size, ignore_index=pad_index).to(device)
+def calc_accuracy(preds, target, num_classes: int, pad_index: int, device):
+    accuracy = Accuracy(task="multiclass", average='weighted', num_classes=num_classes, ignore_index=pad_index).to(device)
     return accuracy(preds, target)
 
-def calc_f_beta(preds, target, beta: float, tgt_vocab_size: int, pad_index: int, device):
-    f_beta = FBetaScore(task="multiclass", average='weighted', num_classes=tgt_vocab_size, beta=beta, ignore_index=pad_index).to(device)
+def calc_f_beta(preds, target, beta: float, num_classes: int, pad_index: int, device):
+    f_beta = FBetaScore(task="multiclass", average='weighted', num_classes=num_classes, beta=beta, ignore_index=pad_index).to(device)
     return f_beta(preds, target)
+
+def calc_bleu_score(refs, cands):
+    scores = []
+    for j in range(1, 5):
+        weights = [1 / j] * j
+        scores.append(bleu_score(candidate_corpus=cands,
+                                 references_corpus=refs,
+                                 max_n=j,
+                                 weights=weights))
+    return scores

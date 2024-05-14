@@ -83,6 +83,7 @@ def train(config):
         torch.cuda.empty_cache()
 
         # train
+        sum_loss_train = 0
         model.train()
         batch_iterator = tqdm(train_dataloader, desc=f"Trainning Epoch {epoch:02d}")
         for batch in batch_iterator:
@@ -100,7 +101,7 @@ def train(config):
             )
             
             loss = loss_fn(logits.view(-1, tokenizer.vocab_size), label.view(-1))
-            losses_train.append(loss.item())
+            sum_loss_train += loss.item()
             batch_iterator.set_postfix({"loss": f"{loss.item():6.3f}"})
             loss.backward()
             optimizer.step()
@@ -111,6 +112,7 @@ def train(config):
 
         # val
         with torch.no_grad():
+            sum_loss_val = 0
             model.eval()
             batch_iterator = tqdm(val_dataloader, desc=f"Validating Epoch {epoch:02d}")
             for batch in batch_iterator:
@@ -128,8 +130,11 @@ def train(config):
                 )
                 
                 loss = loss_fn(logits.view(-1, tokenizer.vocab_size), label.view(-1))
-                losses_val.append(loss.item())
+                sum_loss_val += loss.item()
                 batch_iterator.set_postfix({"loss": f"{loss.item():6.3f}"})
+
+        losses_train.append(sum_loss_train / len(train_dataloader))
+        losses_val.append(sum_loss_val / len(val_dataloader))
 
     # save model
     save_model(
@@ -139,4 +144,23 @@ def train(config):
         optimizer=optimizer,
         lr_scheduler=lr_scheduler,
         config=config
+    )
+
+    # draw graph loss
+    # train
+    draw_graph(
+        config=config,
+        title="Loss train",
+        xlabel="Loss",
+        ylabel="Epoch",
+        data=losses_train
+    )
+
+    # val
+    draw_graph(
+        config=config,
+        title="Loss val",
+        xlabel="Loss",
+        ylabel="Epoch",
+        data=losses_val
     )

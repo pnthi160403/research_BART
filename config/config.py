@@ -86,6 +86,10 @@ def get_config(base_dir: str=None):
     # Device
     config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
 
+    # Metric
+    config["f_beta"] = 0.5
+    config["beams"] = [1, 3, 5]
+
     return config
 
 __all__ = [

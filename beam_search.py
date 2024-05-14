@@ -8,11 +8,12 @@ def sequence_length_penalty(length: int, alpha: float=0.6) -> float:
 def beam_search(model, config, beam_size, tokenizer, src):
     model.eval()
     
-    sos_token_id = config["token_id"]['<s>']
-    eos_token_id = config["token_id"]['</s>']
-    pad_token_id = config["token_id"]['<pad>']
-    device = config["device"]
+    # special token id
+    sos_token_id = tokenizer.token_to_id("<s>")
+    eos_token_id = tokenizer.token_to_id("</s>")
+    pad_token_id = tokenizer.token_to_id("<pad>")
     
+    device = config["device"]
     max_len = config["max_len"]
 
     src_tokens = [tokenizer.bos_token] + tokenizer.tokenize(src) + [tokenizer.eos_token]
