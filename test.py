@@ -5,9 +5,8 @@ from .model import get_bart_model
 from .val import validate
 
 def test(config):
-    torch.cuda.empty_cache()
     set_seed()
-    device = config["device"]
+    device = "cpu"
     device = torch.device(device)
     beams = config["beams"]
 
