@@ -20,7 +20,7 @@ def test(config):
     model = get_bart_model(
         config=config,
         tokenizer=tokenizer
-    )
+    ).to(device)
         
     model_filenames = weights_file_path(config=config)
     model_filename = model_filenames[-1]
