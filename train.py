@@ -2,10 +2,9 @@ import torch
 import torch
 from tqdm import tqdm
 
-from .model import get_bart_model, save_model
+from .model import get_bart_model, save_model, save_config
 from .prepare_dataset import read_tokenizer, get_dataloader
-from .utils import set_seed, create_dirs, lambda_lr, get_weights_file_path, weights_file_path
-from .utils import draw_graph
+from .utils import set_seed, create_dirs, lambda_lr, get_weights_file_path, weights_file_path, draw_graph
 
 def train(config):
     # create dirs
@@ -143,6 +142,12 @@ def train(config):
         optimizer=optimizer,
         lr_scheduler=lr_scheduler,
         config=config
+    )
+
+    # save config
+    save_config(
+        config=config,
+        epoch=epoch
     )
 
     # draw graph loss

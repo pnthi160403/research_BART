@@ -2,7 +2,8 @@ from tokenizers import ByteLevelBPETokenizer
 from transformers import  BartModel, BartConfig
 import torch
 import torch.nn as nn
-from .utils import get_weights_file_path, weights_file_path
+from .utils import get_weights_file_path
+import json
 
 # get model config
 def get_bart_config(config: dict, tokenizer: ByteLevelBPETokenizer):
@@ -58,6 +59,13 @@ def save_model(model, epoch, global_step, optimizer, lr_scheduler, config):
     }, model_filename)
     
     print(f"Saved model at {model_filename}")
+
+# save config
+def save_config(config: dict, epoch: int):
+    config_filename = f"{config['model_folder']}/config_{epoch:02d}.json"
+    with open(config_filename, "w") as f:
+        json.dump(config, f)
+    print(f"Saved config at {config_filename}")
 
 # custom BartModel
 class CustomBartModel(nn.Module):
