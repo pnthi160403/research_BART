@@ -6,7 +6,6 @@ from .val import validate
 
 def test(config):
     set_seed()
-    device = "cpu"
     device = torch.device(device)
     beams = config["beams"]
 
