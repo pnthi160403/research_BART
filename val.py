@@ -107,8 +107,8 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
             if count == 10:
                 break
 
-        labels = torch.cat(labels, dim=0).type(torch.int64)
-        preds = torch.cat(preds, dim=0).type(torch.int64)
+        labels = torch.cat(labels, dim=0)
+        preds = torch.cat(preds, dim=0)
         print(f"{labels = }")
         print(f"{preds = }")
         print(f"{labels.shape = }")
@@ -140,11 +140,11 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
         bleus = calc_bleu_score(refs=expected,
                                     cands=predicted)
         
-        recall = recall.item()
-        precision = precision.item()
-        f_05 = f_05.item()
-        print(f"{recall = }")
-        print(f"{precision = }")
-        print(f"{f_05 = }")
+        # recall = recall.item()
+        # precision = precision.item()
+        # f_05 = f_05.item()
+        # print(f"{recall = }")
+        # print(f"{precision = }")
+        # print(f"{f_05 = }")
         
         return bleus, recall, precision, f_05
