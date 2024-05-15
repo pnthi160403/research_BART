@@ -78,14 +78,14 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
                 recall = calc_recall(
                     preds=pred_ids,
                     target=label_ids,
-                    num_classes=vocab_size,
+                    tgt_vocab_size=vocab_size,
                     pad_index=pad_token_id,
                     device=device
                 )
                 precision = calc_precision(
                     preds=pred_ids,
                     target=label_ids,
-                    num_classes=vocab_size,
+                    tgt_vocab_size=vocab_size,
                     pad_index=pad_token_id,
                     device=device
                 )
@@ -93,7 +93,7 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
                     preds=pred_ids,
                     target=label_ids,
                     beta=config["f_beta"],
-                    num_classes=vocab_size,
+                    tgt_vocab_size=vocab_size,
                     pad_index=pad_token_id,
                     device=device
                 )
