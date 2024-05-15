@@ -34,7 +34,7 @@ def get_config(base_dir: str=None):
     config["val_ds"] = None
     config["test_ds"] = None
     config["corpus"] = None
-    config["vocab_size"] = 50000
+    config["vocab_size"] = 30000
     config['min_frequency'] = 2
     config["batch_train"] = 32
     config["batch_val"] = 32
@@ -84,7 +84,7 @@ def get_config(base_dir: str=None):
 
     # Metric
     config["f_beta"] = 0.5
-    config["beams"] = [1, 3, 5]
+    config["beams"] = [5]
 
     return config
 
