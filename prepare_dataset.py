@@ -49,10 +49,15 @@ def read_tokenizer(config: dict):
     if not config["tokenizer_dir"] or not os.path.exists(f"{config['tokenizer_dir']}/vocab.json") or not os.path.exists(f"{config['tokenizer_dir']}/merges.txt"):
         ValueError("Tokenizer not found")
 
-    tokenizer = ByteLevelBPETokenizer.from_file(
-        f"{config['tokenizer_dir']}/vocab.json",
-        f"{config['tokenizer_dir']}/merges.txt"
-    )
+    if config["use_tokenizer"] == "byte-level-bpe":
+        tokenizer = ByteLevelBPETokenizer.from_file(
+            f"{config['tokenizer_dir']}/vocab.json",
+            f"{config['tokenizer_dir']}/merges.txt"
+        )
+    if config["use_tokenizer"] == "wordpiece":
+        tokenizer = Tokenizer.from_file(
+            f"{config['tokenizer_dir']}/tokenizer.json"
+        )
 
     tokenizer.add_special_tokens(config["special_tokens"])
 
