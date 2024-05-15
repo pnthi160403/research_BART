@@ -3,17 +3,19 @@ import numpy as np
 import json
 from pathlib import Path
 import os
-import glob
 import matplotlib.pyplot as plt
 from torchmetrics import Recall, Precision, FBetaScore, Accuracy
 from torchtext.data.metrics import bleu_score
 import pandas as pd
+from tokenizers import Tokenizer, ByteLevelBPETokenizer
 
+# set seed
 def set_seed(seed: int=42):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     np.random.seed(seed)
 
+# create dirs
 def create_dirs(config: dict, dirs: list):
     created_dirs = []
     for dir_name in dirs:
@@ -30,6 +32,7 @@ def create_dirs(config: dict, dirs: list):
         print(name_dir)
     print("====================================")
 
+# file path
 def get_weights_file_path(config, epoch: str):
     model_folder = f"{config['model_folder']}"
     model_filename = f"{config['model_basename']}{epoch}.pt"
@@ -44,15 +47,15 @@ def weights_file_path(config):
     weights_files.sort()
     return weights_files
 
+def join_base(base_dir: str, path: str):
+    return f"{base_dir}{path}"
+
+# get optimizer lambda lr
 def lambda_lr(global_step: int, config):
     global_step = max(global_step, 1)
     return (config["d_model"] ** -0.5) * min(global_step ** (-0.5), global_step * config["warmup_steps"] ** (-1.5))
 
-def join_base(base_dir: str, path: str):
-    return f"{base_dir}{path}"
-
-import matplotlib.pyplot as plt
-
+# figures
 def draw_graph(config, title, xlabel, ylabel, data):
     x = list(range(len(data)))
     
@@ -76,6 +79,7 @@ def figure_list_to_csv(config, column_names, data, name_csv):
     data_frame.to_csv(save_path, index=False)
     return data_frame
 
+# metrics
 def calc_recall(preds, target, tgt_vocab_size: int, pad_index: int, device):
     recall = Recall(task="multiclass", average='weighted', num_classes=tgt_vocab_size, ignore_index=pad_index).to(device)
     return recall(preds, target)
@@ -101,3 +105,62 @@ def calc_bleu_score(refs, cands):
                                  max_n=j,
                                  weights=weights))
     return scores
+
+# Tokenizer
+# read tokenizer byte level bpe
+def read_tokenizer_byte_level_bpe(config: dict):
+    if not config["tokenizer_dir"] or not os.path.exists(f"{config['tokenizer_dir']}/vocab.json") or not os.path.exists(f"{config['tokenizer_dir']}/merges.txt"):
+        ValueError("Tokenizer not found")
+
+    if config["use_tokenizer"] == "byte-level-bpe":
+        tokenizer = ByteLevelBPETokenizer.from_file(
+            f"{config['tokenizer_dir']}/vocab.json",
+            f"{config['tokenizer_dir']}/merges.txt"
+        )
+    if config["use_tokenizer"] == "wordpiece":
+        tokenizer = Tokenizer.from_file(
+            f"{config['tokenizer_dir']}/tokenizer.json"
+        )
+
+    tokenizer.add_special_tokens(config["special_tokens"])
+
+    if not tokenizer:
+        ValueError("Tokenizer not found")
+
+    print("Read tokenizer successfully")
+    print("Check tokenizer")
+    print(tokenizer)
+    print("====================================")
+
+    return tokenizer
+
+# read wordpice tokenizer
+def read_wordpiece_tokenizer(config: dict):
+    tokenizer = Tokenizer.from_file(
+        f"{config['tokenizer_dir']}/tokenizer.json"
+    )
+
+    if not tokenizer:
+        ValueError("Tokenizer not found")
+
+    print("Read tokenizer successfully")
+    print("Check tokenizer")
+    print(tokenizer)
+    print("====================================")
+
+    return tokenizer
+
+def read_wordlevel_tokenizer(config: dict):
+    tokenizer = Tokenizer.from_file(
+        f"{config['tokenizer_dir']}/tokenizer.json"
+    )
+
+    if not tokenizer:
+        ValueError("Tokenizer not found")
+
+    print("Read tokenizer successfully")
+    print("Check tokenizer")
+    print(tokenizer)
+    print("====================================")
+
+    return tokenizer

@@ -1,10 +1,11 @@
-from tokenizers import Tokenizer, ByteLevelBPETokenizer
 import pandas as pd
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
 import torch
 import os
 import torch
+
+from .utils import read_tokenizer_byte_level_bpe, read_wordpiece_tokenizer, read_wordlevel_tokenizer
 
 # read dataset
 def read_ds(config: dict):
@@ -44,48 +45,15 @@ def read_ds(config: dict):
 
     return train_ds, val_ds, test_ds
 
-# read tokenizer
 def read_tokenizer(config: dict):
-    if not config["tokenizer_dir"] or not os.path.exists(f"{config['tokenizer_dir']}/vocab.json") or not os.path.exists(f"{config['tokenizer_dir']}/merges.txt"):
-        ValueError("Tokenizer not found")
-
     if config["use_tokenizer"] == "byte-level-bpe":
-        tokenizer = ByteLevelBPETokenizer.from_file(
-            f"{config['tokenizer_dir']}/vocab.json",
-            f"{config['tokenizer_dir']}/merges.txt"
-        )
+        return read_tokenizer_byte_level_bpe(config)
     if config["use_tokenizer"] == "wordpiece":
-        tokenizer = Tokenizer.from_file(
-            f"{config['tokenizer_dir']}/tokenizer.json"
-        )
+        return read_wordpiece_tokenizer(config)
+    if config["use_tokenizer"] == "wordlevel":
+        return read_wordlevel_tokenizer(config)
 
-    tokenizer.add_special_tokens(config["special_tokens"])
-
-    if not tokenizer:
-        ValueError("Tokenizer not found")
-
-    print("Read tokenizer successfully")
-    print("Check tokenizer")
-    print(tokenizer)
-    print("====================================")
-
-    return tokenizer
-
-# read wordpice tokenizer
-def read_wordpiece_tokenizer(config: dict):
-    tokenizer = Tokenizer.from_file(
-        f"{config['tokenizer_dir']}/tokenizer.json"
-    )
-
-    if not tokenizer:
-        ValueError("Tokenizer not found")
-
-    print("Read tokenizer successfully")
-    print("Check tokenizer")
-    print(tokenizer)
-    print("====================================")
-
-    return tokenizer
+    ValueError("Tokenizer not found")
 
 # custom dataset
 class CustomDataset(Dataset):

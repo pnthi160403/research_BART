@@ -3,7 +3,7 @@ import torch
 from tqdm import tqdm
 
 from .model import get_bart_model, save_model, save_config
-from .prepare_dataset import get_dataloader, read_wordpiece_tokenizer
+from .prepare_dataset import get_dataloader, read_tokenizer
 from .utils import set_seed, create_dirs, lambda_lr, get_weights_file_path, weights_file_path, draw_graph
 
 def train(config):
@@ -20,8 +20,7 @@ def train(config):
     device = config["device"]
 
     # read tokenizer
-    if config["use_tokenizer"] == "wordpiece":
-        tokenizer = read_wordpiece_tokenizer(config)
+    tokenizer = read_tokenizer(config)
 
     # BART model
     model = get_bart_model(
