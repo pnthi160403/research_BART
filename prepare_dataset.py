@@ -1,4 +1,4 @@
-from tokenizers import ByteLevelBPETokenizer
+from tokenizers import Tokenizer, ByteLevelBPETokenizer
 import pandas as pd
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
@@ -66,10 +66,26 @@ def read_tokenizer(config: dict):
 
     return tokenizer
 
+# read wordpice tokenizer
+def read_wordpiece_tokenizer(config: dict):
+    tokenizer = Tokenizer.from_file(
+        f"{config['tokenizer_dir']}/tokenizer.json"
+    )
+
+    if not tokenizer:
+        ValueError("Tokenizer not found")
+
+    print("Read tokenizer successfully")
+    print("Check tokenizer")
+    print(tokenizer)
+    print("====================================")
+
+    return tokenizer
+
 # custom dataset
 class CustomDataset(Dataset):
 
-    def __init__(self, ds: pd.DataFrame, tokenizer: ByteLevelBPETokenizer, config: dict):
+    def __init__(self, ds: pd.DataFrame, tokenizer, config: dict):
         super().__init__()
         self.ds = ds
         self.tokenizer = tokenizer

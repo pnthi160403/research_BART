@@ -1,6 +1,6 @@
 import torch
 from .utils import set_seed, figure_list_to_csv, weights_file_path
-from .prepare_dataset import get_dataloader, read_tokenizer
+from .prepare_dataset import get_dataloader, read_wordpiece_tokenizer
 from .model import get_bart_model
 from .val import validate
 
@@ -11,7 +11,8 @@ def test(config):
     beams = config["beams"]
 
     # read tokenizer
-    tokenizer = read_tokenizer(config=config)
+    if config["use_tokenizer"] == "wordpiece":
+        tokenizer = read_wordpiece_tokenizer(config=config)
 
     # get dataloader
     train_dataloader, val_dataloader, test_dataloader = get_dataloader(config=config)

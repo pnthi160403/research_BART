@@ -42,6 +42,9 @@ def get_config(base_dir: str=None):
     config["epochs"] = 3
     config["max_len"] = 100
 
+    # Tokenizer
+    config["use_tokenizer"] = "wordpiece"
+
     # Dataset
     config["lang_src"] = "noise_vi"
     config["lang_tgt"] = "vi"
