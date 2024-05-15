@@ -114,28 +114,28 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
         print(f"{labels.shape = }")
         print(f"{preds.shape = }")
 
-        recall = calc_recall(
-            preds=preds,
-            target=labels,
-            tgt_vocab_size=vocab_size,
-            pad_index=pad_token_id,
-            device=device
-            )
-        precision = calc_precision(
-            preds=preds,
-            target=labels,
-            tgt_vocab_size=vocab_size,
-            pad_index=pad_token_id,
-            device=device
-            )
-        f_05 = calc_f_beta(
-            preds=preds,
-            target=labels,
-            beta=config["f_beta"],
-            tgt_vocab_size=vocab_size,
-            pad_index=pad_token_id,
-            device=device
-            )
+        # recall = calc_recall(
+        #     preds=preds,
+        #     target=labels,
+        #     tgt_vocab_size=vocab_size,
+        #     pad_index=pad_token_id,
+        #     device=device
+        #     )
+        # precision = calc_precision(
+        #     preds=preds,
+        #     target=labels,
+        #     tgt_vocab_size=vocab_size,
+        #     pad_index=pad_token_id,
+        #     device=device
+        #     )
+        # f_05 = calc_f_beta(
+        #     preds=preds,
+        #     target=labels,
+        #     beta=config["f_beta"],
+        #     tgt_vocab_size=vocab_size,
+        #     pad_index=pad_token_id,
+        #     device=device
+        #     )
 
         bleus = calc_bleu_score(refs=expected,
                                     cands=predicted)
