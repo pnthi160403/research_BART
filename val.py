@@ -116,6 +116,7 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
         print(f"{preds = }")
         print(f"{labels.shape = }")
         print(f"{preds.shape = }")
+        vocab_size = 10000
 
         recall = calc_recall(
             preds=preds,
