@@ -69,9 +69,9 @@ def figure_list_to_csv(config, column_names, data, name_csv):
     obj = {}
     for i in range(len(column_names)):
         if data[i] is not None:
-            obj[column_names[i]] = data[i]
+            obj[str(column_names[i])] = data[i]
 
-    data_frame = pd.DataFrame(obj)
+    data_frame = pd.DataFrame(obj, index=[0])
     save_path = join_base(config['log_dir'], f"/{name_csv}.csv")
     data_frame.to_csv(save_path, index=False)
     return data_frame

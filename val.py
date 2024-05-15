@@ -59,7 +59,7 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
 
             print_step = len(val_dataloader) // num_example
             
-            if not count % print_step == 0:
+            if count % print_step == 0:
                 print()
                 print(f"{f'SOURCE: ':>12}{src_text}")
                 print(f"{f'TARGET: ':>12}{tgt_text}")
@@ -114,37 +114,37 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
         print(f"{labels.shape = }")
         print(f"{preds.shape = }")
 
-        # recall = calc_recall(
-        #     preds=preds,
-        #     target=labels,
-        #     tgt_vocab_size=vocab_size,
-        #     pad_index=pad_token_id,
-        #     device=device
-        #     )
-        # precision = calc_precision(
-        #     preds=preds,
-        #     target=labels,
-        #     tgt_vocab_size=vocab_size,
-        #     pad_index=pad_token_id,
-        #     device=device
-        #     )
-        # f_05 = calc_f_beta(
-        #     preds=preds,
-        #     target=labels,
-        #     beta=config["f_beta"],
-        #     tgt_vocab_size=vocab_size,
-        #     pad_index=pad_token_id,
-        #     device=device
-        #     )
+        recall = calc_recall(
+            preds=preds,
+            target=labels,
+            tgt_vocab_size=vocab_size,
+            pad_index=pad_token_id,
+            device=device
+            )
+        precision = calc_precision(
+            preds=preds,
+            target=labels,
+            tgt_vocab_size=vocab_size,
+            pad_index=pad_token_id,
+            device=device
+            )
+        f_05 = calc_f_beta(
+            preds=preds,
+            target=labels,
+            beta=config["f_beta"],
+            tgt_vocab_size=vocab_size,
+            pad_index=pad_token_id,
+            device=device
+            )
 
         bleus = calc_bleu_score(refs=expected,
                                     cands=predicted)
         
-        # recall = recall.item()
-        # precision = precision.item()
-        # f_05 = f_05.item()
-        # print(f"{recall = }")
-        # print(f"{precision = }")
-        # print(f"{f_05 = }")
+        recall = recall.item()
+        precision = precision.item()
+        f_05 = f_05.item()
+        print(f"{recall = }")
+        print(f"{precision = }")
+        print(f"{f_05 = }")
         
         return bleus, recall, precision, f_05
