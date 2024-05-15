@@ -48,6 +48,15 @@ def train(config):
 
     preload = config["preload"]
 
+    # get lr schduler
+    lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
+        optimizer=optimizer,
+        lr_lambda=lambda golbal_step: lambda_lr(
+            global_step=global_step,
+            config=config
+        )
+    )
+
     # load model
     model_filename = (str(weights_file_path(config)[-1]) if weights_file_path(config) else None) if preload == 'latest' else get_weights_file_path(config, preload) if preload else None
     if model_filename:
@@ -60,16 +69,6 @@ def train(config):
         print(f"Loaded model from {model_filename}")
     else:
         print("No model to preload, start training from scratch")
-
-
-    # get lr schduler
-    lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
-        optimizer=optimizer,
-        lr_lambda=lambda golbal_step: lambda_lr(
-            global_step=global_step,
-            config=config
-        )
-    )
 
     # loss function
     loss_fn = torch.nn.CrossEntropyLoss(
