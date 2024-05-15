@@ -75,20 +75,20 @@ def figure_list_to_csv(config, column_names, data, name_csv):
     data_frame.to_csv(save_path, index=False)
     return data_frame
 
-def calc_recall(preds, target, num_classes: int, pad_index: int, device):
-    recall = Recall(task="multiclass", average='weighted', num_classes=num_classes, ignore_index=pad_index).to(device)
+def calc_recall(preds, target, tgt_vocab_size: int, pad_index: int, device):
+    recall = Recall(task="multiclass", average='weighted', num_classes=tgt_vocab_size, ignore_index=pad_index).to(device)
     return recall(preds, target)
 
-def calc_precision(preds, target, num_classes: int, pad_index: int, device):
-    precision = Precision(task="multiclass", average='weighted', num_classes=num_classes, ignore_index=pad_index).to(device)
+def calc_precision(preds, target, tgt_vocab_size: int, pad_index: int, device):
+    precision = Precision(task="multiclass", average='weighted', num_classes=tgt_vocab_size, ignore_index=pad_index).to(device)
     return precision(preds, target)
 
-def calc_accuracy(preds, target, num_classes: int, pad_index: int, device):
-    accuracy = Accuracy(task="multiclass", average='weighted', num_classes=num_classes, ignore_index=pad_index).to(device)
+def calc_accuracy(preds, target, tgt_vocab_size: int, pad_index: int, device):
+    accuracy = Accuracy(task="multiclass", average='weighted', num_classes=tgt_vocab_size, ignore_index=pad_index).to(device)
     return accuracy(preds, target)
 
-def calc_f_beta(preds, target, beta: float, num_classes: int, pad_index: int, device):
-    f_beta = FBetaScore(task="multiclass", average='weighted', num_classes=num_classes, beta=beta, ignore_index=pad_index).to(device)
+def calc_f_beta(preds, target, beta: float, tgt_vocab_size: int, pad_index: int, device):
+    f_beta = FBetaScore(task="multiclass", average='weighted', num_classes=tgt_vocab_size, beta=beta, ignore_index=pad_index).to(device)
     return f_beta(preds, target)
 
 def calc_bleu_score(refs, cands):

@@ -12,7 +12,6 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
     # read tokenizer
     tokenizer = read_tokenizer(config=config)
     vocab_size=tokenizer.get_vocab_size()
-
     pad_token_id = tokenizer.token_to_id("<pad>")
 
     with torch.no_grad():
@@ -28,11 +27,8 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
 
         batch_iterator = tqdm(val_dataloader, desc=f"Testing model...")
         for batch in batch_iterator:
-            src = batch["src"].to(device)
-            tgt = batch["tgt"].to(device)
-
-            src_text = tokenizer.decode(src[0].detach().cpu().numpy())
-            tgt_text = tokenizer.decode(tgt[0].detach().cpu().numpy())
+            src_text = batch["src_text"][0]
+            tgt_text = batch["tgt_text"][0]
 
             pred_ids = beam_search(
                 model=model,
@@ -116,30 +112,29 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
         print(f"{preds = }")
         print(f"{labels.shape = }")
         print(f"{preds.shape = }")
-        vocab_size = 10000
 
         recall = calc_recall(
             preds=preds,
             target=labels,
-            num_classes=vocab_size,
+            tgt_vocab_size=vocab_size,
             pad_index=pad_token_id,
             device=device
-        )
+            )
         precision = calc_precision(
             preds=preds,
             target=labels,
-            num_classes=vocab_size,
+            tgt_vocab_size=vocab_size,
             pad_index=pad_token_id,
             device=device
-        )
+            )
         f_05 = calc_f_beta(
             preds=preds,
             target=labels,
             beta=config["f_beta"],
-            num_classes=vocab_size,
+            tgt_vocab_size=vocab_size,
             pad_index=pad_token_id,
             device=device
-        )
+            )
 
         bleus = calc_bleu_score(refs=expected,
                                     cands=predicted)

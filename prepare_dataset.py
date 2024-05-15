@@ -26,6 +26,7 @@ def read_ds(config: dict):
         num_val = int(num_train * 0.1)
         val_ds = train_ds[:num_val]
         train_ds = train_ds[num_val:]
+        train_ds.reset_index(drop=True, inplace=True)
     
     if test_ds_path and os.path.exists(test_ds_path):
         test_ds = pd.read_csv(test_ds_path)
@@ -92,7 +93,9 @@ class CustomDataset(Dataset):
         return {
             'src': src, # <s>...</s>
             "tgt": tgt, # <s> ...
-            'label': label # ...</s>
+            'label': label, # ...</s>
+            'src_text': src_text,
+            'tgt_text': tgt_text,
         }
 
 # collate function
@@ -100,15 +103,19 @@ class CustomDataset(Dataset):
 def collate_fn(batch, tokenizer):
     pad_token_id = tokenizer.token_to_id("<pad>")
     
-    src_batch, tgt_batch, label_batch = [], [], []
+    src_batch, tgt_batch, label_batch, src_text_batch, tgt_text_batch = [], [], [], [], []
     for item in batch:
         src = torch.tensor(item["src"], dtype=torch.int64)
         tgt = torch.tensor(item['tgt'], dtype=torch.int64)
         label = torch.tensor(item['label'], dtype=torch.int64)
+        src_text = item["src_text"]
+        tgt_text = item["tgt_text"]
         
         src_batch.append(src)
         tgt_batch.append(tgt)
         label_batch.append(label)
+        src_text_batch.append(src_text)
+        tgt_text_batch.append(tgt_text)
         
     src_batch = pad_sequence(src_batch, padding_value=pad_token_id, batch_first=True)
     tgt_batch = pad_sequence(tgt_batch, padding_value=pad_token_id, batch_first=True)
@@ -119,6 +126,8 @@ def collate_fn(batch, tokenizer):
         'src': src_batch,
         "tgt": tgt_batch,
         'label': label_batch,
+        'src_text': src_text_batch,
+        'tgt_text': tgt_text_batch,
     }
 
 # get dataloader dataset
