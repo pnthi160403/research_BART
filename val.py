@@ -110,12 +110,12 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
             if count == 10:
                 break
 
-        labels = torch.cat(labels, dim=0)
-        preds = torch.cat(preds, dim=0)
+        labels = torch.cat(labels, dim=0).type(torch.int64)
+        preds = torch.cat(preds, dim=0).type(torch.int64)
         print(f"{labels = }")
         print(f"{preds = }")
-        print(f"{labels.size() = }")
-        print(f"{preds.size() = }")
+        print(f"{labels.shape = }")
+        print(f"{preds.shape = }")
 
         recall = calc_recall(
             preds=preds,
