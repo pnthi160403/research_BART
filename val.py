@@ -6,12 +6,13 @@ from torch.nn.utils.rnn import pad_sequence
 from .prepare_dataset import read_tokenizer
 
 def validate(model, config, beam_size, val_dataloader, num_example=5):
-    set_seed()
+    print("Length val_dataloader: ", len(val_dataloader))
     device = config["device"]
     
     # read tokenizer
     tokenizer = read_tokenizer(config=config)
     vocab_size=tokenizer.get_vocab_size()
+    print("Vocab size: ", vocab_size)
     pad_token_id = tokenizer.token_to_id("<pad>")
 
     with torch.no_grad():

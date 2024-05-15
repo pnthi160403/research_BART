@@ -68,7 +68,8 @@ def draw_graph(config, title, xlabel, ylabel, data):
 def figure_list_to_csv(config, column_names, data, name_csv):
     obj = {}
     for i in range(len(column_names)):
-        obj[column_names[i]] = data[i]
+        if data[i] is not None:
+            obj[column_names[i]] = data[i]
 
     data_frame = pd.DataFrame(obj)
     save_path = join_base(config['log_dir'], f"/{name_csv}.csv")
