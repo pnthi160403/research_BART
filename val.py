@@ -104,8 +104,6 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
                 print(f"{recall = }")
                 print(f"{precision = }")
                 print(f"{f_05 = }")
-            if count == 10:
-                break
 
         labels = torch.cat(labels, dim=0)
         preds = torch.cat(preds, dim=0)
