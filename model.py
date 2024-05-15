@@ -42,6 +42,11 @@ def get_bart_config(config: dict, tokenizer: ByteLevelBPETokenizer):
 def get_bart_model(config: dict, tokenizer: ByteLevelBPETokenizer):
     bart_config = get_bart_config(config, tokenizer)
     model = CustomBartModel(bart_config, tokenizer)
+    for name, param in model.named_parameters():
+        if "weight" in name:
+            nn.init.normal_(param.data, mean=0, std=config["init_std"])
+        elif "bias" in name:
+            nn.init.constant_(param.data, 0)
     if not model:
         ValueError("Model not found")
     return model
