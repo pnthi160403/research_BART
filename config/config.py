@@ -39,7 +39,7 @@ def get_config(base_dir: str=None):
     config["batch_train"] = 32
     config["batch_val"] = 32
     config["batch_test"] = 1
-    config["epochs"] = 1
+    config["epochs"] = 3
     config["max_len"] = 100
 
     # Dataset
@@ -55,7 +55,7 @@ def get_config(base_dir: str=None):
     config["decoder_ffn_dim"] = 3072
     config["encoder_ffn_dim"] = 3072
     config["activation_function"] = "gelu"
-    config["dropout"] = 0.15
+    config["dropout"] = 0.2
     config["attention_dropout"] = 0.1
     config["activation_dropout"] = 0.1
     config["classifier_dropout"] = 0.0
