@@ -59,7 +59,7 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
 
             print_step = len(val_dataloader) // num_example
             
-            if count % print_step == 0:
+            if not count % print_step == 0:
                 print()
                 print(f"{f'SOURCE: ':>12}{src_text}")
                 print(f"{f'TARGET: ':>12}{tgt_text}")
