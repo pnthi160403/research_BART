@@ -31,6 +31,12 @@ def read_ds(config: dict):
     
     if test_ds_path and os.path.exists(test_ds_path):
         test_ds = pd.read_csv(test_ds_path)
+    else:
+        num_train = len(train_ds)
+        num_test = 3000
+        test_ds = train_ds[:num_test]
+        train_ds = train_ds[num_test:]
+        train_ds.reset_index(drop=True, inplace=True)
 
     print("Read dataset successfully")
     print("Train dataset")
