@@ -55,7 +55,7 @@ def get_config(base_dir: str=None):
 
     # BART config model
     config["d_model"] = 768
-    config["encoder_layes"] = 6
+    config["encoder_layers"] = 6
     config["decoder_layers"] = 6
     config["encoder_attention_heads"] = 12
     config["decoder_attention_heads"] = 12
