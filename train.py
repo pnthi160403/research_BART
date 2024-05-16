@@ -5,7 +5,6 @@ from tqdm import tqdm
 from .model import get_bart_model, save_model, save_config
 from .prepare_dataset import get_dataloader, read_tokenizer
 from .utils import set_seed, create_dirs, lambda_lr, get_weights_file_path, weights_file_path, draw_graph, draw_multi_graph
-from transformers import  BartModel, BartConfig
 
 def train(config):
     # create dirs
@@ -110,7 +109,6 @@ def train(config):
             optimizer.zero_grad(set_to_none=True)
 
             global_step += 1
-            break
 
         # val
         with torch.no_grad():
@@ -135,7 +133,6 @@ def train(config):
                 sum_loss_val += loss.item()
                 losses_val_step.append(loss.item())
                 batch_iterator.set_postfix({"loss": f"{loss.item():6.3f}"})
-                break
 
         losses_train.append(sum_loss_train / len(train_dataloader))
         losses_val.append(sum_loss_val / len(val_dataloader))
@@ -195,36 +192,3 @@ def train(config):
         ylabel="Epoch",
         data=losses_val_step
     )
-
-    # debug
-    bart_config = BartConfig(
-        d_model=config["d_model"],
-        encoder_layes=config["encoder_layes"],
-        decoder_layers=config["decoder_layers"],
-        encoder_attention_heads=config["encoder_attention_heads"],
-        decoder_attention_heads=config["decoder_attention_heads"],
-        decoder_ffn_dim=config["decoder_ffn_dim"],
-        encoder_ffn_dim=config["encoder_ffn_dim"],
-        activation_function=config["activation_function"],
-        dropout=config["dropout"],
-        attention_dropout=config["attention_dropout"],
-        activation_dropout=config["activation_dropout"],
-        classifier_dropout=config["classifier_dropout"],
-        max_position_embeddings=config["max_position_embeddings"],
-        init_std=config["init_std"],
-        encoder_layerdrop=config["encoder_layerdrop"],
-        decoder_layerdrop=config["decoder_layerdrop"],
-        scale_embedding=config["scale_embedding"],
-        eos_token_id=tokenizer.token_to_id("</s>"),
-        forced_bos_token_id=tokenizer.token_to_id("<s>"),
-        forced_eos_token_id=tokenizer.token_to_id("</s>"),
-        pad_token_id=tokenizer.token_to_id("<pad>"),
-        num_beams=config["num_beams"],
-        vocab_size=tokenizer.get_vocab_size()
-    )
-
-    model_filename = get_weights_file_path(config, f"{epoch:02d}")
-    model = BartModel(bart_config)
-    model.load_state_dict(torch.load(model_filename)["model_state_dict"])
-
-    return model
