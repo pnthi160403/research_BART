@@ -196,6 +196,7 @@ def train(config):
         data=losses_val_step
     )
 
+    # debug
     bart_config = BartConfig(
         d_model=config["d_model"],
         encoder_layes=config["encoder_layes"],
@@ -224,6 +225,6 @@ def train(config):
 
     model_filename = get_weights_file_path(config, f"{epoch:02d}")
     model = BartModel(bart_config)
-    model.load_state_dict(torch.load(model_filename))
+    model.load_state_dict(torch.load(model_filename)["model_state_dict"])
 
     return model
