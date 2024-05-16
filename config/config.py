@@ -42,6 +42,9 @@ def get_config(base_dir: str=None):
     config["epochs"] = 3
     config["max_len"] = 100
 
+    # Pretrain
+    config["pretrain"] = False
+
     # Tokenizer
     config["use_tokenizer"] = "wordpiece"
 

@@ -2,9 +2,9 @@ import torch
 import torch
 from tqdm import tqdm
 
-from .model import get_bart_model, save_model, save_config
+from .model import get_bart_model, save_model, save_config, save_bart_model
 from .prepare_dataset import get_dataloader, read_tokenizer
-from .utils import set_seed, create_dirs, lambda_lr, get_weights_file_path, weights_file_path, draw_graph
+from .utils import set_seed, create_dirs, lambda_lr, get_weights_file_path, weights_file_path, draw_graph, draw_multi_graph
 
 def train(config):
     # create dirs
@@ -77,9 +77,10 @@ def train(config):
 
     losses_train = []
     losses_val = []
+    losses_train_step = []
+    losses_val_step = []
     for epoch in range(initial_epoch, config['epochs']):
         torch.cuda.empty_cache()
-
         # train
         sum_loss_train = 0
         model.train()
@@ -100,6 +101,7 @@ def train(config):
             
             loss = loss_fn(logits.view(-1, tokenizer.get_vocab_size()), label.view(-1))
             sum_loss_train += loss.item()
+            losses_train_step.append(loss.item())
             batch_iterator.set_postfix({"loss": f"{loss.item():6.3f}"})
             loss.backward()
             optimizer.step()
@@ -107,6 +109,7 @@ def train(config):
             optimizer.zero_grad(set_to_none=True)
 
             global_step += 1
+            break
 
         # val
         with torch.no_grad():
@@ -129,20 +132,32 @@ def train(config):
                 
                 loss = loss_fn(logits.view(-1, tokenizer.get_vocab_size()), label.view(-1))
                 sum_loss_val += loss.item()
+                losses_val_step.append(loss.item())
                 batch_iterator.set_postfix({"loss": f"{loss.item():6.3f}"})
+                break
 
         losses_train.append(sum_loss_train / len(train_dataloader))
         losses_val.append(sum_loss_val / len(val_dataloader))
 
     # save model
-    save_model(
-        model=model,
-        epoch=epoch,
-        global_step=global_step,
-        optimizer=optimizer,
-        lr_scheduler=lr_scheduler,
-        config=config
-    )
+    if config["pretrain"]:
+        save_bart_model(
+            model=model,
+            epoch=epoch,
+            global_step=global_step,
+            optimizer=optimizer,
+            lr_scheduler=lr_scheduler,
+            config=config
+        )
+    else:
+        save_model(
+            model=model,
+            epoch=epoch,
+            global_step=global_step,
+            optimizer=optimizer,
+            lr_scheduler=lr_scheduler,
+            config=config
+        )
 
     # save config
     save_config(
@@ -151,20 +166,33 @@ def train(config):
     )
 
     # draw graph loss
-    # train
+    # train and val
+    draw_multi_graph(
+        config=config,
+        xlabel="Value Loss",
+        ylabel="Epoch",
+        title="Loss",
+        all_data=[
+            (losses_train, "Train"),
+            (losses_val, "Val")
+        ]
+    )
+    # train step
     draw_graph(
         config=config,
         title="Loss train",
         xlabel="Loss",
         ylabel="Epoch",
-        data=losses_train
+        data=losses_train_step
     )
 
-    # val
+    # val step
     draw_graph(
         config=config,
         title="Loss val",
         xlabel="Loss",
         ylabel="Epoch",
-        data=losses_val
+        data=losses_val_step
     )
+    #debug
+    return model

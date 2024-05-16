@@ -68,6 +68,22 @@ def draw_graph(config, title, xlabel, ylabel, data):
     plt.show()
     plt.close()
 
+# figures
+def draw_multi_graph(config, title, xlabel, ylabel, all_data):
+    save_path = join_base(config['log_dir'], f"/{title}.png")
+    for data, info in all_data:
+        x = list(range(len(data)))
+        plt.plot(x, data, label=info)
+        # add multiple legends
+        plt.legend()
+
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.savefig(save_path)
+    plt.show()
+    plt.close()
+
 def figure_list_to_csv(config, column_names, data, name_csv):
     obj = {}
     for i in range(len(column_names)):
