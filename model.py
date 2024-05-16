@@ -6,7 +6,7 @@ from .utils import get_weights_file_path
 import json
 
 # get model config
-def get_bart_config(config: dict, tokenizer: ByteLevelBPETokenizer):
+def get_bart_config(config: dict, tokenizer):
     # BART config
     bart_config = BartConfig(
         d_model=config["d_model"],
@@ -40,7 +40,7 @@ def get_bart_config(config: dict, tokenizer: ByteLevelBPETokenizer):
     return bart_config
 
 # get model
-def get_bart_model(config: dict, tokenizer: ByteLevelBPETokenizer):
+def get_bart_model(config: dict, tokenizer):
     bart_config = get_bart_config(config, tokenizer)
     model = CustomBartModel(bart_config, tokenizer)
     if not model:
@@ -72,7 +72,7 @@ def save_config(config: dict, epoch: int):
 
 # custom BartModel
 class CustomBartModel(nn.Module):
-    def __init__(self, config: BartConfig, tokenizer: ByteLevelBPETokenizer):
+    def __init__(self, config: BartConfig, tokenizer):
         super().__init__()
         self.config = config
         self.bart_model = BartModel(config)
