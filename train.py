@@ -150,14 +150,15 @@ def train(config):
             config=config,
             save_model="bart"
         )
-    save_model(
-        model=model,
-        epoch=config['epochs'],
-        global_step=global_step,
-        optimizer=optimizer,
-        lr_scheduler=lr_scheduler,
-        config=config
-    )
+    else:
+        save_model(
+            model=model,
+            epoch=config['epochs'],
+            global_step=global_step,
+            optimizer=optimizer,
+            lr_scheduler=lr_scheduler,
+            config=config
+        )
 
     # save config
     save_config(
