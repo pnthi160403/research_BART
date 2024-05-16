@@ -60,20 +60,6 @@ def save_model(model, epoch, global_step, optimizer, lr_scheduler, config):
     
     print(f"Saved model at {model_filename}")
 
-# save bart model
-def save_bart_model(model, epoch, global_step, optimizer, lr_scheduler, config):
-    model_filename = get_weights_file_path(config, f"{epoch:02d}")
-    bart_model = model.bart_model
-    torch.save({
-        "epoch": epoch,
-        "global_step": global_step,
-        "model_state_dict": model.state_dict(),
-        "optimizer_state_dict": optimizer.state_dict(),
-        "lr_scheduler_state_dict": lr_scheduler.state_dict()
-    }, model_filename)
-    
-    print(f"Saved model at {model_filename}")
-
 # save config
 def save_config(config: dict, epoch: int):
     config_filename = f"{config['model_folder']}/config_{epoch:02d}.json"

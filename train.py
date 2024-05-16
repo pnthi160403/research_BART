@@ -2,7 +2,7 @@ import torch
 import torch
 from tqdm import tqdm
 
-from .model import get_bart_model, save_model, save_config, save_bart_model
+from .model import get_bart_model, save_model, save_config
 from .prepare_dataset import get_dataloader, read_tokenizer
 from .utils import set_seed, create_dirs, lambda_lr, get_weights_file_path, weights_file_path, draw_graph, draw_multi_graph
 
@@ -141,8 +141,8 @@ def train(config):
 
     # save model
     if config["pretrain"]:
-        save_bart_model(
-            model=model,
+        save_model(
+            model=model.bart_model,
             epoch=epoch,
             global_step=global_step,
             optimizer=optimizer,
@@ -194,5 +194,3 @@ def train(config):
         ylabel="Epoch",
         data=losses_val_step
     )
-    #debug
-    return model
