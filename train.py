@@ -143,7 +143,7 @@ def train(config):
     if config["pretrain"]:
         save_model(
             model=model.bart_model,
-            epoch=epoch,
+            epoch=config['epochs'],
             global_step=global_step,
             optimizer=optimizer,
             lr_scheduler=lr_scheduler,
@@ -152,7 +152,7 @@ def train(config):
         )
     save_model(
         model=model,
-        epoch=epoch,
+        epoch=config['epochs'],
         global_step=global_step,
         optimizer=optimizer,
         lr_scheduler=lr_scheduler,
