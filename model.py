@@ -10,7 +10,7 @@ def get_bart_config(config: dict, tokenizer):
     # BART config
     bart_config = BartConfig(
         d_model=config["d_model"],
-        encoder_layers=config["encoder_layes"],
+        encoder_layers=config["encoder_layers"],
         decoder_layers=config["decoder_layers"],
         encoder_attention_heads=config["encoder_attention_heads"],
         decoder_attention_heads=config["decoder_attention_heads"],
