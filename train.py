@@ -109,6 +109,7 @@ def train(config):
             optimizer.zero_grad(set_to_none=True)
 
             global_step += 1
+            break
 
         # val
         with torch.no_grad():
@@ -133,6 +134,7 @@ def train(config):
                 sum_loss_val += loss.item()
                 losses_val_step.append(loss.item())
                 batch_iterator.set_postfix({"loss": f"{loss.item():6.3f}"})
+                break
 
         losses_train.append(sum_loss_train / len(train_dataloader))
         losses_val.append(sum_loss_val / len(val_dataloader))
@@ -145,17 +147,17 @@ def train(config):
             global_step=global_step,
             optimizer=optimizer,
             lr_scheduler=lr_scheduler,
-            config=config
+            config=config,
+            save_model="bart"
         )
-    else:
-        save_model(
-            model=model,
-            epoch=epoch,
-            global_step=global_step,
-            optimizer=optimizer,
-            lr_scheduler=lr_scheduler,
-            config=config
-        )
+    save_model(
+        model=model,
+        epoch=epoch,
+        global_step=global_step,
+        optimizer=optimizer,
+        lr_scheduler=lr_scheduler,
+        config=config
+    )
 
     # save config
     save_config(

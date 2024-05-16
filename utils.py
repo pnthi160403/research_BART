@@ -33,14 +33,22 @@ def create_dirs(config: dict, dirs: list):
     print("====================================")
 
 # file path
-def get_weights_file_path(config, epoch: str):
-    model_folder = f"{config['model_folder']}"
-    model_filename = f"{config['model_basename']}{epoch}.pt"
+def get_weights_file_path(config, epoch: str, model="model"):
+    if model == "bart":
+        model_folder = f"{config['model_folder']}"
+        model_filename = f"{config['model_bart_basename']}{epoch}.pt"
+    else:
+        model_folder = f"{config['model_folder']}"
+        model_filename = f"{config['model_basename']}{epoch}.pt"
     return str(Path('.') / model_folder / model_filename)
 
-def weights_file_path(config):
-    model_folder = f"{config['model_folder']}"
-    model_filename = f"{config['model_basename']}*"
+def weights_file_path(config, model="model"):
+    if model == "bart":
+        model_folder = f"{config['model_folder']}"
+        model_filename = f"{config['model_bart_basename']}*"
+    else:
+        model_folder = f"{config['model_folder']}"
+        model_filename = f"{config['model_basename']}*"
     weights_files = list(Path(model_folder).glob(model_filename))
     if len(weights_files) == 0:
         return None

@@ -48,15 +48,25 @@ def get_bart_model(config: dict, tokenizer: ByteLevelBPETokenizer):
     return model
 
 # save model
-def save_model(model, epoch, global_step, optimizer, lr_scheduler, config):
-    model_filename = get_weights_file_path(config, f"{epoch:02d}")
-    torch.save({
-        "epoch": epoch,
-        "global_step": global_step,
-        "model_state_dict": model.state_dict(),
-        "optimizer_state_dict": optimizer.state_dict(),
-        "lr_scheduler_state_dict": lr_scheduler.state_dict()
-    }, model_filename)
+def save_model(model, epoch, global_step, optimizer, lr_scheduler, config, save_model="model"):
+    if save_model == "bart":
+        model_filename = get_weights_file_path(config, f"{epoch:02d}", "bart")
+        torch.save({
+            "epoch": epoch,
+            "global_step": global_step,
+            "model_state_dict": model.bart_model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+            "lr_scheduler_state_dict": lr_scheduler.state_dict()
+        }, model_filename)
+    else:
+        model_filename = get_weights_file_path(config, f"{epoch:02d}")
+        torch.save({
+            "epoch": epoch,
+            "global_step": global_step,
+            "model_state_dict": model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+            "lr_scheduler_state_dict": lr_scheduler.state_dict()
+        }, model_filename)
     
     print(f"Saved model at {model_filename}")
 
