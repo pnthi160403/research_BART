@@ -309,7 +309,7 @@ class CustomBartSeq2seq(nn.Module):
         embed_out = self.pos_emb(embed_out)
         inputs_embeds = self.encoder(
             src=embed_out,
-            src_key_padding_mask=attention_mask == 0
+            src_key_padding_mask=(attention_mask == 0).type(torch.bool)
         )
         outputs = self.bart_model(
             attention_mask=attention_mask,
@@ -330,7 +330,7 @@ class CustomBartSeq2seq(nn.Module):
         embed_out = self.pos_emb(embed_out)
         inputs_embeds = self.encoder(
             src=embed_out,
-            src_key_padding_mask=attention_mask == 0
+            src_key_padding_mask=(attention_mask == 0).type(torch.bool)
         )
         return self.bart_model.encoder(
             inputs_embeds=inputs_embeds,
