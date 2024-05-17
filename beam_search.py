@@ -31,7 +31,7 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
         attention_mask=src_attention_mask
     ).last_hidden_state
 
-    print(f"encoder_output: {encoder_output.size()}")
+    print(f"encoder_output: {encoder_output}")
     
     decoder_initial_input = torch.empty(1, 1).fill_(sos_token_id).type_as(src).to(device)
     
@@ -55,7 +55,7 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
                 encoder_hidden_states=encoder_output,
                 encoder_attention_mask=src_attention_mask
             ).last_hidden_state
-            print(f"decoder_out: {decoder_out.size()}")
+            print(f"decoder_out: {decoder_out}")
             
             out = model.out(decoder_out)
             prob = torch.nn.functional.log_softmax(out[:, -1], dim=1)
