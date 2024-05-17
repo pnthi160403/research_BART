@@ -10,7 +10,7 @@ def train(config):
     # create dirs
     create_dirs(
         config=config,
-        dirs=["model_folder", "log_dir", "tokenizer_dir"]
+        dirs=["model_folder", "log_dir"]
     )
     
     # set seed
