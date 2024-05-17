@@ -112,6 +112,7 @@ def train(config):
             optimizer.zero_grad(set_to_none=True)
 
             global_step += 1
+            break
 
         # val
         with torch.no_grad():
@@ -136,6 +137,7 @@ def train(config):
                 sum_loss_val += loss.item()
                 losses_val_step.append(loss.item())
                 batch_iterator.set_postfix({"loss": f"{loss.item():6.3f}"})
+                break
 
         losses_train.append(sum_loss_train / len(train_dataloader))
         losses_val.append(sum_loss_val / len(val_dataloader))
