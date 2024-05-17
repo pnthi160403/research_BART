@@ -344,9 +344,12 @@ class CustomBartSeq2seq(nn.Module):
         encoder_hidden_states,
         encoder_attention_mask
     ):
-        return self.bart_model.decoder(
+        outputs = self.bart_model.decoder(
             input_ids=input_ids,
             attention_mask=attention_mask,
             encoder_hidden_states=encoder_hidden_states,
             encoder_attention_mask=encoder_attention_mask
         )
+        last_hidden_state = outputs.last_hidden_state
+        logits = self.out(last_hidden_state)
+        return logits
