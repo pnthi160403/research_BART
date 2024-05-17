@@ -181,6 +181,8 @@ def first_train_bart_seq2seq(config, model):
     model.bart_model.encoder.layers[0].self_attn.k_proj.weight.requires_grad = True
     model.bart_model.encoder.layers[0].self_attn.q_proj.weight.requires_grad = True
     model.bart_model.encoder.layers[0].self_attn.v_proj.weight.requires_grad = True
+    model.bart_model.encoder.layers[0].self_attn.out_proj.weight.requires_grad = True
+    model.bart_model.encoder.embed_positions.weight.requires_grad = True
     return model
 
 def second_train_bart_seq2seq(config, model):
