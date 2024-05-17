@@ -7,6 +7,12 @@ def sequence_length_penalty(length: int, alpha: float=0.6) -> float:
 # beam search
 def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
     model.eval()
+
+    assert tokenizer_src.token_to_id("<s>") == tokenizer_tgt.token_to_id("<s>")  # special token id
+    assert tokenizer_src.token_to_id("</s>") == tokenizer_tgt.token_to_id("</s>")  # special token id
+    assert tokenizer_src.token_to_id("<pad>") == tokenizer_tgt.token_to_id("<pad>")
+    assert tokenizer_src.token_to_id("<unk>") == tokenizer_tgt.token_to_id("<unk>")
+    assert tokenizer_src.token_to_id("<mask>") == tokenizer_tgt.token_to_id("<mask>")
     
     # special token id
     sos_token_id = tokenizer_src.token_to_id("<s>")
