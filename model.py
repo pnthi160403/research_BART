@@ -306,7 +306,11 @@ class CustomBartSeq2seq(nn.Module):
         decoder_attention_mask,
     ):
         embed_out = self.input_emb(input_ids)
-        inputs_embeds = self.pos_emb(embed_out)
+        embed_out = self.pos_emb(embed_out)
+        inputs_embeds = self.encoder(
+            src=embed_out,
+            src_key_padding_mask=attention_mask == 0
+        )
         outputs = self.bart_model(
             attention_mask=attention_mask,
             inputs_embeds=inputs_embeds,
@@ -323,10 +327,14 @@ class CustomBartSeq2seq(nn.Module):
         attention_mask
     ):
         embed_out = self.input_emb(input_ids)
-        inputs_embeds = self.pos_emb(embed_out)
+        embed_out = self.pos_emb(embed_out)
+        inputs_embeds = self.encoder(
+            src=embed_out,
+            src_key_padding_mask=attention_mask == 0
+        )
         return self.bart_model.encoder(
             inputs_embeds=inputs_embeds,
-            attention_mask=attention_mask,
+            attention_mask=attention_mask
         )
     
     def get_decoder_out(
@@ -336,10 +344,8 @@ class CustomBartSeq2seq(nn.Module):
         encoder_hidden_states,
         encoder_attention_mask
     ):
-        embed_out = self.input_emb(input_ids)
-        inputs_embeds = self.pos_emb(embed_out)
         return self.bart_model.decoder(
-            inputs_embeds=inputs_embeds,
+            input_ids=input_ids,
             attention_mask=attention_mask,
             encoder_hidden_states=encoder_hidden_states,
             encoder_attention_mask=encoder_attention_mask

@@ -30,7 +30,6 @@ def test(config):
 
     state = torch.load(model_filename)
     model.load_state_dict(state['model_state_dict'])
-    print(model)
 
     for beam_size in beams:
         bleus, recall, precision, f_05 = validate(
