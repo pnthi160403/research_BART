@@ -53,21 +53,28 @@ def read_ds(config: dict):
 
 def read_tokenizer(config: dict):
     if config["use_tokenizer"] == "byte-level-bpe":
-        return read_tokenizer_byte_level_bpe(config)
+        tokenizer_src, tokenizer_tgt = read_tokenizer_byte_level_bpe(config)
     if config["use_tokenizer"] == "wordpiece":
-        return read_wordpiece_tokenizer(config)
+        tokenizer_src, tokenizer_tgt = read_wordpiece_tokenizer(config)
     if config["use_tokenizer"] == "wordlevel":
-        return read_wordlevel_tokenizer(config)
-
-    ValueError("Tokenizer not found")
+        tokenizer_src, tokenizer_tgt = read_wordlevel_tokenizer(config)
+    print("Read tokenizer successfully")
+    print("Check tokenizer src")
+    print(tokenizer_src)
+    print("Check tokenizer tgt")
+    print(tokenizer_tgt)
+    print("====================================")
+    
+    return tokenizer_src, tokenizer_tgt
 
 # custom dataset
 class CustomDataset(Dataset):
 
-    def __init__(self, ds: pd.DataFrame, tokenizer, config: dict):
+    def __init__(self, ds: pd.DataFrame, tokenizer_src, tokenizer_tgt, config: dict):
         super().__init__()
         self.ds = ds
-        self.tokenizer = tokenizer
+        self.tokenizer_src = tokenizer_src
+        self.tokenizer_tgt = tokenizer_tgt
         self.src_lang = config["lang_src"]
         self.tgt_lang = config["lang_tgt"]
 
@@ -78,12 +85,12 @@ class CustomDataset(Dataset):
         src_target_pair = self.ds.iloc[idx]
         src_text = src_target_pair[self.src_lang]
         tgt_text = src_target_pair[self.tgt_lang]       
-        sos_token_id = self.tokenizer.token_to_id("<s>")
-        eos_token_id = self.tokenizer.token_to_id("</s>")
+        sos_token_id = self.tokenizer_tgt.token_to_id("<s>")
+        eos_token_id = self.tokenizer_tgt.token_to_id("</s>")
 
-        src = [sos_token_id] + self.tokenizer.encode(src_text).ids + [eos_token_id]
-        tgt = [sos_token_id] + self.tokenizer.encode(tgt_text).ids
-        label = self.tokenizer.encode(tgt_text).ids + [eos_token_id]
+        src = [sos_token_id] + self.tokenizer_src.encode(src_text).ids + [eos_token_id]
+        tgt = [sos_token_id] + self.tokenizer_tgt.encode(tgt_text).ids
+        label = self.tokenizer_tgt.encode(tgt_text).ids + [eos_token_id]
         
         return {
             'src': src, # <s>...</s>
@@ -95,8 +102,8 @@ class CustomDataset(Dataset):
 
 # collate function
 # define collate function
-def collate_fn(batch, tokenizer):
-    pad_token_id = tokenizer.token_to_id("<pad>")
+def collate_fn(batch, tokenizer_src, tokenizer_tgt):
+    pad_token_id = tokenizer_src.token_to_id("<pad>")
     
     src_batch, tgt_batch, label_batch, src_text_batch, tgt_text_batch = [], [], [], [], []
     for item in batch:
@@ -127,7 +134,7 @@ def collate_fn(batch, tokenizer):
 
 # get dataloader dataset
 def get_dataloader(config: dict):
-    tokenizer = read_tokenizer(config)
+    tokenizer_src, tokenizer_tgt = read_tokenizer(config)
     train_ds, val_ds, test_ds = read_ds(config)
 
     batch_train = config['batch_train']
@@ -139,19 +146,22 @@ def get_dataloader(config: dict):
 
     train_dataset = CustomDataset(
         ds=train_ds,
-        tokenizer=tokenizer,
+        tokenizer_src=tokenizer_src,
+        tokenizer_tgt=tokenizer_tgt,
         config=config
     )
 
     val_dataset = CustomDataset(
         ds=val_ds,
-        tokenizer=tokenizer,
+        tokenizer_src=tokenizer_src,
+        tokenizer_tgt=tokenizer_tgt,
         config=config
     )
 
     test_dataset = CustomDataset(
         ds=test_ds,
-        tokenizer=tokenizer,
+        tokenizer_src=tokenizer_src,
+        tokenizer_tgt=tokenizer_tgt,
         config=config
     )
 
@@ -159,21 +169,33 @@ def get_dataloader(config: dict):
         train_dataset,
         batch_size=batch_train,
         shuffle=True,
-        collate_fn=lambda x: collate_fn(x, tokenizer)
+        collate_fn=lambda batch: collate_fn(
+            batch=batch,
+            tokenizer_src=tokenizer_src,
+            tokenizer_tgt=tokenizer_tgt,
+        )
     )
 
     val_dataloader = DataLoader(
         val_dataset,
         batch_size=batch_val,
         shuffle=False,
-        collate_fn=lambda x: collate_fn(x, tokenizer)
+        collate_fn=lambda batch: collate_fn(
+            batch=batch,
+            tokenizer_src=tokenizer_src,
+            tokenizer_tgt=tokenizer_tgt,
+        )
     )
 
     test_dataloader = DataLoader(
         test_dataset,
         batch_size=batch_test,
         shuffle=False,
-        collate_fn=lambda x: collate_fn(x, tokenizer)
+        collate_fn=lambda batch: collate_fn(
+            batch=batch,
+            tokenizer_src=tokenizer_src,
+            tokenizer_tgt=tokenizer_tgt,
+        )
     )
 
     ValueError("Dataloader not found")

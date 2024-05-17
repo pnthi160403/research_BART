@@ -12,7 +12,11 @@ def get_config(base_dir: str=None):
         config["base_dir"] = "./"
     else:
         config["base_dir"] = base_dir
-    config["tokenizer_dir"] = None
+
+    # Tokenizer
+    config['tokenizer_tgt'] = None
+    config['tokenizer_src'] = None
+    config["use_tokenizer"] = "wordpiece"
     config["special_tokens"] = [
         "<s>",
         "</s>",
@@ -20,38 +24,35 @@ def get_config(base_dir: str=None):
         "<unk>",
         "<mask>"
     ]
+    config["vocab_size"] = 30000
+    config['min_frequency'] = 2
 
-    config["num_train"] = 200000
-    config["num_test"] = 1000
-    config["ratio_mask"] = 0.15
-    config["pretrained_tokenizer"] = False
+    # Directories
     config["model_folder"] = join_base(config["base_dir"], "/model")
     config["model_basename"] = "model_"
     config["model_bart_basename"] = "bart_model_"
     config["preload"] = "latest"
     config["data"] = join_base(config["base_dir"], "/data")
     config["log_dir"] = join_base(config["base_dir"], "/log")
+
+    # Dataset
+    config["lang_src"] = "noise_vi"
+    config["lang_tgt"] = "vi"
     config["train_ds"] = None
     config["val_ds"] = None
     config["test_ds"] = None
     config["corpus"] = None
-    config["vocab_size"] = 30000
-    config['min_frequency'] = 2
     config["batch_train"] = 32
     config["batch_val"] = 32
     config["batch_test"] = 1
     config["epochs"] = 3
     config["max_len"] = 100
 
-    # Pretrain
-    config["pretrain"] = False
+    # Train
+    config["model_train"] = "bart"
+    config["step_train"] = None
+    config["preload"] = "latest"
 
-    # Tokenizer
-    config["use_tokenizer"] = "wordpiece"
-
-    # Dataset
-    config["lang_src"] = "noise_vi"
-    config["lang_tgt"] = "vi"
 
     # BART config model
     config["d_model"] = 768
@@ -72,6 +73,7 @@ def get_config(base_dir: str=None):
     config["decoder_layerdrop"] = 0.0 # Dropout decoder layer
     config["scale_embedding"] = False # Scale embeddings with sqrt(d_model)
     config["num_beams"] = 4
+    config["checkpoint_bart_model"] = None
 
     # Optimizer Adam
     config["weight_decay"] = 0
@@ -82,9 +84,6 @@ def get_config(base_dir: str=None):
 
     # Scheduler (Noam decay)
     config["warmup_steps"] = 4000
-
-    # Different
-    config["preload"] = "latest"
 
     # Device
     config["device"] = "cuda" if torch.cuda.is_available() else "cpu"

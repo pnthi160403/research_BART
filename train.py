@@ -2,7 +2,7 @@ import torch
 import torch
 from tqdm import tqdm
 
-from .model import get_bart_model, save_model, save_config
+from .model import save_model, save_config, GET_MODEL
 from .prepare_dataset import get_dataloader, read_tokenizer
 from .utils import set_seed, create_dirs, lambda_lr, get_weights_file_path, weights_file_path, draw_graph, draw_multi_graph
 
@@ -20,12 +20,15 @@ def train(config):
     device = config["device"]
 
     # read tokenizer
-    tokenizer = read_tokenizer(config)
+    tokenizer_src, tokenizer_tgt = read_tokenizer(config=config)
 
     # BART model
-    model = get_bart_model(
+    model_train = config["model_train"]
+    get_model = GET_MODEL[model_train]
+    model = get_model(
         config=config,
-        tokenizer=tokenizer,
+        tokenizer_src=tokenizer_src,
+        tokenizer_tgt=tokenizer_tgt
     ).to(device)
 
     # get dataloaders
@@ -35,7 +38,7 @@ def train(config):
 
     # optimizer
     optimizer = torch.optim.Adam(
-        model.parameters(),
+        filter(lambda p: p.requires_grad, model.parameters()),
         lr=config["lr"],
         eps=config["eps"],
         weight_decay=config["weight_decay"],
@@ -71,7 +74,7 @@ def train(config):
 
     # loss function
     loss_fn = torch.nn.CrossEntropyLoss(
-        ignore_index=tokenizer.token_to_id("<pad>"),
+        ignore_index=tokenizer_src.token_to_id("<pad>"),
         label_smoothing=config["label_smoothing"],
     ).to(device)
 
@@ -88,8 +91,8 @@ def train(config):
         for batch in batch_iterator:
             src = batch["src"].to(device)
             tgt = batch["tgt"].to(device)
-            src_attention_mask = (src != tokenizer.token_to_id("<pad>")).type(torch.int64)
-            tgt_attention_mask = (tgt != tokenizer.token_to_id("<pad>")).type(torch.int64)
+            src_attention_mask = (src != tokenizer_src.token_to_id("<pad>")).type(torch.int64)
+            tgt_attention_mask = (tgt != tokenizer_tgt.token_to_id("<pad>")).type(torch.int64)
             label = batch['label'].to(device)
             
             logits = model(
@@ -99,7 +102,7 @@ def train(config):
                 decoder_attention_mask=tgt_attention_mask,
             )
             
-            loss = loss_fn(logits.view(-1, tokenizer.get_vocab_size()), label.view(-1))
+            loss = loss_fn(logits.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
             sum_loss_train += loss.item()
             losses_train_step.append(loss.item())
             batch_iterator.set_postfix({"loss": f"{loss.item():6.3f}"})
@@ -109,6 +112,7 @@ def train(config):
             optimizer.zero_grad(set_to_none=True)
 
             global_step += 1
+            break
 
         # val
         with torch.no_grad():
@@ -118,8 +122,8 @@ def train(config):
             for batch in batch_iterator:
                 src = batch["src"].to(device)
                 tgt = batch["tgt"].to(device)
-                src_attention_mask = (src != tokenizer.token_to_id("<pad>")).type(torch.int64)
-                tgt_attention_mask = (tgt != tokenizer.token_to_id("<pad>")).type(torch.int64)
+                src_attention_mask = (src != tokenizer_src.token_to_id("<pad>")).type(torch.int64)
+                tgt_attention_mask = (tgt != tokenizer_tgt.token_to_id("<pad>")).type(torch.int64)
                 label = batch['label'].to(device)
                 
                 logits = model(
@@ -129,10 +133,11 @@ def train(config):
                     decoder_attention_mask=tgt_attention_mask,
                 )
                 
-                loss = loss_fn(logits.view(-1, tokenizer.get_vocab_size()), label.view(-1))
+                loss = loss_fn(logits.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
                 sum_loss_val += loss.item()
                 losses_val_step.append(loss.item())
                 batch_iterator.set_postfix({"loss": f"{loss.item():6.3f}"})
+                break
 
         losses_train.append(sum_loss_train / len(train_dataloader))
         losses_val.append(sum_loss_val / len(val_dataloader))

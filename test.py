@@ -1,7 +1,7 @@
 import torch
 from .utils import set_seed, figure_list_to_csv, weights_file_path
 from .prepare_dataset import get_dataloader, read_tokenizer
-from .model import get_bart_model
+from .model import GET_MODEL
 from .val import validate
 
 def test(config):
@@ -11,15 +11,18 @@ def test(config):
     beams = config["beams"]
 
     # read tokenizer
-    tokenizer = read_tokenizer(config=config)
+    tokenizer_src, tokenizer_tgt = read_tokenizer(config)
 
     # get dataloader
     train_dataloader, val_dataloader, test_dataloader = get_dataloader(config=config)
 
     # get model
-    model = get_bart_model(
+    model_train = config["model_train"]
+    get_model = GET_MODEL[model_train]
+    model = get_model(
         config=config,
-        tokenizer=tokenizer
+        tokenizer_src=tokenizer_src,
+        tokenizer_tgt=tokenizer_tgt
     ).to(device)
         
     model_filenames = weights_file_path(config=config)

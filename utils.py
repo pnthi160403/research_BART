@@ -133,58 +133,55 @@ def calc_bleu_score(refs, cands):
 # Tokenizer
 # read tokenizer byte level bpe
 def read_tokenizer_byte_level_bpe(config: dict):
-    if not config["tokenizer_dir"] or not os.path.exists(f"{config['tokenizer_dir']}/vocab.json") or not os.path.exists(f"{config['tokenizer_dir']}/merges.txt"):
+    tokenizer_src_path = config["tokenizer_src"]
+    tokenizer_tgt_path = config["tokenizer_tgt"]
+    
+    tokenizer_src = ByteLevelBPETokenizer.from_file(
+        f"{tokenizer_src_path}/vocab.json",
+        f"{tokenizer_src_path}/merges.txt"
+    )
+    tokenizer_tgt = ByteLevelBPETokenizer.from_file(
+        f"{tokenizer_tgt_path}/vocab.json",
+        f"{tokenizer_tgt_path}/merges.txt"
+    )
+
+    tokenizer_src.add_special_tokens(config["special_tokens"])
+
+    if not tokenizer_src or not tokenizer_tgt:
         ValueError("Tokenizer not found")
 
-    if config["use_tokenizer"] == "byte-level-bpe":
-        tokenizer = ByteLevelBPETokenizer.from_file(
-            f"{config['tokenizer_dir']}/vocab.json",
-            f"{config['tokenizer_dir']}/merges.txt"
-        )
-    if config["use_tokenizer"] == "wordpiece":
-        tokenizer = Tokenizer.from_file(
-            f"{config['tokenizer_dir']}/tokenizer.json"
-        )
-
-    tokenizer.add_special_tokens(config["special_tokens"])
-
-    if not tokenizer:
-        ValueError("Tokenizer not found")
-
-    print("Read tokenizer successfully")
-    print("Check tokenizer")
-    print(tokenizer)
-    print("====================================")
-
-    return tokenizer
+    return tokenizer_src, tokenizer_tgt
 
 # read wordpice tokenizer
 def read_wordpiece_tokenizer(config: dict):
-    tokenizer = Tokenizer.from_file(
-        f"{config['tokenizer_dir']}/tokenizer.json"
-    )
+    tokenizer_src_path = config["tokenizer_src"]
+    tokenizer_tgt_path = config["tokenizer_tgt"]
+    tokenizer_src = Tokenizer.from_file(tokenizer_src_path)
+    tokenizer_tgt = Tokenizer.from_file(tokenizer_tgt_path)
 
-    if not tokenizer:
+    if not tokenizer_src or not tokenizer_tgt:
         ValueError("Tokenizer not found")
 
-    print("Read tokenizer successfully")
-    print("Check tokenizer")
-    print(tokenizer)
-    print("====================================")
-
-    return tokenizer
+    return tokenizer_src, tokenizer_tgt
 
 def read_wordlevel_tokenizer(config: dict):
-    tokenizer = Tokenizer.from_file(
-        f"{config['tokenizer_dir']}/tokenizer.json"
-    )
+    tokenizer_src_path = config["tokenizer_src"]
+    tokenizer_tgt_path = config["tokenizer_tgt"]
+    tokenizer_src = Tokenizer.from_file(tokenizer_src_path)
+    tokenizer_tgt = Tokenizer.from_file(tokenizer_tgt_path)
 
-    if not tokenizer:
+    if not tokenizer_src or not tokenizer_tgt:
         ValueError("Tokenizer not found")
 
-    print("Read tokenizer successfully")
-    print("Check tokenizer")
-    print(tokenizer)
-    print("====================================")
+    return tokenizer_src, tokenizer_tgt
 
-    return tokenizer
+def first_train_bart_seq2seq(config, model):
+    for param in model.bart_model.parameters():
+        param.requires_grad = False
+    model.bart_model.encoder.layers[0].self_attn.k_proj.weight.requires_grad = True
+    model.bart_model.encoder.layers[0].self_attn.q_proj.weight.requires_grad = True
+    model.bart_model.encoder.layers[0].self_attn.v_proj.weight.requires_grad = True
+    return model
+
+def second_train_bart_seq2seq(config, model):
+    return model

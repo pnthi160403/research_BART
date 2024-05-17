@@ -10,10 +10,11 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
     device = config["device"]
     
     # read tokenizer
-    tokenizer = read_tokenizer(config=config)
-    vocab_size=tokenizer.get_vocab_size()
+    tokenizer_src, tokenizer_tgt = read_tokenizer(config=config)
+        
+    vocab_size=tokenizer_tgt.get_vocab_size()
     print("Vocab size: ", vocab_size)
-    pad_token_id = tokenizer.token_to_id("<pad>")
+    pad_token_id = tokenizer_src.token_to_id("<pad>")
 
     with torch.no_grad():
 
@@ -35,14 +36,14 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
                 model=model,
                 config=config,
                 beam_size=beam_size,
-                tokenizer=tokenizer,
+                tokenizer_src=tokenizer_src,
+                tokenizer_tgt=tokenizer_tgt,
                 src=src_text
             )
             
-            pred_text = tokenizer.decode(pred_ids.detach().cpu().numpy())
-            pred_ids = torch.tensor(tokenizer.encode(pred_text).ids, dtype=torch.int64).to(device)
-            label_ids = torch.tensor(tokenizer.encode(tgt_text).ids, dtype=torch.int64).to(device)
-            
+            pred_text = tokenizer_tgt.decode(pred_ids.detach().cpu().numpy())
+            pred_ids = torch.tensor(tokenizer_tgt.encode(pred_text).ids, dtype=torch.int64).to(device)
+            label_ids = torch.tensor(tokenizer_tgt.encode(tgt_text).ids, dtype=torch.int64).to(device)
 
             padding = pad_sequence([label_ids, pred_ids], padding_value=pad_token_id, batch_first=True)
             label_ids = padding[0]
@@ -51,9 +52,9 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
             labels.append(label_ids)
             preds.append(pred_ids)
 
-            source_texts.append(tokenizer.encode(src_text).tokens)
-            expected.append([tokenizer.encode(tgt_text).tokens])
-            predicted.append(tokenizer.encode(pred_text).tokens)
+            source_texts.append(tokenizer_src.encode(src_text).tokens)
+            expected.append([tokenizer_tgt.encode(tgt_text).tokens])
+            predicted.append(tokenizer_tgt.encode(pred_text).tokens)
 
             count += 1
 
@@ -64,10 +65,10 @@ def validate(model, config, beam_size, val_dataloader, num_example=5):
                 print(f"{f'SOURCE: ':>12}{src_text}")
                 print(f"{f'TARGET: ':>12}{tgt_text}")
                 print(f"{f'PREDICTED: ':>12}{pred_text}")
-                print(f"{f'TOKENS TARGET: ':>12}{[tokenizer.encode(tgt_text).tokens]}")
-                print(f"{f'TOKENS PREDICTED: ':>12}{tokenizer.encode(pred_text).tokens}")
-                scores = calc_bleu_score(refs=[[tokenizer.encode(tgt_text).tokens]],
-                                        cands=[tokenizer.encode(pred_text).tokens])
+                print(f"{f'TOKENS TARGET: ':>12}{[tokenizer_tgt.encode(tgt_text).tokens]}")
+                print(f"{f'TOKENS PREDICTED: ':>12}{tokenizer_tgt.encode(pred_text).tokens}")
+                scores = calc_bleu_score(refs=[[tokenizer_tgt.encode(tgt_text).tokens]],
+                                        cands=[tokenizer_tgt.encode(pred_text).tokens])
                 print(f'BLEU OF SENTENCE {count}')
                 for i in range(0, len(scores)):
                     print(f'BLEU_{i + 1}: {scores[i]}')

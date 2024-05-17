@@ -5,18 +5,18 @@ def sequence_length_penalty(length: int, alpha: float=0.6) -> float:
     return ((5 + length) / (5 + 1)) ** alpha
 
 # beam search
-def beam_search(model, config, beam_size, tokenizer, src):
+def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
     model.eval()
     
     # special token id
-    sos_token_id = tokenizer.token_to_id("<s>")
-    eos_token_id = tokenizer.token_to_id("</s>")
-    pad_token_id = tokenizer.token_to_id("<pad>")
+    sos_token_id = tokenizer_src.token_to_id("<s>")
+    eos_token_id = tokenizer_src.token_to_id("</s>")
+    pad_token_id = tokenizer_src.token_to_id("<pad>")
     
     device = config["device"]
     max_len = config["max_len"]
 
-    src = [sos_token_id] + tokenizer.encode(src).ids + [eos_token_id]
+    src = [sos_token_id] + tokenizer_src.encode(src).ids + [eos_token_id]
     src = torch.tensor(src, dtype=torch.int64).unsqueeze(0).to(device)
     src_attention_mask = (src != pad_token_id).type(torch.int64).to(device)
     
