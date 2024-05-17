@@ -52,6 +52,7 @@ def get_config(base_dir: str=None):
     config["model_train"] = "bart"
     config["step_train"] = None
     config["preload"] = "latest"
+    config["pretrain"] = False
 
 
     # BART config model
