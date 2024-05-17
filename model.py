@@ -76,6 +76,11 @@ def get_bart_model(config: dict, tokenizer_src, tokenizer_tgt):
     )
     if not model:
         ValueError("Model not found")
+
+    print("Check model")
+    print(model)
+    print("====================================================")
+
     return model
 
 # get bart model seq2seq
@@ -104,13 +109,17 @@ def get_bart_model_seq2seq(config: dict, tokenizer_src, tokenizer_tgt):
         ValueError("Model not found")
     
     step_train = config["step_train"]
-    if not step_train:
-        return model
-    else:
-        return STEP_TRAIN_BART_SEQ2SEQ[step_train](
+    if step_train:
+        model = STEP_TRAIN_BART_SEQ2SEQ[step_train](
             config=config,
             model=model
         )
+    
+    print("Check model")
+    print(model)
+    print("====================================================")
+    
+    return model
     
 GET_MODEL = {
     BART: get_bart_model,

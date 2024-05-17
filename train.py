@@ -165,7 +165,7 @@ def train(config):
     # save config
     save_config(
         config=config,
-        epoch=config["epcohs"],
+        epoch=config["epochs"],
     )
 
     # draw graph loss
