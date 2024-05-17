@@ -54,11 +54,11 @@ def get_encoder_config(config: dict, tokenizer_src, tokenizer_tgt):
 
     config_encoder = ConfigModel()
     config_encoder.d_model = config["d_model"]
-    config.nhead = config["encoder_attention_heads"]
-    config.vocab_size = tokenizer_src.get_vocab_size()
-    config.dropout = config["dropout"]
-    config.num_layers = config["encoder_layers"]
-    config.encoder_ffn_dim = config["encoder_ffn_dim"]
+    config_encoder.nhead = config["encoder_attention_heads"]
+    config_encoder.vocab_size = tokenizer_src.get_vocab_size()
+    config_encoder.dropout = config["dropout"]
+    config_encoder.num_layers = config["encoder_layers"]
+    config_encoder.encoder_ffn_dim = config["encoder_ffn_dim"]
 
     return config_encoder
 
