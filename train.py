@@ -66,7 +66,7 @@ def train(config):
         model.load_state_dict(state["model_state_dict"])
         initial_epoch = state["epoch"] + 1
         global_step = state["global_step"]
-        if config["step_train"] == "FIRST":
+        if config["continue_step"] == False:
             optimizer.load_state_dict(state["optimizer_state_dict"])
             lr_scheduler.load_state_dict(state["lr_scheduler_state_dict"])
         print(f"Loaded model from {model_filename}")

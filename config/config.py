@@ -53,6 +53,7 @@ def get_config(base_dir: str=None):
     config["step_train"] = None
     config["preload"] = "latest"
     config["pretrain"] = False
+    config["continue_step"] = False
 
 
     # BART config model
