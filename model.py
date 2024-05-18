@@ -59,6 +59,7 @@ def get_encoder_config(config: dict, tokenizer_src, tokenizer_tgt):
     config_encoder.dropout = config["dropout"]
     config_encoder.num_layers = config["encoder_layers"]
     config_encoder.encoder_ffn_dim = config["encoder_ffn_dim"]
+    config_encoder.activation = config["activation_function"]
 
     return config_encoder
 
@@ -226,6 +227,7 @@ class CustomEncoder(nn.Module):
         nhead: int=8,
         dim_feedforward: int=2048,
         dropout: float=0.1,
+        activation: str="relu",
         batch_first: bool=True,
     ):
         super(CustomEncoder, self).__init__()
@@ -234,7 +236,8 @@ class CustomEncoder(nn.Module):
             nhead=nhead,
             dropout=dropout,
             batch_first=batch_first,
-            dim_feedforward=dim_feedforward
+            dim_feedforward=dim_feedforward,
+            activation=activation
         )
         self.encoder = nn.TransformerEncoder(
             encoder_layer=encoder_layer,
