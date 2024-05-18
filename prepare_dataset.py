@@ -60,9 +60,9 @@ def read_tokenizer(config: dict):
         tokenizer_src, tokenizer_tgt = read_wordlevel_tokenizer(config)
     print("Read tokenizer successfully")
     print("Check tokenizer src")
-    print(tokenizer_src)
+    print(tokenizer_src.get_vocab_size())
     print("Check tokenizer tgt")
-    print(tokenizer_tgt)
+    print(tokenizer_tgt.get_vocab_size())
     print("====================================")
     
     return tokenizer_src, tokenizer_tgt
