@@ -70,10 +70,14 @@ def get_bart_model(config: dict, tokenizer_src, tokenizer_tgt):
         tokenizer_src=tokenizer_src,
         tokenizer_tgt=tokenizer_tgt,
     )
+    checkpoint = None
+    if config["checkpoint_bart_model"]:
+        checkpoint = config["checkpoint_bart_model"]
     model = CustomBartModel(
         config=bart_config,
         tokenizer_src=tokenizer_src,
-        tokenizer_tgt=tokenizer_tgt
+        tokenizer_tgt=tokenizer_tgt,
+        checkpoint=checkpoint,
     )
     if not model:
         ValueError("Model not found")
