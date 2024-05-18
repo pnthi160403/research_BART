@@ -63,6 +63,15 @@ def lambda_lr(global_step: int, config):
     global_step = max(global_step, 1)
     return (config["d_model"] ** -0.5) * min(global_step ** (-0.5), global_step * config["warmup_steps"] ** (-1.5))
 
+# load model state dict
+def load_model(checkpoint, model):
+    if torch.cuda.is_available():
+        state = torch.load(checkpoint)
+    else:
+        state = torch.load(checkpoint, map_location=torch.device('cpu'))
+    model.load_state_dict(state["model_state_dict"])
+    return model
+
 # figures
 def draw_graph(config, title, xlabel, ylabel, data):
     x = list(range(len(data)))

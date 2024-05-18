@@ -2,7 +2,7 @@ from tokenizers import ByteLevelBPETokenizer
 from transformers import  BartModel, BartConfig
 import torch
 import torch.nn as nn
-from .utils import get_weights_file_path, first_train_bart_seq2seq, second_train_bart_seq2seq
+from .utils import get_weights_file_path, first_train_bart_seq2seq, second_train_bart_seq2seq, load_model
 import json
 import math
 
@@ -153,10 +153,15 @@ def save_config(config: dict, epoch: int):
 # ============================================================================== MODELS ==============================================================================
 # custom BartModel
 class CustomBartModel(nn.Module):
-    def __init__(self, config: BartConfig, tokenizer_src, tokenizer_tgt):
+    def __init__(self, config: BartConfig, tokenizer_src, tokenizer_tgt, checkpoint=None):
         super().__init__()
         self.config = config
         self.bart_model = BartModel(config)
+        if checkpoint:
+            self.bart_model = load_model(
+                model=self.bart_model,
+                checkpoint=checkpoint
+            )
         self.out = nn.Linear(config.d_model, tokenizer_tgt.get_vocab_size())
         
     def forward(self,**kwargs):
@@ -280,11 +285,10 @@ class CustomBartSeq2seq(nn.Module):
         )
         # Bart Pretrained model
         self.bart_model = BartModel(config_bart)
-        if torch.cuda.is_available():
-            state = torch.load(checkpoint)
-        else:
-            state = torch.load(checkpoint, map_location=torch.device('cpu'))
-        self.bart_model.load_state_dict(state["model_state_dict"])
+        self.bart_model = load_model(
+            model=self.bart_model,
+            checkpoint=checkpoint
+        )
         # Linear Classification
         self.out = nn.Linear(config_bart.d_model, config_bart.vocab_size)
         
