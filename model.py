@@ -84,7 +84,7 @@ def get_bart_model(config: dict, tokenizer_src, tokenizer_tgt):
     if not model:
         ValueError("Model not found")
 
-    print("Check model")
+    print("Check BART model")
     print(model)
     print("====================================================")
 
@@ -122,7 +122,7 @@ def get_bart_model_seq2seq(config: dict, tokenizer_src, tokenizer_tgt):
             model=model
         )
     
-    print("Check model")
+    print("Check BART model Seq2seq")
     print(model)
     print("====================================================")
     
@@ -150,7 +150,7 @@ def get_bart_model_with_embedding(config: dict, tokenizer_src, tokenizer_tgt):
     if not model:
         ValueError("Model not found")
 
-    print("Check model")
+    print("Check BART model with embedding")
     print(model)
     print("====================================================")
 
