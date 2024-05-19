@@ -28,6 +28,10 @@ class CustomBartModelWithEmbedding(nn.Module):
             num_embeddings=self.tgt_vocab_size,
             embedding_dim=self.config.d_model
         )
+
+        # Initialize weights embeddings
+        self.inputs_embeds.apply(self.initialize_weights)
+        self.decoder_inputs_embeds.apply(self.initialize_weights)
         
         # Bart model
         self.bart_model = BartModel(config)
@@ -58,6 +62,10 @@ class CustomBartModelWithEmbedding(nn.Module):
         last_hidden_state = outputs.last_hidden_state
         logits = self.out(last_hidden_state)
         return logits
+    
+    def initialize_weights(self, layer):
+        if isinstance(layer, nn.Embedding):
+            nn.init.normal_(layer.weight, mean=0, std=self.config.init_std)
     
     def get_encoder_out(
         self,
