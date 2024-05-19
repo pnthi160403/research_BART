@@ -3,7 +3,6 @@ from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
 import torch
 import os
-import torch
 
 from .utils import read_tokenizer_byte_level_bpe, read_wordpiece_tokenizer, read_wordlevel_tokenizer
 

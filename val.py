@@ -1,7 +1,7 @@
 import torch
 from tqdm import tqdm
 from .beam_search import beam_search
-from .utils import calc_f_beta, calc_recall, calc_precision, calc_bleu_score, set_seed
+from .utils import calc_f_beta, calc_recall, calc_precision, calc_bleu_score
 from torch.nn.utils.rnn import pad_sequence
 from .prepare_dataset import read_tokenizer
 
