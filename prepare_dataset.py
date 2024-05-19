@@ -200,13 +200,5 @@ def get_dataloader(config: dict):
     ValueError("Dataloader not found")
 
     print("Get dataloader successfully")
-    print("Train dataloader")
-    print(train_dataloader)
-
-    print("Val dataloader")
-    print(val_dataloader)
-    
-    print("Test dataloader")
-    print(test_dataloader)
 
     return train_dataloader, val_dataloader, test_dataloader

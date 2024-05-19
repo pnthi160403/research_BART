@@ -163,13 +163,13 @@ GET_MODEL = {
 }
 
 # save model
-def save_model(model, epoch, global_step, optimizer, lr_scheduler, config, save_model="model"):
+def save_model(model, global_step, optimizer, lr_scheduler, config, save_model="model"):
     if save_model == "bart":
-        model_filename = get_weights_file_path(config, f"{epoch:02d}", "bart")
+        model_filename = get_weights_file_path(config, f"{global_step:010d}", "bart")
     else:
-        model_filename = get_weights_file_path(config, f"{epoch:02d}")
+        model_filename = get_weights_file_path(config, f"{global_step:010d}")
+
     torch.save({
-        "epoch": epoch,
         "global_step": global_step,
         "model_state_dict": model.state_dict(),
         "optimizer_state_dict": optimizer.state_dict(),
@@ -179,8 +179,8 @@ def save_model(model, epoch, global_step, optimizer, lr_scheduler, config, save_
     print(f"Saved model at {model_filename}")
 
 # save config
-def save_config(config: dict, epoch: int):
-    config_filename = f"{config['model_folder']}/config_{epoch:02d}.json"
+def save_config(config: dict, global_step: int):
+    config_filename = f"{config['model_folder']}/config_{global_step:02d}.json"
     with open(config_filename, "w") as f:
         json.dump(config, f)
     print(f"Saved config at {config_filename}")

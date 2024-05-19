@@ -8,6 +8,20 @@ from torchtext.data.metrics import bleu_score
 import pandas as pd
 from tokenizers import Tokenizer, ByteLevelBPETokenizer
 
+# read and write data
+def read(file_path):
+    data = []
+    with open(file_path, 'r', encoding='utf-8') as file:
+        for line in file:
+            val = float(line.strip())
+            data.append(val)
+    return data
+
+def write(file_path, data):
+    with open(file_path, 'w', encoding='utf-8') as file:
+        for value in data:
+            file.write(f"{value}\n")
+
 # set seed
 def set_seed(seed: int=42):
     torch.manual_seed(seed)
@@ -63,11 +77,9 @@ def lambda_lr(global_step: int, config):
     return (config["d_model"] ** -0.5) * min(global_step ** (-0.5), global_step * config["warmup_steps"] ** (-1.5))
 
 # figures
-def draw_graph(config, title, xlabel, ylabel, data):
-    x = list(range(len(data)))
-    
+def draw_graph(config, title, xlabel, ylabel, data, steps):
     save_path = join_base(config['log_dir'], f"/{title}.png")
-    plt.plot(x, data)
+    plt.plot(steps, data)
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
@@ -76,11 +88,10 @@ def draw_graph(config, title, xlabel, ylabel, data):
     plt.close()
 
 # figures
-def draw_multi_graph(config, title, xlabel, ylabel, all_data):
+def draw_multi_graph(config, title, xlabel, ylabel, all_data, steps):
     save_path = join_base(config['log_dir'], f"/{title}.png")
     for data, info in all_data:
-        x = list(range(len(data)))
-        plt.plot(x, data, label=info)
+        plt.plot(steps, data, label=info)
         # add multiple legends
         plt.legend()
 

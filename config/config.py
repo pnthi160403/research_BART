@@ -1,7 +1,3 @@
-import json
-from pathlib import Path
-import os
-import glob
 import torch
 from ..utils import join_base
 
@@ -34,6 +30,12 @@ def get_config(base_dir: str=None):
     config["preload"] = "latest"
     config["data"] = join_base(config["base_dir"], "/data")
     config["log_dir"] = join_base(config["base_dir"], "/log")
+    config["loss_train"] = join_base(config["log_dir"], "/loss_train.json")
+    config["loss_val"] = join_base(config["log_dir"], "/loss_val.json")
+    config["loss_train_step"] = join_base(config["log_dir"], "/loss_train_step.json")
+    config["loss_val_step"] = join_base(config["log_dir"], "/loss_val_step.json")
+    config["step_trainning"] = join_base(config["log_dir"], "/global_step.json")
+    config["val_step_trainning"] = join_base(config["log_dir"], "/global_val_step.json")
 
     # Dataset
     config["lang_src"] = "noise_vi"
@@ -42,10 +44,6 @@ def get_config(base_dir: str=None):
     config["val_ds"] = None
     config["test_ds"] = None
     config["corpus"] = None
-    config["batch_train"] = 32
-    config["batch_val"] = 32
-    config["batch_test"] = 1
-    config["epochs"] = 3
     config["max_len"] = 100
 
     # Train
@@ -54,7 +52,13 @@ def get_config(base_dir: str=None):
     config["preload"] = "latest"
     config["pretrain"] = False
     config["continue_step"] = False
-
+    
+    # Trainning loop
+    config["batch_train"] = 32
+    config["batch_val"] = 32
+    config["batch_test"] = 1
+    config["num_steps"] = 20000
+    config["val_steps"] = 1000
 
     # BART config model
     config["d_model"] = 768

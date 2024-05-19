@@ -4,7 +4,7 @@ from tqdm import tqdm
 
 from .model import save_model, save_config, GET_MODEL
 from .prepare_dataset import get_dataloader, read_tokenizer
-from .utils import set_seed, create_dirs, lambda_lr, get_weights_file_path, weights_file_path, draw_graph, draw_multi_graph
+from .utils import set_seed, create_dirs, lambda_lr, get_weights_file_path, weights_file_path, draw_graph, draw_multi_graph, read, write
 
 def train(config):
     # create dirs
@@ -64,7 +64,6 @@ def train(config):
     if model_filename:
         state = torch.load(model_filename)
         model.load_state_dict(state["model_state_dict"])
-        initial_epoch = state["epoch"] + 1
         global_step = state["global_step"]
         if config["continue_step"] == False:
             optimizer.load_state_dict(state["optimizer_state_dict"])
@@ -79,16 +78,24 @@ def train(config):
         label_smoothing=config["label_smoothing"],
     ).to(device)
 
-    losses_train = []
-    losses_val = []
-    losses_train_step = []
-    losses_val_step = []
-    for epoch in range(initial_epoch, config['epochs']):
+    losses_train = read(config["loss_train"])
+    losses_val = read(config["loss_val"])
+    losses_train_step = read(config["loss_train_step"])
+    losses_val_step = read(config["loss_val_step"])
+    step_trainning = read(config["step_trainning"])
+    val_step_trainning = read(config["val_step_trainning"])
+
+    while global_step < config["num_steps"]:
         torch.cuda.empty_cache()
         # train
         sum_loss_train = 0
         model.train()
-        batch_iterator = tqdm(train_dataloader, desc=f"Trainning Epoch {epoch:02d}")
+        # shuffle dataloader
+        train_dataloader, val_dataloader, test_dataloader = get_dataloader(
+            config=config,
+        )
+
+        batch_iterator = tqdm(train_dataloader, desc=f"Trainning Epoch {global_step:010d}")
         for batch in batch_iterator:
             src = batch["src"].to(device)
             tgt = batch["tgt"].to(device)
@@ -113,12 +120,17 @@ def train(config):
             optimizer.zero_grad(set_to_none=True)
 
             global_step += 1
+            step_trainning.append(global_step)
+
+            if global_step >= config["num_steps"] or global_step % config["val_steps"] == 0:
+                break
 
         # val
         with torch.no_grad():
             sum_loss_val = 0
             model.eval()
-            batch_iterator = tqdm(val_dataloader, desc=f"Validating Epoch {epoch:02d}")
+            batch_iterator = tqdm(val_dataloader, desc=f"Validating Epoch {global_step:010d}")
+
             for batch in batch_iterator:
                 src = batch["src"].to(device)
                 tgt = batch["tgt"].to(device)
@@ -137,15 +149,22 @@ def train(config):
                 sum_loss_val += loss.item()
                 losses_val_step.append(loss.item())
                 batch_iterator.set_postfix({"loss": f"{loss.item():6.3f}"})
+            
+            val_step_trainning.append(global_step)
+            
+            if global_step % config["val_steps"] == 0:
+                losses_train.append(sum_loss_train / len(train_dataloader))
+            else:
+                losses_train.append(sum_loss_train / (global_step % config["val_steps"]))
+            losses_val.append(sum_loss_val / len(val_dataloader))
 
-        losses_train.append(sum_loss_train / len(train_dataloader))
-        losses_val.append(sum_loss_val / len(val_dataloader))
+        if global_step >= config["num_steps"]:
+            break
 
     # save model
     if config["pretrain"]:
         save_model(
             model=model.bart_model,
-            epoch=config['epochs'] - 1,
             global_step=global_step,
             optimizer=optimizer,
             lr_scheduler=lr_scheduler,
@@ -154,7 +173,6 @@ def train(config):
         )
     save_model(
         model=model,
-        epoch=config['epochs'] - 1,
         global_step=global_step,
         optimizer=optimizer,
         lr_scheduler=lr_scheduler,
@@ -164,8 +182,14 @@ def train(config):
     # save config
     save_config(
         config=config,
-        epoch=config["epochs"] - 1,
+        global_step=global_step,
     )
+
+    # save loss
+    write(config["loss_train"], losses_train)
+    write(config["loss_val"], losses_val)
+    write(config["loss_train_step"], losses_train_step)
+    write(config["loss_val_step"], losses_val_step)
 
     # draw graph loss
     # train and val
@@ -177,7 +201,8 @@ def train(config):
         all_data=[
             (losses_train, "Train"),
             (losses_val, "Val")
-        ]
+        ],
+        steps=val_step_trainning
     )
     # train step
     draw_graph(
@@ -185,7 +210,8 @@ def train(config):
         title="Loss train",
         xlabel="Loss",
         ylabel="Epoch",
-        data=losses_train_step
+        data=losses_train_step,
+        steps=step_trainning
     )
 
     # val step
@@ -194,5 +220,6 @@ def train(config):
         title="Loss val",
         xlabel="Loss",
         ylabel="Epoch",
-        data=losses_val_step
+        data=losses_val_step,
+        steps=step_trainning
     )
