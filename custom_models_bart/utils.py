@@ -1,5 +1,4 @@
 import torch
-from .utils import load_model
 
 def first_train_bart_seq2seq(config, model):
     for param in model.bart_model.parameters():
