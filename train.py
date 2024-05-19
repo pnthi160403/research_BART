@@ -99,6 +99,8 @@ def train(config):
             # debug
             print("src", src)
             print("tgt", tgt)
+            print("src.shape", src.shape)
+            print("tgt.shape", tgt.shape)
             
             logits = model(
                 input_ids=src,
