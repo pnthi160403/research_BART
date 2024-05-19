@@ -88,13 +88,9 @@ class CustomDataset(Dataset):
         sos_token_id = self.tokenizer_tgt.token_to_id("<s>")
         eos_token_id = self.tokenizer_tgt.token_to_id("</s>")
 
-        # src = [sos_token_id] + self.tokenizer_src.encode(src_text).ids + [eos_token_id]
-        # tgt = [sos_token_id] + self.tokenizer_tgt.encode(tgt_text).ids
-        # label = self.tokenizer_tgt.encode(tgt_text).ids + [eos_token_id]
-
-        src = [sos_token_id] + src_text + [eos_token_id]
-        tgt = [sos_token_id] + tgt_text
-        label = tgt_text + [eos_token_id]
+        src = [sos_token_id] + self.tokenizer_src.encode(src_text).ids + [eos_token_id]
+        tgt = [sos_token_id] + self.tokenizer_tgt.encode(tgt_text).ids
+        label = self.tokenizer_tgt.encode(tgt_text).ids + [eos_token_id]
 
         return {
             'src': src, # <s>...</s>
