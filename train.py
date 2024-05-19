@@ -77,6 +77,14 @@ def train(config):
         label_smoothing=config["label_smoothing"],
     ).to(device)
 
+    if global_step == 0:
+        write(config["loss_train"], [])
+        write(config["loss_val"], [])
+        write(config["loss_train_step"], [])
+        write(config["loss_val_step"], [])
+        write(config["step_trainning"], [])
+        write(config["val_step_trainning"], [])
+
     losses_train = read(config["loss_train"])
     losses_val = read(config["loss_val"])
     losses_train_step = read(config["loss_train_step"])
