@@ -134,7 +134,7 @@ def train(config):
 
             if global_step >= config["num_steps"] or global_step % config["val_steps"] == 0:
                 break
-
+            break
         # val
         with torch.no_grad():
             sum_loss_val = 0
@@ -173,6 +173,7 @@ def train(config):
 
         if global_step >= config["num_steps"]:
             break
+        break
 
     # save model
     if config["pretrain"]:
