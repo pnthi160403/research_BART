@@ -102,7 +102,7 @@ def train(config):
             config=config,
         )
 
-        batch_iterator = tqdm(train_dataloader, desc=f"Trainning Epoch {global_step:010d}")
+        batch_iterator = tqdm(train_dataloader, desc="Trainning")
         for batch in batch_iterator:
             src = batch["src"].to(device)
             tgt = batch["tgt"].to(device)
@@ -120,7 +120,10 @@ def train(config):
             loss = loss_fn(logits.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
             sum_loss_train += loss.item()
             losses_train_step.append(loss.item())
-            batch_iterator.set_postfix({"loss": f"{loss.item():6.3f}"})
+            batch_iterator.set_postfix({
+                "loss": f"{loss.item():6.3f}",
+                "global_step": f"{global_step:010d}"
+            })
             loss.backward()
             optimizer.step()
             lr_scheduler.step()
@@ -136,7 +139,7 @@ def train(config):
         with torch.no_grad():
             sum_loss_val = 0
             model.eval()
-            batch_iterator = tqdm(val_dataloader, desc=f"Validating Epoch {global_step:010d}")
+            batch_iterator = tqdm(val_dataloader, desc="Validating")
 
             for batch in batch_iterator:
                 src = batch["src"].to(device)
@@ -155,7 +158,10 @@ def train(config):
                 loss = loss_fn(logits.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
                 sum_loss_val += loss.item()
                 losses_val_step.append(loss.item())
-                batch_iterator.set_postfix({"loss": f"{loss.item():6.3f}"})
+                batch_iterator.set_postfix({
+                    "loss": f"{loss.item():6.3f}",
+                    "global_step": f"{global_step:010d}"
+                })
             
             val_step_trainning.append(global_step)
             
