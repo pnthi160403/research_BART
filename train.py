@@ -46,7 +46,6 @@ def train(config):
     )
 
     global_step = 0
-    initial_epoch = 0
 
     preload = config["preload"]
 
