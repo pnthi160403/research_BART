@@ -95,12 +95,6 @@ def train(config):
             src_attention_mask = (src != tokenizer_src.token_to_id("<pad>")).type(torch.int64)
             tgt_attention_mask = (tgt != tokenizer_tgt.token_to_id("<pad>")).type(torch.int64)
             label = batch['label'].to(device)
-
-            # debug
-            print("src", src)
-            print("tgt", tgt)
-            print("src.shape", src.shape)
-            print("tgt.shape", tgt.shape)
             
             logits = model(
                 input_ids=src,
