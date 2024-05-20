@@ -216,8 +216,8 @@ def train(config):
     # train and val
     draw_multi_graph(
         config=config,
-        xlabel="Value Loss",
-        ylabel="Epoch",
+        xlabel="Step",
+        ylabel="Loss value",
         title="Loss",
         all_data=[
             (losses_train, "Train"),
@@ -229,8 +229,8 @@ def train(config):
     draw_graph(
         config=config,
         title="Loss train",
-        xlabel="Loss",
-        ylabel="Epoch",
+        xlabel="Step",
+        ylabel="Loss value",
         data=losses_train_step,
         steps=timestep_train
     )
@@ -239,8 +239,8 @@ def train(config):
     draw_graph(
         config=config,
         title="Loss val",
-        xlabel="Loss",
-        ylabel="Epoch",
+        xlabel="Step",
+        ylabel="Loss value",
         data=losses_val_step,
         steps=timestep_val
     )
