@@ -82,8 +82,9 @@ def train(config):
         write(config["loss_val"], [])
         write(config["loss_train_step"], [])
         write(config["loss_val_step"], [])
-        write(config["step_train"], [])
-        write(config["val_step_train"], [])
+        write(config["timestep_train"], [])
+        write(config["timestep_val"], [])
+        write(config["timestep_train_and_val"], [])
 
     losses_train = read(config["loss_train"])
     losses_val = read(config["loss_val"])
@@ -204,11 +205,14 @@ def train(config):
         global_step=global_step,
     )
 
-    # save loss
+    # save log
     write(config["loss_train"], losses_train)
     write(config["loss_val"], losses_val)
     write(config["loss_train_step"], losses_train_step)
     write(config["loss_val_step"], losses_val_step)
+    write(config["timestep_train"], timestep_train)
+    write(config["timestep_val"], timestep_val)
+    write(config["timestep_train_and_val"], timestep_train_and_val)
 
     # draw graph loss
     # train and val
