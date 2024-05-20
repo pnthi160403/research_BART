@@ -30,13 +30,14 @@ def get_config(base_dir: str=None):
     config["preload"] = "latest"
     config["data"] = join_base(config["base_dir"], "/data")
     config["log_dir"] = join_base(config["base_dir"], "/log")
-    config["loss_train"] = join_base(config["log_dir"], "/loss_train.json")
-    config["loss_val"] = join_base(config["log_dir"], "/loss_val.json")
-    config["loss_train_step"] = join_base(config["log_dir"], "/loss_train_step.json")
-    config["loss_val_step"] = join_base(config["log_dir"], "/loss_val_step.json")
-    config["timestep_train"] = join_base(config["log_dir"], "/timestep_train.json")
-    config["timestep_val"] = join_base(config["log_dir"], "/timestep_val.json")
-    config["timestep_train_and_val"] = join_base(config["log_dir"], "/timestep_train_and_val.json")
+    config["log_files"] = join_base(config["log_dir"], "/log_files")
+    config["loss_train"] = join_base(config["log_files"], "/loss_train.json")
+    config["loss_val"] = join_base(config["log_files"], "/loss_val.json")
+    config["loss_train_step"] = join_base(config["log_files"], "/loss_train_step.json")
+    config["loss_val_step"] = join_base(config["log_files"], "/loss_val_step.json")
+    config["timestep_train"] = join_base(config["log_files"], "/timestep_train.json")
+    config["timestep_val"] = join_base(config["log_files"], "/timestep_val.json")
+    config["timestep_train_and_val"] = join_base(config["log_files"], "/timestep_train_and_val.json")
 
     # Dataset
     config["lang_src"] = "noise_vi"
