@@ -57,11 +57,19 @@ def read_tokenizer(config: dict):
         tokenizer_src, tokenizer_tgt = read_wordpiece_tokenizer(config)
     if config["use_tokenizer"] == "wordlevel":
         tokenizer_src, tokenizer_tgt = read_wordlevel_tokenizer(config)
+
     print("Read tokenizer successfully")
     print("Check tokenizer src")
     print(tokenizer_src.get_vocab_size())
     print("Check tokenizer tgt")
     print(tokenizer_tgt.get_vocab_size())
+
+    assert tokenizer_src.token_to_id("<s>") == tokenizer_tgt.token_to_id("<s>"), "Special token id not match"
+    assert tokenizer_src.token_to_id("</s>") == tokenizer_tgt.token_to_id("</s>"), "Special token id not match"
+    assert tokenizer_src.token_to_id("<pad>") == tokenizer_tgt.token_to_id("<pad>"), "Special token id not match"
+    assert tokenizer_src.token_to_id("<unk>") == tokenizer_tgt.token_to_id("<unk>"), "Special token id not match"
+    assert tokenizer_src.token_to_id("<mask>") == tokenizer_tgt.token_to_id("<mask>"), "Special token id not match"
+
     print("====================================")
     
     return tokenizer_src, tokenizer_tgt
@@ -74,6 +82,7 @@ class CustomDataset(Dataset):
         self.ds = ds
         self.tokenizer_src = tokenizer_src
         self.tokenizer_tgt = tokenizer_tgt
+
         self.src_lang = config["lang_src"]
         self.tgt_lang = config["lang_tgt"]
 
@@ -84,17 +93,8 @@ class CustomDataset(Dataset):
         src_target_pair = self.ds.iloc[idx]
         src_text = src_target_pair[self.src_lang]
         tgt_text = src_target_pair[self.tgt_lang]       
-        sos_token_id = self.tokenizer_tgt.token_to_id("<s>")
-        eos_token_id = self.tokenizer_tgt.token_to_id("</s>")
-
-        src = [sos_token_id] + self.tokenizer_src.encode(src_text).ids + [eos_token_id]
-        tgt = [sos_token_id] + self.tokenizer_tgt.encode(tgt_text).ids
-        label = self.tokenizer_tgt.encode(tgt_text).ids + [eos_token_id]
 
         return {
-            'src': src, # <s>...</s>
-            "tgt": tgt, # <s> ...
-            'label': label, # ...</s>
             'src_text': src_text,
             'tgt_text': tgt_text,
         }
@@ -105,13 +105,41 @@ def collate_fn(batch, tokenizer_src, tokenizer_tgt):
     pad_token_id = tokenizer_src.token_to_id("<pad>")
     
     src_batch, tgt_batch, label_batch, src_text_batch, tgt_text_batch = [], [], [], [], []
+    sos_token = torch.tensor([tokenizer_tgt.token_to_id("<s>")], dtype=torch.int64)
+    eos_token = torch.tensor([tokenizer_tgt.token_to_id("</s>")], dtype=torch.int64)
+
     for item in batch:
-        src = torch.tensor(item["src"], dtype=torch.int64)
-        tgt = torch.tensor(item['tgt'], dtype=torch.int64)
-        label = torch.tensor(item['label'], dtype=torch.int64)
         src_text = item["src_text"]
         tgt_text = item["tgt_text"]
-        
+
+        enc_input_tokens = tokenizer_src.encode(src_text).ids
+        dec_input_tokens = tokenizer_tgt.encode(tgt_text).ids
+
+        src = torch.cat(
+            [
+                sos_token,
+                torch.tensor(enc_input_tokens, dtype=torch.int64),
+                eos_token,
+            ],
+            dim=0,
+        )
+
+        tgt = torch.cat(
+            [
+                sos_token,
+                torch.tensor(dec_input_tokens, dtype=torch.int64),
+            ],
+            dim=0,
+        )
+
+        label = torch.cat(
+            [
+                torch.tensor(dec_input_tokens, dtype=torch.int64),
+                eos_token,
+            ],
+            dim=0,
+        )
+
         src_batch.append(src)
         tgt_batch.append(tgt)
         label_batch.append(label)
@@ -120,7 +148,6 @@ def collate_fn(batch, tokenizer_src, tokenizer_tgt):
         
     src_batch = pad_sequence(src_batch, padding_value=pad_token_id, batch_first=True)
     tgt_batch = pad_sequence(tgt_batch, padding_value=pad_token_id, batch_first=True)
-    
     label_batch = pad_sequence(label_batch, padding_value=pad_token_id, batch_first=True)
     
     return {
