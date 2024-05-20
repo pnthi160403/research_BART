@@ -168,6 +168,7 @@ def train(config):
                     "loss": f"{loss.item():6.3f}",
                     "global_step": f"{global_step:010d}"
                 })
+                break
             
             if global_step % config["val_steps"] == 0:
                 losses_train.append(sum_loss_train / len(train_dataloader))
