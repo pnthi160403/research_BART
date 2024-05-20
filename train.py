@@ -113,10 +113,6 @@ def train(config):
             tgt_attention_mask = (tgt != tokenizer_tgt.token_to_id("<pad>")).type(torch.int64)
             label = batch['label'].to(device)
 
-            print("src: ", src[0])
-            print("tgt: ", tgt[0])
-            print("label: ", label[0])
-            
             logits = model(
                 input_ids=src,
                 attention_mask=src_attention_mask,
@@ -141,7 +137,6 @@ def train(config):
 
             if global_step >= config["num_steps"] or global_step % config["val_steps"] == 0:
                 break
-            break
 
         # val
         with torch.no_grad():
@@ -172,7 +167,6 @@ def train(config):
                     "loss": f"{loss.item():6.3f}",
                     "global_step": f"{global_step:010d}"
                 })
-                break
             
             if global_step % config["val_steps"] == 0:
                 losses_train.append(sum_loss_train / len(train_dataloader))
@@ -184,7 +178,6 @@ def train(config):
 
         if global_step >= config["num_steps"]:
             break
-        break
 
     # save model
     if config["pretrain"]:
