@@ -82,15 +82,17 @@ def train(config):
         write(config["loss_val"], [])
         write(config["loss_train_step"], [])
         write(config["loss_val_step"], [])
-        write(config["step_trainning"], [])
-        write(config["val_step_trainning"], [])
+        write(config["step_train"], [])
+        write(config["val_step_train"], [])
 
     losses_train = read(config["loss_train"])
     losses_val = read(config["loss_val"])
     losses_train_step = read(config["loss_train_step"])
     losses_val_step = read(config["loss_val_step"])
-    step_trainning = read(config["step_trainning"])
-    val_step_trainning = read(config["val_step_trainning"])
+
+    timestep_train = read(config["timestep_train"]) # Ox for train
+    timestep_val = read(config["timestep_val"]) # Ox for val
+    timestep_train_and_val = read(config["timestep_train_and_val"]) # Ox for train and val
 
     while global_step < config["num_steps"]:
         torch.cuda.empty_cache()
@@ -130,11 +132,12 @@ def train(config):
             optimizer.zero_grad(set_to_none=True)
 
             global_step += 1
-            step_trainning.append(global_step)
+            timestep_train.append(global_step)
 
             if global_step >= config["num_steps"] or global_step % config["val_steps"] == 0:
                 break
             break
+
         # val
         with torch.no_grad():
             sum_loss_val = 0
@@ -158,18 +161,20 @@ def train(config):
                 loss = loss_fn(logits.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
                 sum_loss_val += loss.item()
                 losses_val_step.append(loss.item())
+                timestep_val.append(global_step)
+
                 batch_iterator.set_postfix({
                     "loss": f"{loss.item():6.3f}",
                     "global_step": f"{global_step:010d}"
                 })
-            
-            val_step_trainning.append(global_step)
             
             if global_step % config["val_steps"] == 0:
                 losses_train.append(sum_loss_train / len(train_dataloader))
             else:
                 losses_train.append(sum_loss_train / (global_step % config["val_steps"]))
             losses_val.append(sum_loss_val / len(val_dataloader))
+
+            timestep_train_and_val.append(global_step)
 
         if global_step >= config["num_steps"]:
             break
@@ -216,7 +221,7 @@ def train(config):
             (losses_train, "Train"),
             (losses_val, "Val")
         ],
-        steps=val_step_trainning
+        steps=timestep_train_and_val
     )
     # train step
     draw_graph(
@@ -225,7 +230,7 @@ def train(config):
         xlabel="Loss",
         ylabel="Epoch",
         data=losses_train_step,
-        steps=step_trainning
+        steps=timestep_train
     )
 
     # val step
@@ -235,5 +240,5 @@ def train(config):
         xlabel="Loss",
         ylabel="Epoch",
         data=losses_val_step,
-        steps=step_trainning
+        steps=timestep_val
     )

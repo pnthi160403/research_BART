@@ -180,7 +180,7 @@ def save_model(model, global_step, optimizer, lr_scheduler, config, save_model="
 
 # save config
 def save_config(config: dict, global_step: int):
-    config_filename = f"{config['model_folder']}/config_{global_step:02d}.json"
+    config_filename = f"{config['model_folder']}/config_{global_step:010d}.json"
     with open(config_filename, "w") as f:
         json.dump(config, f)
     print(f"Saved config at {config_filename}")
