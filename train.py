@@ -168,7 +168,7 @@ def train(config):
                     "loss": f"{loss.item():6.3f}",
                     "global_step": f"{global_val_step:010d}"
                 })
-                
+
                 global_val_step += 1
                 timestep_val.append(global_val_step)
             
@@ -188,6 +188,7 @@ def train(config):
         save_model(
             model=model.bart_model,
             global_step=global_step,
+            global_val_step=global_val_step,
             optimizer=optimizer,
             lr_scheduler=lr_scheduler,
             config=config,
@@ -196,6 +197,7 @@ def train(config):
     save_model(
         model=model,
         global_step=global_step,
+        global_val_step=global_val_step,
         optimizer=optimizer,
         lr_scheduler=lr_scheduler,
         config=config
