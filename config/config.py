@@ -1,6 +1,25 @@
 import torch
 from ..utils import join_base
 
+# TPU
+import torch
+import torch_xla
+import torch_xla.core.xla_model as xm
+import torch_xla.distributed.data_parallel as dp
+import torch_xla.distributed.parallel_loader as pl
+import torch_xla.utils.serialization as xser
+import torch_xla.debug.metrics as met
+import torch_xla.debug.profiler as xp
+
+def check_tpu():
+    try:
+        device = xm.xla_device()
+        print(f"TPU is available. Device: {device}")
+        return True
+    except RuntimeError as e:
+        print("TPU is not available.")
+        return False
+
 def get_config(base_dir: str=None):
     config = {}
 
@@ -94,7 +113,10 @@ def get_config(base_dir: str=None):
     config["warmup_steps"] = 4000
 
     # Device
-    config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
+    if check_tpu():
+        config["device"] = xm.xla_device()
+    else:
+        config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Metric
     config["f_beta"] = 0.5
