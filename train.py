@@ -140,6 +140,8 @@ def train(config):
             if global_step >= config["num_steps"] or global_step % config["val_steps"] == 0:
                 break
 
+            break #debug
+
         # val
         with torch.no_grad():
             sum_loss_val = 0
@@ -171,6 +173,8 @@ def train(config):
 
                 global_val_step += 1
                 timestep_val.append(global_val_step)
+
+                break #debug
             
             if global_step % config["val_steps"] == 0:
                 losses_train.append(sum_loss_train / len(train_dataloader))
