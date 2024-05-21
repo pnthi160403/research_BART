@@ -187,6 +187,8 @@ def train(config):
         if global_step >= config["num_steps"]:
             break
 
+        break #debug
+
     # save model
     if config["pretrain"]:
         save_model(
