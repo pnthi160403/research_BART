@@ -103,17 +103,9 @@ class CustomBartSeq2seq(nn.Module):
         self.out = nn.Linear(config_bart.d_model, config_bart.vocab_size)
         
         # Initialize weights xavier
-        self._initialize_weights_xavier([
-            self.input_emb,
-            self.encoder,
-            self.out,
-        ])
-        
-    def _initialize_weights_xavier(self, layers):
-        for layer in layers:
-            for p in layer.parameters():
-                if p.dim() > 1:
-                    nn.init.xavier_uniform_(p)
+        self.input_emb.apply(self.initialize_weights)
+        self.out.apply(self.initialize_weights)
+        self.encoder.apply(self.initialize_weights)
         
     def forward(
         self,
@@ -138,6 +130,17 @@ class CustomBartSeq2seq(nn.Module):
         logits = self.out(last_hidden_state)
         return logits
     
+    def initialize_weights(self, layer):
+        if isinstance(layer, (nn.Linear, nn.Embedding, nn.MultiheadAttention)):
+            nn.init.normal_(layer.weight, mean=0, std=self.config.init_std)
+        elif isinstance(layer, nn.LayerNorm):
+            layer.weight.data.fill_(1.0)
+        else:
+            for m in layer.modules():
+                for param in m.parameters():
+                    if param.dim() > 1:
+                        nn.init.normal_(param, mean=0, std=self.config.init_std)
+                        
     def get_encoder_out(
         self,
         input_ids,
