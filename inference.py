@@ -3,6 +3,7 @@ from .prepare_dataset import read_tokenizer
 from .model import GET_MODEL
 import torch
 from .utils import weights_file_path
+from .custom_models_bart import load_model
 from .beam_search import beam_search
 
 def prepare_inference(config):
@@ -23,14 +24,10 @@ def prepare_inference(config):
     # get model_filename
     model_filename = weights_file_path(config)[-1]
 
-    # load state
-    if device == "cuda":
-        state = torch.load(model_filename)
-    else:
-        state = torch.load(model_filename, map_location=torch.device('cpu'))
-
-    # load model state dict
-    model.load_state_dict(state["model_state_dict"])
+    model = load_model(
+        checkpoint=model_filename,
+        model=model
+    )
 
     return config, model, tokenizer_src, tokenizer_tgt
 

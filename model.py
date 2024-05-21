@@ -163,7 +163,7 @@ GET_MODEL = {
 }
 
 # save model
-def save_model(model, global_step, optimizer, lr_scheduler, config, save_model="model"):
+def save_model(model, global_step, global_val_step, optimizer, lr_scheduler, config, save_model="model"):
     if save_model == "bart":
         model_filename = get_weights_file_path(config, f"{global_step:010d}", "bart")
     else:
@@ -171,6 +171,7 @@ def save_model(model, global_step, optimizer, lr_scheduler, config, save_model="
 
     torch.save({
         "global_step": global_step,
+        "global_val_step": global_val_step,
         "model_state_dict": model.state_dict(),
         "optimizer_state_dict": optimizer.state_dict(),
         "lr_scheduler_state_dict": lr_scheduler.state_dict()

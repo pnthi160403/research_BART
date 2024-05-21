@@ -46,6 +46,7 @@ def train(config):
     )
 
     global_step = 0
+    global_val_step = 0
 
     preload = config["preload"]
 
@@ -64,6 +65,7 @@ def train(config):
         state = torch.load(model_filename)
         model.load_state_dict(state["model_state_dict"])
         global_step = state["global_step"]
+        global_val_step = state["global_val_step"]
         if config["continue_step"] == False:
             optimizer.load_state_dict(state["optimizer_state_dict"])
             lr_scheduler.load_state_dict(state["lr_scheduler_state_dict"])
@@ -161,12 +163,14 @@ def train(config):
                 loss = loss_fn(logits.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
                 sum_loss_val += loss.item()
                 losses_val_step.append(loss.item())
-                timestep_val.append(global_step)
 
                 batch_iterator.set_postfix({
                     "loss": f"{loss.item():6.3f}",
-                    "global_step": f"{global_step:010d}"
+                    "global_step": f"{global_val_step:010d}"
                 })
+                
+                global_val_step += 1
+                timestep_val.append(global_val_step)
             
             if global_step % config["val_steps"] == 0:
                 losses_train.append(sum_loss_train / len(train_dataloader))
