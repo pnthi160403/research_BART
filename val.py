@@ -126,11 +126,14 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
                 print(f"{precision = }")
                 print(f"{f_05 = }")
             
-                # debug
-                break
+            # debug
+            break
 
         labels = torch.cat(labels, dim=0)
         preds = torch.cat(preds, dim=0)
+
+        print("Check labels.shape: ", labels.shape)
+        print("Check preds.shape: ", preds.shape)
 
         # recall = calc_recall(
         #     preds=preds,
