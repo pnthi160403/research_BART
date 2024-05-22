@@ -31,7 +31,7 @@ def get_config(base_dir: str=None):
     # Tokenizer
     config['tokenizer_tgt'] = None
     config['tokenizer_src'] = None
-    config["use_tokenizer"] = "wordpiece"
+    config["use_tokenizer"] = "huggingface"
     config["special_tokens"] = [
         "<s>",
         "</s>",

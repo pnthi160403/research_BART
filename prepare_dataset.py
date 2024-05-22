@@ -4,7 +4,7 @@ from torch.nn.utils.rnn import pad_sequence
 import torch
 import os
 
-from .utils import read_tokenizer_byte_level_bpe, read_wordpiece_tokenizer, read_wordlevel_tokenizer
+from .utils import read_tokenizer_byte_level_bpe, read_wordpiece_tokenizer, read_wordlevel_tokenizer, api_tokenizer_huggingface
 
 # read dataset
 def read_ds(config: dict):
@@ -53,10 +53,12 @@ def read_ds(config: dict):
 def read_tokenizer(config: dict):
     if config["use_tokenizer"] == "byte-level-bpe":
         tokenizer_src, tokenizer_tgt = read_tokenizer_byte_level_bpe(config)
-    if config["use_tokenizer"] == "wordpiece":
-        tokenizer_src, tokenizer_tgt = read_wordpiece_tokenizer(config)
-    if config["use_tokenizer"] == "wordlevel":
-        tokenizer_src, tokenizer_tgt = read_wordlevel_tokenizer(config)
+    elif config["use_tokenizer"] == "huggingface":
+        tokenizer_src, tokenizer_tgt = api_tokenizer_huggingface(config)
+    # if config["use_tokenizer"] == "wordpiece":
+    #     tokenizer_src, tokenizer_tgt = read_wordpiece_tokenizer(config)
+    # if config["use_tokenizer"] == "wordlevel":
+    #     tokenizer_src, tokenizer_tgt = read_wordlevel_tokenizer(config)
 
     print("Read tokenizer successfully")
     print("Check tokenizer src")

@@ -207,3 +207,16 @@ def read_wordlevel_tokenizer(config: dict):
         ValueError("Tokenizer not found")
 
     return tokenizer_src, tokenizer_tgt
+
+def api_tokenizer_huggingface(config: dict):
+    tokenizer_src_path = config["tokenizer_src"]
+    tokenizer_tgt_path = config["tokenizer_tgt"]
+    print(tokenizer_src_path)
+    print(tokenizer_tgt_path)
+    tokenizer_src = Tokenizer.from_file(tokenizer_src_path)
+    tokenizer_tgt = Tokenizer.from_file(tokenizer_tgt_path)
+
+    if not tokenizer_src or not tokenizer_tgt:
+        ValueError("Tokenizer not found")
+
+    return tokenizer_src, tokenizer_tgt
