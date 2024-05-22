@@ -102,14 +102,12 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
                 recall = pytorch_call_recall(
                     input=pred_ids,
                     target=label_ids,
-                    tgt_vocab_size=vocab_size,
                     device=device
                 )
 
                 precision = pytorch_call_precision(
                     input=pred_ids,
                     target=label_ids,
-                    tgt_vocab_size=vocab_size,
                     device=device
                 )
 
@@ -161,14 +159,12 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
         recall = pytorch_call_recall(
             input=preds,
             target=labels,
-            tgt_vocab_size=vocab_size,
             device=device
         )
 
         precision = pytorch_call_precision(
             input=preds,
             target=labels,
-            tgt_vocab_size=vocab_size,
             device=device
         )
 
