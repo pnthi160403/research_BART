@@ -23,7 +23,7 @@ def read_ds(config: dict):
         val_ds = pd.read_csv(val_ds_path)
     else:
         num_train = len(train_ds)
-        num_val = int(num_train * 0.1)
+        num_val = min(int(num_train * 0.1), 30000)
         val_ds = train_ds[:num_val]
         train_ds = train_ds[num_val:]
         train_ds.reset_index(drop=True, inplace=True)
@@ -32,7 +32,7 @@ def read_ds(config: dict):
         test_ds = pd.read_csv(test_ds_path)
     else:
         num_train = len(train_ds)
-        num_test = 3000
+        num_test = 6000
         test_ds = train_ds[:num_test]
         train_ds = train_ds[num_test:]
         train_ds.reset_index(drop=True, inplace=True)

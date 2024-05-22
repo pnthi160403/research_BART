@@ -78,8 +78,8 @@ def get_config(base_dir: str=None):
     config["batch_train"] = 32
     config["batch_val"] = 32
     config["batch_test"] = 1
-    config["num_steps"] = 20000
-    config["val_steps"] = 2000
+    config["num_steps"] = 15000
+    config["val_steps"] = config["num_steps"] // 5
 
     # BART config model
     config["d_model"] = 768
