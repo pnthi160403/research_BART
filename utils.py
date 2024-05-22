@@ -8,6 +8,8 @@ from torchtext.data.metrics import bleu_score
 import pandas as pd
 from tokenizers import Tokenizer, ByteLevelBPETokenizer
 
+from torcheval.metrics.functional.classification import multiclass_accuracy, multiclass_recall, multiclass_precision
+
 # read and write data
 def read(file_path):
     data = []
@@ -129,6 +131,27 @@ def calc_accuracy(preds, target, tgt_vocab_size: int, pad_index: int, device):
 def calc_f_beta(preds, target, beta: float, tgt_vocab_size: int, pad_index: int, device):
     f_beta = FBetaScore(task="multiclass", average='weighted', num_classes=tgt_vocab_size, beta=beta, ignore_index=pad_index).to(device)
     return f_beta(preds, target)
+
+def pytorch_call_recall(input: torch.tensor, target: torch.tensor, tgt_vocab_size: int, device):
+    return multiclass_recall(
+        input=input,
+        target=target,
+        num_classes=tgt_vocab_size,
+        average='weighted'
+    ).to(device)
+
+def pytorch_call_precision(input: torch.tensor, target: torch.tensor, tgt_vocab_size: int, device):
+    return multiclass_precision(
+        input=input,
+        target=target,
+        num_classes=tgt_vocab_size,
+        average='weighted'
+    ).to(device)
+
+def pytorch_call_f_beta(recall: torch.tensor, precision: torch.tensor, beta: float):
+    recall_item = recall.item()
+    precision_item = precision.item()
+    return torch.tensor((1 + beta ** 2) * (precision_item * recall_item) / ((beta ** 2 * precision_item) + recall_item), device=recall.device).type_as(recall)
 
 def calc_bleu_score(refs, cands):
     scores = []
