@@ -147,7 +147,9 @@ def pytorch_call_precision(input: torch.tensor, target: torch.tensor, device):
 def pytorch_call_f_beta(recall: torch.tensor, precision: torch.tensor, beta: float):
     recall_item = recall.item()
     precision_item = precision.item()
-    return torch.tensor((1 + beta ** 2) * (precision_item * recall_item) / ((beta ** 2 * precision_item) + recall_item), device=recall.device).type_as(recall)
+    esi = 1e-7
+
+    return (1 + beta ** 2) * (precision_item * recall_item) / (beta ** 2 * precision_item + recall_item + esi)
 
 def calc_bleu_score(refs, cands):
     scores = []
