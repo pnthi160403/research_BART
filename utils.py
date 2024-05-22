@@ -132,7 +132,7 @@ def calc_f_beta(preds, target, beta: float, tgt_vocab_size: int, pad_index: int,
     f_beta = FBetaScore(task="multiclass", average='weighted', num_classes=tgt_vocab_size, beta=beta, ignore_index=pad_index).to(device)
     return f_beta(preds, target)
 
-def pytorch_call_recall(input: torch.tensor, target: torch.tensor, tgt_vocab_size: int, device):
+def pytorch_call_recall(input: torch.tensor, target: torch.tensor, device):
     return multiclass_recall(
         input=input,
         target=target,
