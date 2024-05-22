@@ -136,14 +136,12 @@ def pytorch_call_recall(input: torch.tensor, target: torch.tensor, device):
     return multiclass_recall(
         input=input,
         target=target,
-        average='weighted'
     ).to(device)
 
 def pytorch_call_precision(input: torch.tensor, target: torch.tensor, device):
     return multiclass_precision(
         input=input,
         target=target,
-        average='weighted'
     ).to(device)
 
 def pytorch_call_f_beta(recall: torch.tensor, precision: torch.tensor, beta: float):
