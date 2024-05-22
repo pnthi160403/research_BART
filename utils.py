@@ -149,7 +149,7 @@ def pytorch_call_f_beta(recall: torch.tensor, precision: torch.tensor, beta: flo
     precision_item = precision.item()
     esi = 1e-7
 
-    return (1 + beta ** 2) * (precision_item * recall_item) / (beta ** 2 * precision_item + recall_item + esi)
+    return torch.tensor((1 + beta ** 2) * (precision_item * recall_item) / (beta ** 2 * precision_item + recall_item + esi), dtype=recall.dtype).to(recall.device)
 
 def calc_bleu_score(refs, cands):
     scores = []
