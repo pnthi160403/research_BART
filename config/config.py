@@ -101,6 +101,7 @@ def get_config(base_dir: str=None):
     config["scale_embedding"] = False # Scale embeddings with sqrt(d_model)
     config["num_beams"] = 4
     config["checkpoint_bart_model"] = None
+    config["share_tgt_emb_and_out"] = False
 
     # Optimizer Adam
     config["weight_decay"] = 0

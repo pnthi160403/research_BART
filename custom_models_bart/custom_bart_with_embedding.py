@@ -8,7 +8,8 @@ class CustomBartModelWithEmbedding(nn.Module):
         config: BartConfig,
         tokenizer_src,
         tokenizer_tgt,
-        checkpoint=None
+        checkpoint=None,
+        share_tgt_emb_and_out=False,
     ):
         super().__init__()
         self.config = config
@@ -41,10 +42,15 @@ class CustomBartModelWithEmbedding(nn.Module):
         self.out = nn.Linear(self.config.d_model, tokenizer_tgt.get_vocab_size())
 
         # Initialize weights embeddings
-        self.inputs_embeds.apply(self.initialize_weights)
-        self.decoder_inputs_embeds.apply(self.initialize_weights)
-        self.out.apply(self.initialize_weights)
-        
+        # self.inputs_embeds.apply(self.initialize_weights)
+        # self.decoder_inputs_embeds.apply(self.initialize_weights)
+        # self.out.apply(self.initialize_weights)
+        self.initialize_weights(mean=0, std=self.config.init_std)
+
+        # Share the weights between embedding and linear layer
+        if share_tgt_emb_and_out:
+            self.out.weight = self.decoder_inputs_embeds.weight
+
     def forward(
         self,
         input_ids,
@@ -64,16 +70,10 @@ class CustomBartModelWithEmbedding(nn.Module):
         logits = self.out(last_hidden_state)
         return logits
     
-    def initialize_weights(self, layer):
-        if isinstance(layer, (nn.Linear, nn.Embedding, nn.MultiheadAttention)):
-            nn.init.normal_(layer.weight, mean=0, std=self.config.init_std)
-        elif isinstance(layer, nn.LayerNorm):
-            layer.weight.data.fill_(1.0)
-        else:
-            for m in layer.children():
-                for param in m.parameters():
-                    if param.dim() > 1:
-                        nn.init.normal_(param, mean=0, std=self.config.init_std)
+    def initialize_weights(self, mean=0, std=0.02):
+        for name, param in self.named_parameters():
+            if param.dim() > 1:
+                nn.init.normal_(param, meam=mean, std=std)
     
     def get_encoder_out(
         self,

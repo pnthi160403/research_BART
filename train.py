@@ -165,7 +165,7 @@ def train(config):
 
                         batch_iterator.set_postfix({
                             "loss": f"{loss.item():6.3f}",
-                            "global_step": f"{global_val_step:010d}"
+                            "global_val_step": f"{global_val_step:010d}"
                         })
 
                         global_val_step += 1
