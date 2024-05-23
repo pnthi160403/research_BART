@@ -42,9 +42,6 @@ class CustomBartModelWithEmbedding(nn.Module):
         self.out = nn.Linear(self.config.d_model, tokenizer_tgt.get_vocab_size())
 
         # Initialize weights embeddings
-        # self.inputs_embeds.apply(self.initialize_weights)
-        # self.decoder_inputs_embeds.apply(self.initialize_weights)
-        # self.out.apply(self.initialize_weights)
         self.initialize_weights(mean=0, std=self.config.init_std)
 
         # Share the weights between embedding and linear layer
