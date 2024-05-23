@@ -1,5 +1,13 @@
 import torch
 
+def freeze_model(model, freeze_start_with_names=[]):
+    for module in model.modules():
+        for name, param in module.named_parameters():
+            for freeze_name in freeze_start_with_names:
+                if name.startswith(freeze_name):
+                    param.requires_grad = False
+    return model
+
 def first_train_bart_seq2seq(config, model):
     for param in model.bart_model.parameters():
         param.requires_grad = False
@@ -22,4 +30,4 @@ def load_model(checkpoint, model):
     model.load_state_dict(state["model_state_dict"])
     return model
 
-__all__ = ["first_train_bart_seq2seq", "second_train_bart_seq2seq", "load_model"]
+__all__ = ["first_train_bart_seq2seq", "second_train_bart_seq2seq", "load_model", "freeze_model"]

@@ -73,7 +73,7 @@ class CustomBartModelWithEmbedding(nn.Module):
     def initialize_weights(self, mean=0, std=0.02):
         for name, param in self.named_parameters():
             if param.dim() > 1:
-                nn.init.normal_(param, meam=mean, std=std)
+                nn.init.normal_(param, mean=mean, std=std)
     
     def get_encoder_out(
         self,

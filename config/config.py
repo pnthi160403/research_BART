@@ -104,7 +104,7 @@ def get_config(base_dir: str=None):
     config["share_tgt_emb_and_out"] = False
 
     # Optimizer Adam
-    config["weight_decay"] = 0
+    config["weight_decay"] = 0.0
     config["lr"] = 0.5
     config["eps"] = 1e-9
     config["betas"] = (0.9, 0.98)
