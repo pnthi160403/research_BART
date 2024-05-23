@@ -136,7 +136,7 @@ class CustomBartSeq2seq(nn.Module):
         elif isinstance(layer, nn.LayerNorm):
             layer.weight.data.fill_(1.0)
         else:
-            for m in layer.modules():
+            for m in layer.children():
                 for param in m.parameters():
                     if param.dim() > 1:
                         nn.init.normal_(param, mean=0, std=self.config.init_std)
