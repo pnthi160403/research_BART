@@ -100,7 +100,11 @@ def get_config(base_dir: str=None):
     config["decoder_layerdrop"] = 0.0 # Dropout decoder layer
     config["scale_embedding"] = False # Scale embeddings with sqrt(d_model)
     config["num_beams"] = 4
+    config["init_type"] = "normal"
+    config["checkpoint_inputs_embeds"] = None
+    config["checkpoint_decoder_inputs_embeds"] = None
     config["checkpoint_bart_model"] = None
+    config["checkpoint_out"] = None
     config["share_tgt_emb_and_out"] = False
 
     # Optimizer Adam
