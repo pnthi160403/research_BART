@@ -68,14 +68,11 @@ class CustomBartModelWithEmbedding(nn.Module):
         return logits
     
     def initialize_weights(self, mean=0, std=0.02):
-        for module in self.children():      
-            if isinstance(module, nn.Linear):
-                nn.init.xavier_uniform_(module.weight)
-            elif isinstance(module, nn.Embedding):
-                nn.init.normal_(module.weight, mean=mean, std=std)
-            elif isinstance(module, nn.LayerNorm):
-                nn.init.ones_(module.weight)
-                nn.init.zeros_(module.bias)
+        for name, param in self.named_parameters():
+            if name.startswith("bart_model"):
+                continue
+            if param.dim() > 1:
+                nn.init.normal_(param, mean=mean, std=std)
     
     def get_encoder_out(
         self,
