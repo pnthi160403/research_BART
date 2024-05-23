@@ -4,18 +4,34 @@ def freeze_model(model, freeze_start_with_names=[]):
     for module in model.modules():
         for name, param in module.named_parameters():
             for freeze_name in freeze_start_with_names:
-                if name.startswith(freeze_name):
+                if name.startswith(freeze_name, 0):
                     param.requires_grad = False
     return model
 
+def un_freeze_model(model, un_freeze_start_with_names=[]):
+    for module in model.modules():
+        for name, param in module.named_parameters():
+            for un_freeze_name in un_freeze_start_with_names:
+                if name.startswith(un_freeze_name, 0):
+                    param.requires_grad = True
+    return model
+
 def first_train_bart_seq2seq(config, model):
-    for param in model.bart_model.parameters():
-        param.requires_grad = False
-    model.bart_model.encoder.layers[0].self_attn.k_proj.weight.requires_grad = True
-    model.bart_model.encoder.layers[0].self_attn.q_proj.weight.requires_grad = True
-    model.bart_model.encoder.layers[0].self_attn.v_proj.weight.requires_grad = True
-    model.bart_model.encoder.layers[0].self_attn.out_proj.weight.requires_grad = True
-    model.bart_model.encoder.embed_positions.weight.requires_grad = True
+    model = freeze_model(
+        model=model,
+        freeze_start_with_names=[
+            "bart_model",
+        ]
+    )
+    
+    model = un_freeze_model(
+        model=model,
+        un_freeze_start_with_names=[
+            "bart_model.encoder.layers.0.self_attn.",
+            "bart_model.encoder.embed_positions.weight",
+        ]
+    )
+
     return model
 
 def second_train_bart_seq2seq(config, model):

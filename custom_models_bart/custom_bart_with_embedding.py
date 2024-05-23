@@ -69,6 +69,8 @@ class CustomBartModelWithEmbedding(nn.Module):
     
     def initialize_weights(self, mean=0, std=0.02):
         for name, param in self.named_parameters():
+            if name.startswith("bart_model"):
+                continue
             if param.dim() > 1:
                 nn.init.normal_(param, mean=mean, std=std)
     
