@@ -72,7 +72,7 @@ class CustomBartModelWithEmbedding(nn.Module):
             if isinstance(module, nn.Linear):
                 nn.init.xavier_uniform_(module.weight)
             elif isinstance(module, nn.Embedding):
-                nn.init.normal_(module.weight, mean=0, std=0.02)
+                nn.init.normal_(module.weight, mean=mean, std=std)
             elif isinstance(module, nn.LayerNorm):
                 nn.init.ones_(module.weight)
                 nn.init.zeros_(module.bias)
