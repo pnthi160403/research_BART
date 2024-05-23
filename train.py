@@ -180,7 +180,7 @@ def train(config):
                 break
 
             # debug
-            # break
+            break
 
     # save model
     if config["pretrain"]:
