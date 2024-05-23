@@ -37,7 +37,7 @@ def train(config):
     )
 
     # optimizer
-    optimizer = torch.optim.AdamW(
+    optimizer = torch.optim.Adam(
         filter(lambda p: p.requires_grad, model.parameters()),
         lr=config["lr"],
         eps=config["eps"],
