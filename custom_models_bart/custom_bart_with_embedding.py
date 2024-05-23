@@ -10,6 +10,7 @@ class CustomBartModelWithEmbedding(nn.Module):
         tokenizer_tgt,
         checkpoint=None,
         share_tgt_emb_and_out=False,
+        init_type="normal",
     ):
         super().__init__()
         self.config = config
@@ -42,7 +43,7 @@ class CustomBartModelWithEmbedding(nn.Module):
         self.out = nn.Linear(self.config.d_model, tokenizer_tgt.get_vocab_size())
 
         # Initialize weights
-        self.initialize_weights(mean=0, std=self.config.init_std)
+        self.initialize_weights(init_type=init_type, mean=0, std=self.config.init_std)
 
         # Share the weights between embedding and linear layer
         if share_tgt_emb_and_out:
@@ -67,13 +68,15 @@ class CustomBartModelWithEmbedding(nn.Module):
         logits = self.out(last_hidden_state)
         return logits
     
-    def initialize_weights(self, mean=0, std=0.02):
+    def initialize_weights(self, init_type="normal", mean=0, std=0.02):
         for name, param in self.named_parameters():
             if name.startswith("bart_model"):
                 continue
             if param.dim() > 1:
-                # nn.init.normal_(param, mean=mean, std=std)
-                nn.init.xavier_uniform_(param)
+                if init_type == "normal":
+                    nn.init.normal_(param, mean=mean, std=std)
+                elif init_type == "xavier":
+                    nn.init.xavier_uniform_(param)
     
     def get_encoder_out(
         self,

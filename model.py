@@ -138,6 +138,7 @@ def get_bart_model_with_embedding(config: dict, tokenizer_src, tokenizer_tgt):
 
     checkpoint = config["checkpoint_bart_model"]
     share_tgt_emb_and_out = config["share_tgt_emb_and_out"]
+    init_type = config["init_type"]
 
     model = CustomBartModelWithEmbedding(
         config=bart_config,
@@ -145,6 +146,7 @@ def get_bart_model_with_embedding(config: dict, tokenizer_src, tokenizer_tgt):
         tokenizer_tgt=tokenizer_tgt,
         checkpoint=checkpoint,
         share_tgt_emb_and_out=share_tgt_emb_and_out,
+        init_type=init_type,
     )
 
     if not model:
