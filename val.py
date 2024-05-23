@@ -76,46 +76,47 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
                 print(f"{label_ids = }")
                 print(f"{pred_ids = }")
 
-                recall = calc_recall(
-                    preds=pred_ids,
-                    target=label_ids,
-                    tgt_vocab_size=vocab_size,
-                    pad_index=pad_token_id,
-                    device=device
-                )
-                precision = calc_precision(
-                    preds=pred_ids,
-                    target=label_ids,
-                    tgt_vocab_size=vocab_size,
-                    pad_index=pad_token_id,
-                    device=device
-                )
-                f_05 = calc_f_beta(
-                    preds=pred_ids,
-                    target=label_ids,
-                    beta=config["f_beta"],
-                    tgt_vocab_size=vocab_size,
-                    pad_index=pad_token_id,
-                    device=device
-                )
+                if not config["use_pytorch_metric"]:
+                    recall = calc_recall(
+                        preds=pred_ids,
+                        target=label_ids,
+                        tgt_vocab_size=vocab_size,
+                        pad_index=pad_token_id,
+                        device=device
+                    )
+                    precision = calc_precision(
+                        preds=pred_ids,
+                        target=label_ids,
+                        tgt_vocab_size=vocab_size,
+                        pad_index=pad_token_id,
+                        device=device
+                    )
+                    f_05 = calc_f_beta(
+                        preds=pred_ids,
+                        target=label_ids,
+                        beta=config["f_beta"],
+                        tgt_vocab_size=vocab_size,
+                        pad_index=pad_token_id,
+                        device=device
+                    )
+                else:
+                    recall = pytorch_call_recall(
+                        input=pred_ids,
+                        target=label_ids,
+                        device=device
+                    )
 
-                # recall = pytorch_call_recall(
-                #     input=pred_ids,
-                #     target=label_ids,
-                #     device=device
-                # )
+                    precision = pytorch_call_precision(
+                        input=pred_ids,
+                        target=label_ids,
+                        device=device
+                    )
 
-                # precision = pytorch_call_precision(
-                #     input=pred_ids,
-                #     target=label_ids,
-                #     device=device
-                # )
-
-                # f_05 = pytorch_call_f_beta(
-                #     recall=recall,
-                #     precision=precision,
-                #     beta=config["f_beta"]
-                # )
+                    f_05 = pytorch_call_f_beta(
+                        recall=recall,
+                        precision=precision,
+                        beta=config["f_beta"]
+                    )
 
                 recall = recall.item()
                 precision = precision.item()
@@ -133,46 +134,47 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
         print("Check labels.shape: ", labels.shape)
         print("Check preds.shape: ", preds.shape)
 
-        recall = calc_recall(
-            preds=preds,
-            target=labels,
-            tgt_vocab_size=vocab_size,
-            pad_index=pad_token_id,
-            device=device
-            )
-        precision = calc_precision(
-            preds=preds,
-            target=labels,
-            tgt_vocab_size=vocab_size,
-            pad_index=pad_token_id,
-            device=device
-            )
-        f_05 = calc_f_beta(
-            preds=preds,
-            target=labels,
-            beta=config["f_beta"],
-            tgt_vocab_size=vocab_size,
-            pad_index=pad_token_id,
-            device=device
+        if config["use_pytorch_metric"]:
+            recall = calc_recall(
+                preds=preds,
+                target=labels,
+                tgt_vocab_size=vocab_size,
+                pad_index=pad_token_id,
+                device=device
+                )
+            precision = calc_precision(
+                preds=preds,
+                target=labels,
+                tgt_vocab_size=vocab_size,
+                pad_index=pad_token_id,
+                device=device
+                )
+            f_05 = calc_f_beta(
+                preds=preds,
+                target=labels,
+                beta=config["f_beta"],
+                tgt_vocab_size=vocab_size,
+                pad_index=pad_token_id,
+                device=device
+                )
+        else:
+            recall = pytorch_call_recall(
+                input=preds,
+                target=labels,
+                device=device
             )
 
-        # recall = pytorch_call_recall(
-        #     input=preds,
-        #     target=labels,
-        #     device=device
-        # )
+            precision = pytorch_call_precision(
+                input=preds,
+                target=labels,
+                device=device
+            )
 
-        # precision = pytorch_call_precision(
-        #     input=preds,
-        #     target=labels,
-        #     device=device
-        # )
-
-        # f_05 = pytorch_call_f_beta(
-        #     recall=recall,
-        #     precision=precision,
-        #     beta=config["f_beta"]
-        # )
+            f_05 = pytorch_call_f_beta(
+                recall=recall,
+                precision=precision,
+                beta=config["f_beta"]
+            )
 
         bleus = calc_bleu_score(refs=expected,
                                     cands=predicted)
