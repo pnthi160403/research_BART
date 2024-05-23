@@ -49,21 +49,37 @@ def create_dirs(config: dict, dirs: list):
 
 # file path
 def get_weights_file_path(config, epoch: str, model="model"):
+    model_folder = f"{config['model_folder']}"
     if model == "bart":
-        model_folder = f"{config['model_folder']}"
         model_filename = f"{config['model_bart_basename']}{epoch}.pt"
-    else:
-        model_folder = f"{config['model_folder']}"
+    elif model == "bart_model":
         model_filename = f"{config['model_basename']}{epoch}.pt"
+    elif model == "inputs_embeds":
+        model_filename = f"{config['model_inputs_embeds']}{epoch}.pt"
+    elif model == "decoder_inputs_embeds":
+        model_filename = f"{config['model_decoder_inputs_embeds']}{epoch}.pt"
+    elif model == "out":
+        model_filename = f"{config['model_out']}{epoch}.pt"
+    else:
+        model_filename = f"{config['model_basename']}{epoch}.pt"
+
     return str(Path('.') / model_folder / model_filename)
 
 def weights_file_path(config, model="model"):
+    model_folder = f"{config['model_folder']}"
     if model == "bart":
-        model_folder = f"{config['model_folder']}"
         model_filename = f"{config['model_bart_basename']}*"
-    else:
-        model_folder = f"{config['model_folder']}"
+    elif model == "bart_model":
         model_filename = f"{config['model_basename']}*"
+    elif model == "inputs_embeds":
+        model_filename = f"{config['model_inputs_embeds']}*"
+    elif model == "decoder_inputs_embeds":
+        model_filename = f"{config['model_decoder_inputs_embeds']}*"
+    elif model == "out":
+        model_filename = f"{config['model_out']}*"
+    else:
+        model_filename = f"{config['model_basename']}*"
+
     weights_files = list(Path(model_folder).glob(model_filename))
     if len(weights_files) == 0:
         return None

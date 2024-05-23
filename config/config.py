@@ -46,6 +46,10 @@ def get_config(base_dir: str=None):
     config["model_folder"] = join_base(config["base_dir"], "/model")
     config["model_basename"] = "model_"
     config["model_bart_basename"] = "bart_model_"
+    config["model_inputs_embeds"] = "inputs_embeds_"
+    config["model_decoder_inputs_embeds"] = "decoder_inputs_embeds_"
+    config["model_out"] = "out_"
+    
     config["preload"] = "latest"
     config["data"] = join_base(config["base_dir"], "/data")
     config["log_dir"] = join_base(config["base_dir"], "/log")
