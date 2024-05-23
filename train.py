@@ -181,6 +181,8 @@ def train(config):
 
             # debug
             break
+        # debug
+        break
 
     # save model
     if config["pretrain"]:
