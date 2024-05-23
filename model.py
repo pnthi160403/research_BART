@@ -166,10 +166,16 @@ GET_MODEL = {
 
 # save model
 def save_model(model, global_step, global_val_step, optimizer, lr_scheduler, config, save_model="model"):
+    if save_model == "model":
+        model_filename = get_weights_file_path(config, f"{global_step:010d}")
     if save_model == "bart":
         model_filename = get_weights_file_path(config, f"{global_step:010d}", "bart")
-    else:
-        model_filename = get_weights_file_path(config, f"{global_step:010d}")
+    if save_model == "inputs_embeds":
+        model_filename = get_weights_file_path(config, f"{global_step:010d}", "inputs_embeds")
+    if save_model == "decoder_inputs_embeds":
+        model_filename = get_weights_file_path(config, f"{global_step:010d}", "decoder_inputs_embeds")
+    if save_model == "out":
+        model_filename = get_weights_file_path(config, f"{global_step:010d}", "out")
 
     torch.save({
         "global_step": global_step,

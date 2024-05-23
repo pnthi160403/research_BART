@@ -8,9 +8,12 @@ class CustomBartModelWithEmbedding(nn.Module):
         config: BartConfig,
         tokenizer_src,
         tokenizer_tgt,
-        checkpoint=None,
         share_tgt_emb_and_out=False,
         init_type="normal",
+        checkpoint_inputs_embeds=None,
+        checkpoint_decoder_inputs_embeds=None,
+        checkpoint_bart_model=None,
+        checkpoint_out=None,
     ):
         super().__init__()
         self.config = config
@@ -24,23 +27,38 @@ class CustomBartModelWithEmbedding(nn.Module):
             num_embeddings=self.src_vocab_size,
             embedding_dim=self.config.d_model
         )
+        if checkpoint_inputs_embeds:
+            self.inputs_embeds = load_model(
+                model=self.inputs_embeds,
+                checkpoint=checkpoint_inputs_embeds
+            )
         
         # Decoder Embedding
         self.decoder_inputs_embeds = nn.Embedding(
             num_embeddings=self.tgt_vocab_size,
             embedding_dim=self.config.d_model
         )
+        if checkpoint_decoder_inputs_embeds:
+            self.decoder_inputs_embeds = load_model(
+                model=self.decoder_inputs_embeds,
+                checkpoint=checkpoint_decoder_inputs_embeds
+            )
         
         # Bart model
         self.bart_model = BartModel(config)
-        if checkpoint:
+        if checkpoint_bart_model:
             self.bart_model = load_model(
                 model=self.bart_model,
-                checkpoint=checkpoint
+                checkpoint=checkpoint_bart_model
             )
             
         # Predict
         self.out = nn.Linear(self.config.d_model, tokenizer_tgt.get_vocab_size())
+        if checkpoint_out:
+            self.out = load_model(
+                model=self.out,
+                checkpoint=checkpoint_out
+            )
 
         # Initialize weights
         self.initialize_weights(init_type=init_type, mean=0, std=self.config.init_std)

@@ -184,6 +184,7 @@ def train(config):
 
     # save model
     if config["pretrain"]:
+        # save bart
         save_model(
             model=model.bart_model,
             global_step=global_step,
@@ -193,6 +194,40 @@ def train(config):
             config=config,
             save_model="bart"
         )
+        
+        # save inputs_embeds
+        save_model(
+            model=model.inputs_embeds,
+            global_step=global_step,
+            global_val_step=global_val_step,
+            optimizer=optimizer,
+            lr_scheduler=lr_scheduler,
+            config=config,
+            save_model="inputs_embeds"
+        )
+
+        # save decoder_inputs_embeds
+        save_model(
+            model=model.decoder_inputs_embeds,
+            global_step=global_step,
+            global_val_step=global_val_step,
+            optimizer=optimizer,
+            lr_scheduler=lr_scheduler,
+            config=config,
+            save_model="decoder_inputs_embeds"
+        )
+
+        # save out
+        save_model(
+            model=model.out,
+            global_step=global_step,
+            global_val_step=global_val_step,
+            optimizer=optimizer,
+            lr_scheduler=lr_scheduler,
+            config=config,
+            save_model="out"
+        )
+        
     save_model(
         model=model,
         global_step=global_step,
