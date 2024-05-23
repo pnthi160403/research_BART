@@ -163,11 +163,6 @@ def train(config):
                         sum_loss_val += loss.item()
                         losses_val_step.append(loss.item())
 
-                        batch_iterator.set_postfix({
-                            "loss": f"{loss.item():6.3f}",
-                            "global_step": f"{global_step:010d}"
-                        })
-
                         global_val_step += 1
                         timestep_val.append(global_val_step)
                         # debug
