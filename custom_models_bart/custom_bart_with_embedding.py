@@ -72,7 +72,8 @@ class CustomBartModelWithEmbedding(nn.Module):
             if name.startswith("bart_model"):
                 continue
             if param.dim() > 1:
-                nn.init.normal_(param, mean=mean, std=std)
+                # nn.init.normal_(param, mean=mean, std=std)
+                nn.init.xavier_uniform_(param)
     
     def get_encoder_out(
         self,
