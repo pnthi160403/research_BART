@@ -94,8 +94,12 @@ class CustomBartModelWithEmbedding(nn.Module):
                 if init_type == "normal":
                     nn.init.normal_(param, mean=mean, std=std)
                 elif init_type == "xavier":
-                    nn.init.xavier_uniform_(param)
-    
+                    nn.init.normal_(param, mean=0, std=std)
+                if name in ["inputs_embeds.weight", "decoder_inputs_embeds.weight"] and self.config.pad_token_id is not None:
+                    nn.init.constant_(param[self.config.pad_token_id], 0)
+                elif name in ["out.bias"]:
+                    nn.init.constant_(param, 0)
+                    
     def get_encoder_out(
         self,
         input_ids,
