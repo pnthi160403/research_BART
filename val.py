@@ -134,7 +134,7 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
         print("Check labels.shape: ", labels.shape)
         print("Check preds.shape: ", preds.shape)
 
-        if config["use_pytorch_metric"]:
+        if not config["use_pytorch_metric"]:
             recall = calc_recall(
                 preds=preds,
                 target=labels,
