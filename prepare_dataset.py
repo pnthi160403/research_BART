@@ -38,14 +38,9 @@ def read_ds(config: dict):
         train_ds.reset_index(drop=True, inplace=True)
 
     print("Read dataset successfully")
-    print("Train dataset")
-    print(train_ds.head())
-
-    print("Val dataset")
-    print(val_ds.head())
-
-    print("Test dataset")
-    print(test_ds.head())
+    print("Length train dataset: ", len(train_ds))
+    print("Length val dataset: ", len(val_ds))
+    print("Length test dataset: ", len(test_ds))
     print("====================================")
 
     return train_ds, val_ds, test_ds
@@ -61,10 +56,8 @@ def read_tokenizer(config: dict):
     #     tokenizer_src, tokenizer_tgt = read_wordlevel_tokenizer(config)
 
     print("Read tokenizer successfully")
-    print("Check tokenizer src")
-    print(tokenizer_src.get_vocab_size())
-    print("Check tokenizer tgt")
-    print(tokenizer_tgt.get_vocab_size())
+    print("Vocab size src: ", tokenizer_src.get_vocab_size())
+    print("Vocab size tgt: ", tokenizer_tgt.get_vocab_size())
 
     assert tokenizer_src.token_to_id("<s>") == tokenizer_tgt.token_to_id("<s>"), "Special token id not match"
     assert tokenizer_src.token_to_id("</s>") == tokenizer_tgt.token_to_id("</s>"), "Special token id not match"
