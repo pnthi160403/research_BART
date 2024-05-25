@@ -6,14 +6,12 @@ from torch.nn.utils.rnn import pad_sequence
 from .prepare_dataset import read_tokenizer
 
 def validate(model, config, beam_size, val_dataloader, num_example=20):
-    print("Length val_dataloader: ", len(val_dataloader))
     device = config["device"]
     
     # read tokenizer
     tokenizer_src, tokenizer_tgt = read_tokenizer(config=config)
         
     vocab_size=tokenizer_tgt.get_vocab_size()
-    print("Vocab size: ", vocab_size)
     pad_token_id = tokenizer_src.token_to_id("<pad>")
 
     with torch.no_grad():
@@ -73,9 +71,6 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
                 for i in range(0, len(scores)):
                     print(f'BLEU_{i + 1}: {scores[i]}')
                 
-                print(f"{label_ids = }")
-                print(f"{pred_ids = }")
-
                 if not config["use_pytorch_metric"]:
                     recall = calc_recall(
                         preds=pred_ids,
@@ -130,9 +125,6 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
 
         labels = torch.cat(labels, dim=0)
         preds = torch.cat(preds, dim=0)
-
-        print("Check labels.shape: ", labels.shape)
-        print("Check preds.shape: ", preds.shape)
 
         if not config["use_pytorch_metric"]:
             recall = calc_recall(
