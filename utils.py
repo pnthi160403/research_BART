@@ -12,6 +12,8 @@ from torcheval.metrics.functional.classification import multiclass_accuracy, mul
 
 # read and write data
 def read(file_path):
+    if not os.path.exists(file_path):
+        return []
     data = []
     with open(file_path, 'r', encoding='utf-8') as file:
         for line in file:
