@@ -37,9 +37,24 @@ class CustomBartModelWithEmbedding(nn.Module):
         self.out = nn.Linear(self.config.d_model, self.tgt_vocab_size)
         
         # Initialize weights
-        self.inputs_embeds.apply(self.initialize_weights)
-        self.decoder_inputs_embeds.apply(self.initialize_weights)
-        self.out.apply(self.initialize_weights)
+        self.initialize_weights(
+            module=self.inputs_embeds,
+            init_type=init_type,
+            mean=0,
+            std=self.config.init_std,
+        )
+        self.initialize_weights(
+            module=self.decoder_inputs_embeds,
+            init_type=init_type,
+            mean=0,
+            std=self.config.init_std,
+        )
+        self.initialize_weights(
+            module=self.out,
+            init_type=init_type,
+            mean=0,
+            std=self.config.init_std,
+        )
 
         # Share the weights between embedding and linear layer
         if share_tgt_emb_and_out:

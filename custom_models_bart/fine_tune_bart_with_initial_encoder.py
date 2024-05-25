@@ -53,8 +53,18 @@ class FineTuneBartWithRandomEncoder(nn.Module):
         self.out = custom_bart_with_embedding.out
         
         # Initialize weights xavier
-        self.inputs_embeds.apply(self.initialize_weights)
-        self.random_encoder.apply(self.initialize_weights)
+        self.initialize_weights(
+            module=self.inputs_embeds,
+            init_type="xavier",
+            mean=0,
+            std=self.config.init_std,
+        )
+        self.initialize_weights(
+            module=self.random_encoder,
+            init_type="xavier",
+            mean=0,
+            std=self.config.init_std,
+        )
         
     def forward(
         self,
@@ -63,17 +73,20 @@ class FineTuneBartWithRandomEncoder(nn.Module):
         decoder_input_ids,
         decoder_attention_mask,
     ):
-        inputs_embeds = self.encoder(
-            input_ids=input_ids,
+        inputs_embeds = self.inputs_embeds(input_ids)
+        inputs_embeds = self.random_encoder(
+            inputs_embeds=inputs_embeds,
             attention_mask=attention_mask
         ).last_hidden_state
-        bart_out = self.bart_model(
-            attention_mask=attention_mask,
+        decoder_inputs_embeds = self.decoder_inputs_embeds(decoder_input_ids)
+        outputs = self.bart_model(
             inputs_embeds=inputs_embeds,
-            decoder_input_ids=decoder_input_ids,
+            attention_mask=attention_mask,
+            decoder_inputs_embeds=decoder_inputs_embeds,
             decoder_attention_mask=decoder_attention_mask,
-        ).last_hidden_state
-        logits = self.out(bart_out)
+        )   
+        last_hidden_state = outputs.last_hidden_state
+        logits = self.out(last_hidden_state)
         return logits
     
     def initialize_weights(self, module, init_type="normal", mean=0, std=0.02):
@@ -89,16 +102,12 @@ class FineTuneBartWithRandomEncoder(nn.Module):
         input_ids,
         attention_mask
     ):
-            # embed_out = self.input_emb(input_ids)
-            # embed_out = self.pos_emb(embed_out)
-            # inputs_embeds = self.encoder(
-            #     src=embed_out,
-            #     src_key_padding_mask=(attention_mask == 0).type(torch.bool)
-            # )
-        inputs_embeds = self.encoder(
-            input_ids=input_ids,
+        inputs_embeds = self.inputs_embeds(input_ids)
+        inputs_embeds = self.random_encoder(
+            inputs_embeds=inputs_embeds,
             attention_mask=attention_mask
         ).last_hidden_state
+
         return self.bart_model.encoder(
             inputs_embeds=inputs_embeds,
             attention_mask=attention_mask
