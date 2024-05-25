@@ -26,6 +26,7 @@ def first_fine_tune_bart_with_random_encoder(config, model):
     model = freeze_model(
         model=model,
         freeze_start_with_names=[
+            "decoder_inputs_embeds.weight",
             "bart_model",
         ]
     )
