@@ -58,6 +58,7 @@ def get_config(base_dir: str=None):
     config["loss_val"] = join_base(config["log_files"], "/loss_val.json")
     config["loss_train_step"] = join_base(config["log_files"], "/loss_train_step.json")
     config["loss_val_step"] = join_base(config["log_files"], "/loss_val_step.json")
+    config["learning_rate_step"] = join_base(config["log_files"], "/learning_rate_step.json")
     config["timestep_train"] = join_base(config["log_files"], "/timestep_train.json")
     config["timestep_val"] = join_base(config["log_files"], "/timestep_val.json")
     config["timestep_train_and_val"] = join_base(config["log_files"], "/timestep_train_and_val.json")

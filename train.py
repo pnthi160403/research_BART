@@ -86,6 +86,7 @@ def train(config):
         write(config["loss_val"], [])
         write(config["loss_train_step"], [])
         write(config["loss_val_step"], [])
+        write(config["learning_rate_step"], [])
         write(config["timestep_train"], [])
         write(config["timestep_val"], [])
         write(config["timestep_train_and_val"], [])
@@ -95,6 +96,7 @@ def train(config):
     losses_val = read(config["loss_val"])
     losses_train_step = read(config["loss_train_step"])
     losses_val_step = read(config["loss_val_step"])
+    learning_rate_step = read(config["learning_rate_step"])
 
     timestep_train = read(config["timestep_train"]) # Ox for train
     timestep_val = read(config["timestep_val"]) # Ox for val
@@ -128,6 +130,7 @@ def train(config):
             
             
             current_lr = optimizer.param_groups[0]['lr']
+            learning_rate_step.append(current_lr)
             timestep_lr.append(current_lr)
 
             loss = loss_fn(logits.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
@@ -298,4 +301,14 @@ def train(config):
         ylabel="Loss value",
         data=losses_val_step,
         steps=timestep_val
+    )
+
+    # learning rate step
+    draw_graph(
+        config=config,
+        title="Learning rate",
+        xlabel="Step",
+        ylabel="Learning rate value",
+        data=learning_rate_step,
+        steps=timestep_lr
     )
