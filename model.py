@@ -7,7 +7,7 @@ from .utils import get_weights_file_path
 
 BART = "bart"
 BART_WITH_EMBEDDING = "bart_with_embedding"
-BART_SEQ2SEQ = "bart_seq2seq"
+FINE_TUNE_BART_WITH_RANDOM_ENCODER = "fine_tune_bart_with_random_encoder"
 STEP_TRAIN_BART_SEQ2SEQ = {
     'FIRST': first_fine_tune_bart_with_random_encoder,
     'SECOND': second_fine_tune_bart_with_random_encoder,
@@ -47,22 +47,6 @@ def get_bart_config(config: dict, tokenizer_src, tokenizer_tgt):
 
     return bart_config
 
-# get encoder config
-def get_encoder_config(config: dict, tokenizer_src, tokenizer_tgt):
-    class ConfigModel():
-        pass
-
-    config_encoder = ConfigModel()
-    config_encoder.d_model = config["d_model"]
-    config_encoder.nhead = config["encoder_attention_heads"]
-    config_encoder.vocab_size = tokenizer_src.get_vocab_size()
-    config_encoder.dropout = config["dropout"]
-    config_encoder.num_layers = config["encoder_layers"]
-    config_encoder.encoder_ffn_dim = config["encoder_ffn_dim"]
-    config_encoder.activation = config["activation_function"]
-
-    return config_encoder
-
 # get bart model
 def get_bart_model(config: dict, tokenizer_src, tokenizer_tgt):
     bart_config = get_bart_config(
@@ -84,32 +68,26 @@ def get_bart_model(config: dict, tokenizer_src, tokenizer_tgt):
     if not model:
         ValueError("Model not found")
 
-    # print("Check BART model")
-    # print(model)
-    # print("====================================================")
-
     return model
 
-# get bart model seq2seq
-def get_bart_model_seq2seq(config: dict, tokenizer_src, tokenizer_tgt):
-    config_bart = get_bart_config(
+# get fine tune bart model seq2seq
+def get_fine_tune_bart_with_random_encoder(config: dict, tokenizer_src, tokenizer_tgt):
+    bart_config = get_bart_config(
         config=config,
         tokenizer_src=tokenizer_src,
         tokenizer_tgt=tokenizer_tgt,
     )
 
-    config_encoder = get_encoder_config(
-        config=config,
-        tokenizer_src=tokenizer_src,
-        tokenizer_tgt=tokenizer_tgt,
-    )
-
-    checkpoint = config["checkpoint_bart_model"]
-
+    checkpoint = config["checkpoint"]
+    if not checkpoint:
+        ValueError("Checkpoint not found")
+    
     model = FineTuneBartWithRandomEncoder(
-        config_bart=config_bart,
-        config_encoder=config_encoder,
-        checkpoint=checkpoint,
+        config=bart_config,
+        src_vocab_size=tokenizer_src.get_vocab_size(),
+        tgt_vocab_size=tokenizer_tgt.get_vocab_size(),
+        checkpoint_custom_bart_with_embedding=checkpoint,
+        init_type=config["init_type"],
     )
 
     if not model:
@@ -121,10 +99,8 @@ def get_bart_model_seq2seq(config: dict, tokenizer_src, tokenizer_tgt):
             config=config,
             model=model
         )
-    
-    # print("Check BART model Seq2seq")
-    # print(model)
-    # print("====================================================")
+    else:
+        ValueError("Step train not found")
     
     return model
 
@@ -150,16 +126,12 @@ def get_bart_model_with_embedding(config: dict, tokenizer_src, tokenizer_tgt):
     if not model:
         ValueError("Model not found")
 
-    # print("Check BART model with embedding")
-    # print(model)
-    # print("====================================================")
-
     return model
     
 GET_MODEL = {
     BART: get_bart_model,
     BART_WITH_EMBEDDING: get_bart_model_with_embedding,
-    BART_SEQ2SEQ: get_bart_model_seq2seq,
+    FINE_TUNE_BART_WITH_RANDOM_ENCODER: get_fine_tune_bart_with_random_encoder,
 }
 
 # save model

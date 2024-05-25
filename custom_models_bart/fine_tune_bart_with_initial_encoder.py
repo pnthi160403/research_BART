@@ -53,17 +53,12 @@ class FineTuneBartWithRandomEncoder(nn.Module):
         self.out = custom_bart_with_embedding.out
         
         # Initialize weights xavier
+        modules = [self.inputs_embeds, self.random_encoder]
         self.initialize_weights(
-            module=self.inputs_embeds,
+            modules=modules,
             init_type="xavier",
             mean=0,
-            std=self.config.init_std,
-        )
-        self.initialize_weights(
-            module=self.random_encoder,
-            init_type="xavier",
-            mean=0,
-            std=self.config.init_std,
+            std=self.config.init_std
         )
         
     def forward(
@@ -92,12 +87,13 @@ class FineTuneBartWithRandomEncoder(nn.Module):
     def initialize_weights(self, modules, init_type="normal", mean=0, std=0.02):
         for module in modules:
             for param in module.parameters():
-                if init_type == "normal":
-                    nn.init.normal_(param, mean=mean, std=std)
-                elif init_type == "xavier":
-                    nn.init.xavier_normal_(param)
-                else:
-                    raise ValueError("Unknown init type")
+                if param.dim() > 1:
+                    if init_type == "normal":
+                        nn.init.normal_(param, mean=mean, std=std)
+                    elif init_type == "xavier":
+                        nn.init.xavier_normal_(param)
+                    else:
+                        raise ValueError("Unknown init type")
                         
     def get_encoder_out(
         self,

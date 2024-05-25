@@ -106,6 +106,7 @@ def get_config(base_dir: str=None):
     config["num_beams"] = 4
     config["init_type"] = "normal"
     config["share_tgt_emb_and_out"] = False
+    config["checkpoint"] = None
 
     # Optimizer Adam
     config["weight_decay"] = 0.0

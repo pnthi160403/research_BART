@@ -71,14 +71,13 @@ class CustomBartModelWithEmbedding(nn.Module):
     def initialize_weights(self, modules, init_type="normal", mean=0, std=0.02):
         for module in modules:
             for param in module.parameters():
-                if param.dim() < 2:
-                    continue
-                if init_type == "normal":
-                    nn.init.normal_(param, mean=mean, std=std)
-                elif init_type == "xavier":
-                    nn.init.xavier_normal_(param)
-                else:
-                    raise ValueError("Unknown init type")
+                if param.dim() > 1:
+                    if init_type == "normal":
+                        nn.init.normal_(param, mean=mean, std=std)
+                    elif init_type == "xavier":
+                        nn.init.xavier_normal_(param)
+                    else:
+                        raise ValueError("Unknown init type")
 
     def get_encoder_out(
         self,
