@@ -46,7 +46,7 @@ def test(config):
             config=config,
             column_names=["bleu_1", "bleu_2", "bleu_3", "bleu_4", "recall", "precision", "f_05"],
             data=bleus + [recall, precision, f_05],
-            name_csv=f"results_beam_{beam_size}.csv"
+            name_csv=f"results_beam_{beam_size}"
         )
 
         print(data_frame)

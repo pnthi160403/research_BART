@@ -105,7 +105,6 @@ def draw_graph(config, title, xlabel, ylabel, data, steps):
     plt.show()
     plt.close()
 
-# figures
 def draw_multi_graph(config, title, xlabel, ylabel, all_data, steps):
     save_path = join_base(config['log_dir'], f"/{title}.png")
     for data, info in all_data:
