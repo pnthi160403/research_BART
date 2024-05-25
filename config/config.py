@@ -61,6 +61,7 @@ def get_config(base_dir: str=None):
     config["timestep_train"] = join_base(config["log_files"], "/timestep_train.json")
     config["timestep_val"] = join_base(config["log_files"], "/timestep_val.json")
     config["timestep_train_and_val"] = join_base(config["log_files"], "/timestep_train_and_val.json")
+    config["timestep_lr"] = join_base(config["log_files"], "/timestep_lr.json")
 
     # Dataset
     config["lang_src"] = "noise_vi"

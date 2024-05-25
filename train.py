@@ -89,6 +89,7 @@ def train(config):
         write(config["timestep_train"], [])
         write(config["timestep_val"], [])
         write(config["timestep_train_and_val"], [])
+        write(config["timestep_lr"], [])
 
     losses_train = read(config["loss_train"])
     losses_val = read(config["loss_val"])
@@ -98,6 +99,7 @@ def train(config):
     timestep_train = read(config["timestep_train"]) # Ox for train
     timestep_val = read(config["timestep_val"]) # Ox for val
     timestep_train_and_val = read(config["timestep_train_and_val"]) # Ox for train and val
+    timestep_lr = read(config["timestep_lr"]) # Ox for lr
 
     while global_step < config["num_steps"]:
         torch.cuda.empty_cache()
@@ -124,20 +126,26 @@ def train(config):
                 decoder_attention_mask=tgt_attention_mask,
             )
             
+            
+            current_lr = optimizer.param_groups[0]['lr']
+            timestep_lr.append(current_lr)
+
             loss = loss_fn(logits.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
             sum_loss_train += loss.item()
             losses_train_step.append(loss.item())
+            timestep_train.append(global_step)
+
             batch_iterator.set_postfix({
                 "loss": f"{loss.item():6.3f}",
                 "global_step": f"{global_step:010d}"
             })
+
             loss.backward()
             optimizer.step()
             lr_scheduler.step()
             optimizer.zero_grad(set_to_none=True)
 
             global_step += 1
-            timestep_train.append(global_step)
 
 
             if global_step % config["val_steps"] == 0:
@@ -162,12 +170,13 @@ def train(config):
                             decoder_attention_mask=tgt_attention_mask,
                         )
                         
+                        
                         loss = loss_fn(logits.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
                         sum_loss_val += loss.item()
                         losses_val_step.append(loss.item())
-
-                        global_val_step += 1
                         timestep_val.append(global_val_step)
+                        
+                        global_val_step += 1
                         # debug
                         # break
 
@@ -256,6 +265,7 @@ def train(config):
     write(config["timestep_train"], timestep_train)
     write(config["timestep_val"], timestep_val)
     write(config["timestep_train_and_val"], timestep_train_and_val)
+    write(config["timestep_lr"], timestep_lr)
 
     # draw graph loss
     # train and val
