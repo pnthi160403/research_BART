@@ -22,9 +22,12 @@ def read(file_path):
     return data
 
 def write(file_path, data):
-    with open(file_path, 'w', encoding='utf-8') as file:
-        for value in data:
-            file.write(f"{value}\n")
+    try:
+        with open(file_path, 'w', encoding='utf-8') as file:
+            for value in data:
+                file.write(f"{value}\n")
+    except Exception as e:
+        print(e)
 
 # set seed
 def set_seed(seed: int=42):
@@ -98,39 +101,48 @@ def lambda_lr(global_step: int, config):
 
 # figures
 def draw_graph(config, title, xlabel, ylabel, data, steps):
-    save_path = join_base(config['log_dir'], f"/{title}.png")
-    plt.plot(steps, data)
-    plt.title(title)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.savefig(save_path)
-    plt.show()
-    plt.close()
+    try:
+        save_path = join_base(config['log_dir'], f"/{title}.png")
+        plt.plot(steps, data)
+        plt.title(title)
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.savefig(save_path)
+        plt.show()
+        plt.close()
+    except Exception as e:
+        print(e)
 
 def draw_multi_graph(config, title, xlabel, ylabel, all_data, steps):
-    save_path = join_base(config['log_dir'], f"/{title}.png")
-    for data, info in all_data:
-        plt.plot(steps, data, label=info)
-        # add multiple legends
-        plt.legend()
+    try:
+        save_path = join_base(config['log_dir'], f"/{title}.png")
+        for data, info in all_data:
+            plt.plot(steps, data, label=info)
+            # add multiple legends
+            plt.legend()
 
-    plt.title(title)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.savefig(save_path)
-    plt.show()
-    plt.close()
+        plt.title(title)
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.savefig(save_path)
+        plt.show()
+        plt.close()
+    except Exception as e:
+        print(e)
 
 def figure_list_to_csv(config, column_names, data, name_csv):
-    obj = {}
-    for i in range(len(column_names)):
-        if data[i] is not None:
-            obj[str(column_names[i])] = data[i]
+    try:
+        obj = {}
+        for i in range(len(column_names)):
+            if data[i] is not None:
+                obj[str(column_names[i])] = data[i]
 
-    data_frame = pd.DataFrame(obj, index=[0])
-    save_path = join_base(config['log_dir'], f"/{name_csv}.csv")
-    data_frame.to_csv(save_path, index=False)
-    return data_frame
+        data_frame = pd.DataFrame(obj, index=[0])
+        save_path = join_base(config['log_dir'], f"/{name_csv}.csv")
+        data_frame.to_csv(save_path, index=False)
+        return data_frame
+    except Exception as e:
+        print(e)
 
 # metrics
 def calc_recall(preds, target, tgt_vocab_size: int, pad_index: int, device):

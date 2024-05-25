@@ -131,7 +131,7 @@ def train(config):
             
             current_lr = optimizer.param_groups[0]['lr']
             learning_rate_step.append(current_lr)
-            timestep_lr.append(current_lr)
+            timestep_lr.append(global_step)
 
             loss = loss_fn(logits.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
             sum_loss_train += loss.item()
