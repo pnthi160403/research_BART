@@ -38,23 +38,11 @@ class CustomBartModelWithEmbedding(nn.Module):
         
         # Initialize weights
         self.initialize_weights(
-            module=self.inputs_embeds,
             init_type=init_type,
             mean=0,
-            std=self.config.init_std,
+            std=self.config.init_std
         )
-        self.initialize_weights(
-            module=self.decoder_inputs_embeds,
-            init_type=init_type,
-            mean=0,
-            std=self.config.init_std,
-        )
-        self.initialize_weights(
-            module=self.out,
-            init_type=init_type,
-            mean=0,
-            std=self.config.init_std,
-        )
+            
 
         # Share the weights between embedding and linear layer
         if share_tgt_emb_and_out:
@@ -79,13 +67,16 @@ class CustomBartModelWithEmbedding(nn.Module):
         logits = self.out(last_hidden_state)
         return logits
     
-    def initialize_weights(self, module, init_type="normal", mean=0, std=0.02):
-        for param in module.parameters():
-            if param.dim() > 1:
+    def initialize_weights(self, init_type="normal", mean=0, std=0.02):
+        modules = [self.inputs_embeds, self.decoder_inputs_embeds, self.out]
+        for module in modules:
+            for param in module.parameters():
                 if init_type == "normal":
                     nn.init.normal_(param, mean=mean, std=std)
                 elif init_type == "xavier":
                     nn.init.xavier_normal_(param)
+                else:
+                    raise ValueError("Unknown init type")
 
     def get_encoder_out(
         self,
