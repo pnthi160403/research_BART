@@ -9,7 +9,7 @@ class CustomBartModelWithEmbedding(nn.Module):
         src_vocab_size,
         tgt_vocab_size,
         share_tgt_emb_and_out=False,
-        init_type="normal",
+        init_type="xavier",
     ):
         super().__init__()
         self.config = config

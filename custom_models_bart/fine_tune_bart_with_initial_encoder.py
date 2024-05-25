@@ -12,7 +12,7 @@ class FineTuneBartWithRandomEncoder(nn.Module):
         tgt_vocab_size,
         vocab_size_encoder_bart=40000,
         checkpoint_custom_bart_with_embedding=None,
-        init_type="normal",
+        init_type="xavier",
     ):
         super(FineTuneBartWithRandomEncoder, self).__init__()
         self.config = config
@@ -56,7 +56,7 @@ class FineTuneBartWithRandomEncoder(nn.Module):
         modules = [self.inputs_embeds, self.random_encoder]
         self.initialize_weights(
             modules=modules,
-            init_type="xavier",
+            init_type=init_type,
             mean=0,
             std=self.config.init_std
         )
