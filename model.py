@@ -160,9 +160,9 @@ def get_bart_model_with_embedding(config: dict, tokenizer_src, tokenizer_tgt):
     if not model:
         ValueError("Model not found")
 
-    print("Check BART model with embedding")
-    print(model)
-    print("====================================================")
+    # print("Check BART model with embedding")
+    # print(model)
+    # print("====================================================")
 
     return model
     

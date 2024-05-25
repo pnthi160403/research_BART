@@ -143,9 +143,10 @@ def train(config):
                 with torch.no_grad():
                     sum_loss_val = 0
                     model.eval()
-                    batch_iterator = tqdm(val_dataloader, desc="Validating")
+                    # batch_iterator = tqdm(val_dataloader, desc="Validating")
 
-                    for batch in batch_iterator:
+                    # for batch in batch_iterator:
+                    for batch in val_dataloader:
                         src = batch["src"].to(device)
                         tgt = batch["tgt"].to(device)
                         src_attention_mask = (src != tokenizer_src.token_to_id("<pad>")).type(torch.int64)
