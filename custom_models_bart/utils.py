@@ -1,5 +1,11 @@
 import torch
 
+def show_layer_un_freeze(model):
+    for module in model.modules():
+        for name, param in module.named_parameters():
+            if param.requires_grad:
+                print(name)
+
 def freeze_model(model, freeze_start_with_names=[]):
     for module in model.modules():
         for name, param in module.named_parameters():
@@ -31,6 +37,8 @@ def first_fine_tune_bart_with_random_encoder(config, model):
             "bart_model.encoder.embed_positions.weight",
         ]
     )
+
+    show_layer_un_freeze(model)
 
     return model
 
