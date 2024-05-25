@@ -37,12 +37,13 @@ class CustomBartModelWithEmbedding(nn.Module):
         self.out = nn.Linear(self.config.d_model, self.tgt_vocab_size)
         
         # Initialize weights
+        modules = [self.inputs_embeds, self.decoder_inputs_embeds, self.out]
         self.initialize_weights(
             init_type=init_type,
+            modules=modules,
             mean=0,
             std=self.config.init_std
         )
-            
 
         # Share the weights between embedding and linear layer
         if share_tgt_emb_and_out:
@@ -67,8 +68,7 @@ class CustomBartModelWithEmbedding(nn.Module):
         logits = self.out(last_hidden_state)
         return logits
     
-    def initialize_weights(self, init_type="normal", mean=0, std=0.02):
-        modules = [self.inputs_embeds, self.decoder_inputs_embeds, self.out]
+    def initialize_weights(self, modules, init_type="normal", mean=0, std=0.02):
         for module in modules:
             for param in module.parameters():
                 if init_type == "normal":
