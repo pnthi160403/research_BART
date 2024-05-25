@@ -84,9 +84,9 @@ def get_bart_model(config: dict, tokenizer_src, tokenizer_tgt):
     if not model:
         ValueError("Model not found")
 
-    print("Check BART model")
-    print(model)
-    print("====================================================")
+    # print("Check BART model")
+    # print(model)
+    # print("====================================================")
 
     return model
 
@@ -122,9 +122,9 @@ def get_bart_model_seq2seq(config: dict, tokenizer_src, tokenizer_tgt):
             model=model
         )
     
-    print("Check BART model Seq2seq")
-    print(model)
-    print("====================================================")
+    # print("Check BART model Seq2seq")
+    # print(model)
+    # print("====================================================")
     
     return model
 
@@ -136,25 +136,15 @@ def get_bart_model_with_embedding(config: dict, tokenizer_src, tokenizer_tgt):
         tokenizer_tgt=tokenizer_tgt,
     )
 
-    # checkpoint
-    checkpoint_inputs_embeds = config["checkpoint_inputs_embeds"]
-    checkpoint_decoder_inputs_embeds = config["checkpoint_decoder_inputs_embeds"]
-    checkpoint_bart_model = config["checkpoint_bart_model"]
-    checkpoint_out = config["checkpoint_out"]
-
     share_tgt_emb_and_out = config["share_tgt_emb_and_out"]
     init_type = config["init_type"]
 
     model = CustomBartModelWithEmbedding(
         config=bart_config,
-        tokenizer_src=tokenizer_src,
-        tokenizer_tgt=tokenizer_tgt,
+        src_vocab_size=tokenizer_src.get_vocab_size(),
+        tgt_vocab_size=tokenizer_tgt.get_vocab_size(),
         share_tgt_emb_and_out=share_tgt_emb_and_out,
         init_type=init_type,
-        checkpoint_inputs_embeds=checkpoint_inputs_embeds,
-        checkpoint_decoder_inputs_embeds=checkpoint_decoder_inputs_embeds,
-        checkpoint_bart_model=checkpoint_bart_model,
-        checkpoint_out=checkpoint_out,
     )
 
     if not model:

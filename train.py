@@ -21,6 +21,8 @@ def train(config):
 
     # read tokenizer
     tokenizer_src, tokenizer_tgt = read_tokenizer(config=config)
+    config["src_vocab_size"] = tokenizer_src.get_vocab_size()
+    config["tgt_vocab_size"] = tokenizer_tgt.get_vocab_size()
 
     # BART model
     model_train = config["model_train"]
