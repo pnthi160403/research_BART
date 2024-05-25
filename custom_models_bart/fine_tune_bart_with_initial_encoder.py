@@ -44,7 +44,7 @@ class FineTuneBartWithRandomEncoder(nn.Module):
         self.decoder_inputs_embeds = custom_bart_with_embedding.decoder_inputs_embeds
 
         # Encoder initialization
-        self.encoder = BartModel(config).encoder
+        self.random_encoder = BartModel(config).encoder
 
         # Pretained BART model
         self.bart_model = custom_bart_with_embedding.bart_model
@@ -53,9 +53,8 @@ class FineTuneBartWithRandomEncoder(nn.Module):
         self.out = custom_bart_with_embedding.out
         
         # Initialize weights xavier
-        self.input_emb.apply(self.initialize_weights)
-        self.out.apply(self.initialize_weights)
-        self.encoder.apply(self.initialize_weights)
+        self.inputs_embeds.apply(self.initialize_weights)
+        self.random_encoder.apply(self.initialize_weights)
         
     def forward(
         self,
@@ -64,12 +63,6 @@ class FineTuneBartWithRandomEncoder(nn.Module):
         decoder_input_ids,
         decoder_attention_mask,
     ):
-            # embed_out = self.input_emb(input_ids)
-            # embed_out = self.pos_emb(embed_out)
-            # inputs_embeds = self.encoder(
-            #     src=embed_out,
-            #     src_key_padding_mask=(attention_mask == 0).type(torch.bool)
-            # )
         inputs_embeds = self.encoder(
             input_ids=input_ids,
             attention_mask=attention_mask
@@ -83,16 +76,13 @@ class FineTuneBartWithRandomEncoder(nn.Module):
         logits = self.out(bart_out)
         return logits
     
-    def initialize_weights(self, layer):
-        if isinstance(layer, (nn.Linear, nn.Embedding, nn.MultiheadAttention)):
-            nn.init.normal_(layer.weight, mean=0, std=self.config.init_std)
-        elif isinstance(layer, nn.LayerNorm):
-            layer.weight.data.fill_(1.0)
-        else:
-            for m in layer.children():
-                for param in m.parameters():
-                    if param.dim() > 1:
-                        nn.init.normal_(param, mean=0, std=self.config.init_std)
+    def initialize_weights(self, module, init_type="normal", mean=0, std=0.02):
+        for param in module.parameters():
+            if param.dim() > 1:
+                if init_type == "normal":
+                    nn.init.normal_(param, mean=mean, std=std)
+                elif init_type == "xavier":
+                    nn.init.xavier_normal_(param)
                         
     def get_encoder_out(
         self,

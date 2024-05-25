@@ -1,7 +1,7 @@
 from transformers import  BartConfig
 import torch
 from .custom_models_bart import first_train_bart_seq2seq, second_train_bart_seq2seq
-from .custom_models_bart import CustomBartModel, CustomBartSeq2seq, CustomBartModelWithEmbedding
+from .custom_models_bart import CustomBartModel, CustomBartModelWithEmbedding, FineTuneBartWithRandomEncoder
 import json
 from .utils import get_weights_file_path
 
@@ -106,7 +106,7 @@ def get_bart_model_seq2seq(config: dict, tokenizer_src, tokenizer_tgt):
 
     checkpoint = config["checkpoint_bart_model"]
 
-    model = CustomBartSeq2seq(
+    model = FineTuneBartWithRandomEncoder(
         config_bart=config_bart,
         config_encoder=config_encoder,
         checkpoint=checkpoint,
