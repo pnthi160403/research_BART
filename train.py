@@ -55,7 +55,7 @@ def train(config):
     # get lr schduler
     lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
         optimizer=optimizer,
-        lr_lambda=lambda global_step: lambda_lr(
+        lr_lambda=lambda step: lambda_lr(
             global_step=global_step,
             config=config
         )

@@ -16,7 +16,7 @@ def un_freeze_model(model, un_freeze_start_with_names=[]):
                     param.requires_grad = True
     return model
 
-def first_train_bart_seq2seq(config, model):
+def first_fine_tune_bart_with_random_encoder(config, model):
     model = freeze_model(
         model=model,
         freeze_start_with_names=[
@@ -34,7 +34,7 @@ def first_train_bart_seq2seq(config, model):
 
     return model
 
-def second_train_bart_seq2seq(config, model):
+def second_fine_tune_bart_with_random_encoder(config, model):
     return model
 
 # load model state dict
@@ -46,4 +46,4 @@ def load_model(checkpoint, model):
     model.load_state_dict(state["model_state_dict"])
     return model
 
-__all__ = ["first_train_bart_seq2seq", "second_train_bart_seq2seq", "load_model", "freeze_model"]
+__all__ = ["first_fine_tune_bart_with_random_encoder", "second_fine_tune_bart_with_random_encoder", "load_model", "freeze_model", "un_freeze_model"]
