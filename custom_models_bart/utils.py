@@ -44,11 +44,7 @@ def first_fine_tune_bart_with_random_encoder(config, model):
                 param.requires_grad = True
             else:
                 param.requires_grad = False
-
-    # show all parameters un_freeze
-    for name, param in model.named_parameters():
-        if param.requires_grad:
-            print(name)
+            print(f"{name}: {param.requires_grad}")
     
     # model = un_freeze_model(
     #     model=model,
