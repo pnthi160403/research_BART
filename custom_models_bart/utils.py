@@ -42,7 +42,6 @@ def first_fine_tune_bart_with_random_encoder(config, model):
         for un_freeze_name in un_freeze_start_with_names:
             if name.startswith(un_freeze_name, 0):
                 param.requires_grad = True
-                print(name)
             else:
                 param.requires_grad = False
     
