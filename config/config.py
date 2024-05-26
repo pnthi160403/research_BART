@@ -70,6 +70,8 @@ def get_config(base_dir: str=None):
     config["train_ds"] = None
     config["val_ds"] = None
     config["test_ds"] = None
+    config["max_num_test"] = 10000
+    config["max_num_val"] = 30000
     config["corpus"] = None
     config["max_len"] = 100
 

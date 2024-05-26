@@ -21,20 +21,23 @@ def read_ds(config: dict):
 
     if val_ds_path and os.path.exists(val_ds_path):
         val_ds = pd.read_csv(val_ds_path)
+        if config["max_num_val"] < len(val_ds):
+            val_ds = val_ds[:config["max_num_val"]]
     else:
         num_train = len(train_ds)
-        num_val = min(int(num_train * 0.1), 30000)
+        num_val = min(int(num_train * 0.1), config["max_num_val"])
         val_ds = train_ds[:num_val]
         train_ds = train_ds[num_val:]
         train_ds.reset_index(drop=True, inplace=True)
     
     if test_ds_path and os.path.exists(test_ds_path):
         test_ds = pd.read_csv(test_ds_path)
+        if config["max_num_test"] < len(test_ds):
+            test_ds = test_ds[:config["max_num_test"]]
     else:
         num_train = len(train_ds)
-        num_test = 6000
-        test_ds = train_ds[:num_test]
-        train_ds = train_ds[num_test:]
+        test_ds = train_ds[:config["max_num_test"]]
+        train_ds = train_ds[config["max_num_test"]:]
         train_ds.reset_index(drop=True, inplace=True)
 
     print("Read dataset successfully")
