@@ -115,7 +115,10 @@ def get_config(base_dir: str=None):
     config["lr"] = 0.5
     config["eps"] = 1e-9
     config["betas"] = (0.9, 0.98)
+
+    # CrossEntropyLoss
     config["label_smoothing"] = 0.01
+    config["ignore_index_loss"] = True
 
     # Scheduler (Noam decay)
     config["warmup_steps"] = 4000

@@ -76,8 +76,12 @@ def train(config):
         print("No model to preload, start training from scratch")
 
     # loss function
+    if config["ignore_index_loss"]:
+        ignore_index = tokenizer_tgt.token_to_id("<pad>")
+    else:
+        ignore_index = None
     loss_fn = torch.nn.CrossEntropyLoss(
-        ignore_index=tokenizer_src.token_to_id("<pad>"),
+        ignore_index=ignore_index,
         label_smoothing=config["label_smoothing"],
     ).to(device)
 
@@ -210,39 +214,6 @@ def train(config):
             lr_scheduler=lr_scheduler,
             config=config,
             save_model="bart"
-        )
-        
-        # save inputs_embeds
-        save_model(
-            model=model.inputs_embeds,
-            global_step=global_step,
-            global_val_step=global_val_step,
-            optimizer=optimizer,
-            lr_scheduler=lr_scheduler,
-            config=config,
-            save_model="inputs_embeds"
-        )
-
-        # save decoder_inputs_embeds
-        save_model(
-            model=model.decoder_inputs_embeds,
-            global_step=global_step,
-            global_val_step=global_val_step,
-            optimizer=optimizer,
-            lr_scheduler=lr_scheduler,
-            config=config,
-            save_model="decoder_inputs_embeds"
-        )
-
-        # save out
-        save_model(
-            model=model.out,
-            global_step=global_step,
-            global_val_step=global_val_step,
-            optimizer=optimizer,
-            lr_scheduler=lr_scheduler,
-            config=config,
-            save_model="out"
         )
         
     save_model(
