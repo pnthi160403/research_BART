@@ -23,6 +23,9 @@ def un_freeze_model(model, un_freeze_start_with_names=[]):
     return model
 
 def first_fine_tune_bart_with_random_encoder(config, model):
+    for name, param in model.named_parameters():
+        param.requires_grad = False
+        
     un_freeze_modules = [
         model.bart_model.encoder.layers[0].self_attn,
         model.bart_model.encoder.embed_positions,
@@ -38,7 +41,7 @@ def first_fine_tune_bart_with_random_encoder(config, model):
     for name, param in model.named_parameters():
         if param.requires_grad:
             print(name)
-            
+
     return model
 
 def second_fine_tune_bart_with_random_encoder(config, model):
