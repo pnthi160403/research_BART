@@ -40,7 +40,6 @@ def first_fine_tune_bart_with_random_encoder(config, model):
 
     freeze_modules = [
         model.bart_model,
-        model.decoder_inputs_embeds,
     ]
 
     for module in freeze_modules:
