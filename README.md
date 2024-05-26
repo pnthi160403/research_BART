@@ -1,1 +1,2 @@
-# vn_spelling_correction_bart_model
+# research BART model
+# Author: Thi Pham
