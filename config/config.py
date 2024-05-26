@@ -105,7 +105,7 @@ def get_config(base_dir: str=None):
     config["encoder_layerdrop"] = 0.0 # Dropout encoder layer
     config["decoder_layerdrop"] = 0.0 # Dropout decoder layer
     config["scale_embedding"] = False # Scale embeddings with sqrt(d_model)
-    config["num_beams"] = 4
+    config["num_beams"] = 1
     config["init_type"] = "normal"
     config["share_tgt_emb_and_out"] = False
     config["checkpoint"] = None
@@ -132,7 +132,7 @@ def get_config(base_dir: str=None):
 
     # Metric
     config["f_beta"] = 0.5
-    config["beams"] = [2]
+    config["beams"] = [1]
     config["use_pytorch_metric"] = False
 
     return config
