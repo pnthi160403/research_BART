@@ -23,23 +23,39 @@ def un_freeze_model(model, un_freeze_start_with_names=[]):
     return model
 
 def first_fine_tune_bart_with_random_encoder(config, model):
-    model = freeze_model(
-        model=model,
-        freeze_start_with_names=[
-            "",
-        ]
-    )
+    # model = freeze_model(
+    #     model=model,
+    #     freeze_start_with_names=[
+    #         "",
+    #     ]
+    # )
+
+    un_freeze_start_with_names=[
+        "bart_model.encoder.layers.0.self_attn.",
+        "bart_model.encoder.embed_positions.weight",
+        "inputs_embeds",
+        "random_encoder",
+        "out.",
+    ]
+
+    for name, param in model.named_parameters():
+        for un_freeze_name in un_freeze_start_with_names:
+            if name.startswith(un_freeze_name, 0):
+                param.requires_grad = True
+                print(name)
+            else:
+                param.requires_grad = False
     
-    model = un_freeze_model(
-        model=model,
-        un_freeze_start_with_names=[
-            "bart_model.encoder.layers.0.self_attn.",
-            "bart_model.encoder.embed_positions.weight",
-            "inputs_embeds",
-            "random_encoder",
-            "out",
-        ]
-    )
+    # model = un_freeze_model(
+    #     model=model,
+    #     un_freeze_start_with_names=[
+    #         "bart_model.encoder.layers.0.self_attn.",
+    #         "bart_model.encoder.embed_positions.weight",
+    #         "inputs_embeds",
+    #         "random_encoder",
+    #         "out.",
+    #     ]
+    # )
 
     show_layer_un_freeze(model)
 
