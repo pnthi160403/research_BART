@@ -76,12 +76,8 @@ def train(config):
         print("No model to preload, start training from scratch")
 
     # loss function
-    if config["ignore_index_loss"]:
-        ignore_index = tokenizer_tgt.token_to_id("<pad>")
-    else:
-        ignore_index = None
     loss_fn = torch.nn.CrossEntropyLoss(
-        ignore_index=ignore_index,
+        ignore_index=tokenizer_tgt.token_to_id("<pad>"),
         label_smoothing=config["label_smoothing"],
     ).to(device)
 

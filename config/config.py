@@ -120,7 +120,6 @@ def get_config(base_dir: str=None):
 
     # CrossEntropyLoss
     config["label_smoothing"] = 0.01
-    config["ignore_index_loss"] = True
 
     # Scheduler (Noam decay)
     config["warmup_steps"] = 4000

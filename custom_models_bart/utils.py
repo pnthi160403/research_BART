@@ -1,10 +1,9 @@
 import torch
 
 def show_layer_un_freeze(model):
-    for module in model.modules():
-        for name, param in module.named_parameters():
-            if param.requires_grad:
-                print(name)
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            print(name)
 
 def freeze_model(model, freeze_start_with_names=[]):
     for module in model.modules():
@@ -23,23 +22,27 @@ def un_freeze_model(model, un_freeze_start_with_names=[]):
     return model
 
 def first_fine_tune_bart_with_random_encoder(config, model):
-    # for name, param in model.named_parameters():
-    #     param.requires_grad = False
-
-    # un_freeze_modules = [
-    #     model.bart_model.encoder.layers[0].self_attn,
-    #     model.bart_model.encoder.embed_positions,
-    #     model.inputs_embeds,
-    #     model.random_encoder,
-    #     model.out,
-    # ]
-
-    # for module in un_freeze_modules:
-    #     for name, param in module.named_parameters():
-    #         param.requires_grad = True
+    # model = freeze_model(
+    #     model=model,
+    #     freeze_start_with_names=[
+    #         "",
+    #     ]
+    # )
+    
+    # model = un_freeze_model(
+    #     model=model,
+    #     un_freeze_start_with_names=[
+    #         "bart_model.encoder.layers.0.self_attn.",
+    #         "bart_model.encoder.embed_positions.weight",
+    #         "inputs_embeds",
+    #         "random_encoder",
+    #     ]
+    # )
 
     freeze_modules = [
         model.bart_model,
+        model.decoder_inputs_embeds,
+        model.out
     ]
 
     for module in freeze_modules:
@@ -55,9 +58,7 @@ def first_fine_tune_bart_with_random_encoder(config, model):
         for name, param in module.named_parameters():
             param.requires_grad = True
 
-    for name, param in model.named_parameters():
-        if param.requires_grad:
-            print(name)
+    show_layer_un_freeze(model)
 
     return model
 
