@@ -56,7 +56,7 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
 
             count += 1
 
-            print_step = len(val_dataloader) // num_example
+            print_step = max(len(val_dataloader) // num_example, 1)
             
             if count % print_step == 0:
                 print()
