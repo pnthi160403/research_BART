@@ -37,6 +37,7 @@ def first_fine_tune_bart_with_random_encoder(config, model):
             "bart_model.encoder.embed_positions.weight",
             "inputs_embeds",
             "random_encoder",
+            "out",
         ]
     )
 
