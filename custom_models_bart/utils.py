@@ -23,42 +23,22 @@ def un_freeze_model(model, un_freeze_start_with_names=[]):
     return model
 
 def first_fine_tune_bart_with_random_encoder(config, model):
-    # model = freeze_model(
-    #     model=model,
-    #     freeze_start_with_names=[
-    #         "",
-    #     ]
-    # )
-
-    un_freeze_start_with_names=[
-        "bart_model.encoder.layers.0.self_attn.",
-        "bart_model.encoder.embed_positions.weight",
-        "inputs_embeds",
-        "random_encoder",
-        "out.",
+    un_freeze_modules = [
+        model.bart_model.encoder.layers[0].self_attn,
+        model.bart_model.encoder.embed_positions,
+        model.inputs_embeds,
+        model.random_encoder,
+        model.out,
     ]
 
+    for module in un_freeze_modules:
+        for name, param in module.named_parameters():
+            param.requires_grad = True
+
     for name, param in model.named_parameters():
-        for un_freeze_name in un_freeze_start_with_names:
-            if name.startswith(un_freeze_name, 0):
-                param.requires_grad = True
-            else:
-                param.requires_grad = False
-            print(f"{name}: {param.requires_grad}")
-    
-    # model = un_freeze_model(
-    #     model=model,
-    #     un_freeze_start_with_names=[
-    #         "bart_model.encoder.layers.0.self_attn.",
-    #         "bart_model.encoder.embed_positions.weight",
-    #         "inputs_embeds",
-    #         "random_encoder",
-    #         "out.",
-    #     ]
-    # )
-
-    show_layer_un_freeze(model)
-
+        if param.requires_grad:
+            print(name)
+            
     return model
 
 def second_fine_tune_bart_with_random_encoder(config, model):
