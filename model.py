@@ -81,11 +81,14 @@ def get_fine_tune_bart_with_random_encoder(config: dict, tokenizer_src, tokenize
     checkpoint = config["checkpoint"]
     if not checkpoint:
         ValueError("Checkpoint not found")
+
+    vocab_size_encoder_bart = config["vocab_size_encoder_bart"]
     
     model = FineTuneBartWithRandomEncoder(
         config=bart_config,
         src_vocab_size=tokenizer_src.get_vocab_size(),
         tgt_vocab_size=tokenizer_tgt.get_vocab_size(),
+        vocab_size_encoder_bart=vocab_size_encoder_bart,
         checkpoint_custom_bart_with_embedding=checkpoint,
         init_type=config["init_type"],
     )
@@ -101,6 +104,8 @@ def get_fine_tune_bart_with_random_encoder(config: dict, tokenizer_src, tokenize
         )
     else:
         ValueError("Step train not found")
+
+    print(model)
     
     return model
 

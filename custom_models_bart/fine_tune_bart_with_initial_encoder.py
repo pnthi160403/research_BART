@@ -10,7 +10,7 @@ class FineTuneBartWithRandomEncoder(nn.Module):
         config: BartConfig,
         src_vocab_size,
         tgt_vocab_size,
-        vocab_size_encoder_bart=40000,
+        vocab_size_encoder_bart=30000,
         checkpoint_custom_bart_with_embedding=None,
         init_type="xavier",
     ):
