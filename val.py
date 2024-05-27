@@ -63,8 +63,8 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
                 print(f"{f'SOURCE: ':>12}{src_text}")
                 print(f"{f'TARGET: ':>12}{tgt_text}")
                 print(f"{f'PREDICTED: ':>12}{pred_text}")
-                # print(f"{f'TOKENS TARGET: ':>12}{[tokenizer_tgt.encode(tgt_text).tokens]}")
-                # print(f"{f'TOKENS PREDICTED: ':>12}{tokenizer_tgt.encode(pred_text).tokens}")
+                print(f"{f'TOKENS TARGET: ':>12}{[tokenizer_tgt.encode(tgt_text).tokens]}")
+                print(f"{f'TOKENS PREDICTED: ':>12}{tokenizer_tgt.encode(pred_text).tokens}")
                 scores = calc_bleu_score(refs=[[tokenizer_tgt.encode(tgt_text).tokens]],
                                         cands=[tokenizer_tgt.encode(pred_text).tokens])
                 print(f'BLEU OF SENTENCE {count}')

@@ -29,7 +29,7 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
         dim=0,
     ).to(device)
 
-    print("Src tokens:", tokenizer_src.decode(src.detach().cpu().numpy()))
+    # print("Src tokens:", tokenizer_src.decode(src.detach().cpu().numpy()))
 
     src = torch.tensor(src, dtype=torch.int64).unsqueeze(0).to(device)
     src_attention_mask = (src != pad_token_id).type(torch.int64).to(device)
@@ -76,6 +76,6 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
         candidates = candidates[:beam_size]
 
     pred_ids = candidates[0][0].squeeze()
-    print("Pred tokens:", tokenizer_tgt.decode(pred_ids.detach().cpu().numpy()))
+    # print("Pred tokens:", tokenizer_tgt.decode(pred_ids.detach().cpu().numpy()))
     
     return pred_ids
