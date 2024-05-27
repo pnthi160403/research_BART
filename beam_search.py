@@ -12,14 +12,28 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
     sos_token_id = tokenizer_src.token_to_id("<s>")
     eos_token_id = tokenizer_src.token_to_id("</s>")
     pad_token_id = tokenizer_src.token_to_id("<pad>")
+
+    sos_token = torch.tensor([tokenizer_tgt.token_to_id("<s>")], dtype=torch.int64)
+    eos_token = torch.tensor([tokenizer_tgt.token_to_id("</s>")], dtype=torch.int64)
     
     device = config["device"]
     max_len = config["max_len"]
 
-    src = [sos_token_id] + tokenizer_src.encode(src).ids + [eos_token_id]
+    enc_input_tokens = tokenizer_src.encode(src).ids
+    src = torch.cat(
+        [
+            sos_token,
+            torch.tensor(enc_input_tokens, dtype=torch.int64),
+            eos_token,
+        ],
+        dim=0,
+    ).to(device)
+
+    print("Src tokens:", tokenizer_src.decode(src.detach().cpu().numpy()))
+
     src = torch.tensor(src, dtype=torch.int64).unsqueeze(0).to(device)
     src_attention_mask = (src != pad_token_id).type(torch.int64).to(device)
-    
+
     encoder_output = model.get_encoder_out(
         input_ids=src,
         attention_mask=src_attention_mask
@@ -61,5 +75,7 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
         candidates = sorted(new_candidates, key=lambda x: x[1], reverse=True)
         candidates = candidates[:beam_size]
 
-    # Return the best candidate
-    return candidates[0][0].squeeze()
+    pred_ids = candidates[0][0].squeeze()
+    print("Pred tokens:", tokenizer_tgt.decode(pred_ids.detach().cpu().numpy()))
+    
+    return pred_ids

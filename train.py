@@ -82,15 +82,15 @@ def train(config):
     ).to(device)
 
     if global_step == 0:
-        write(config["loss_train"], [])
-        write(config["loss_val"], [])
-        write(config["loss_train_step"], [])
-        write(config["loss_val_step"], [])
-        write(config["learning_rate_step"], [])
-        write(config["timestep_train"], [])
-        write(config["timestep_val"], [])
-        write(config["timestep_train_and_val"], [])
-        write(config["timestep_lr"], [])
+        write(config["loss_train"], []) # Oy for loss train in per epoch
+        write(config["loss_val"], []) # Oy for loss val in per epoch
+        write(config["loss_train_step"], []) # Oy for loss train in per step
+        write(config["loss_val_step"], []) # Oy for loss val in per step
+        write(config["learning_rate_step"], []) # Oy for learning rate in per step
+        write(config["timestep_train"], []) # Ox for train
+        write(config["timestep_val"], []) # Ox for val
+        write(config["timestep_train_and_val"], []) # Ox for train and val
+        write(config["timestep_lr"], []) # Ox for lr
 
     losses_train = read(config["loss_train"])
     losses_val = read(config["loss_val"])
@@ -98,10 +98,10 @@ def train(config):
     losses_val_step = read(config["loss_val_step"])
     learning_rate_step = read(config["learning_rate_step"])
 
-    timestep_train = read(config["timestep_train"]) # Ox for train
-    timestep_val = read(config["timestep_val"]) # Ox for val
-    timestep_train_and_val = read(config["timestep_train_and_val"]) # Ox for train and val
-    timestep_lr = read(config["timestep_lr"]) # Ox for lr
+    timestep_train = read(config["timestep_train"])
+    timestep_val = read(config["timestep_val"])
+    timestep_train_and_val = read(config["timestep_train_and_val"])
+    timestep_lr = read(config["timestep_lr"])
 
     while global_step < config["num_steps"]:
         torch.cuda.empty_cache()
@@ -232,6 +232,8 @@ def train(config):
     write(config["loss_val"], losses_val)
     write(config["loss_train_step"], losses_train_step)
     write(config["loss_val_step"], losses_val_step)
+    write(config["learning_rate_step"], learning_rate_step)
+
     write(config["timestep_train"], timestep_train)
     write(config["timestep_val"], timestep_val)
     write(config["timestep_train_and_val"], timestep_train_and_val)
