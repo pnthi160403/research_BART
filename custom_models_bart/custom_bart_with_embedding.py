@@ -9,7 +9,7 @@ class CustomBartModelWithEmbedding(nn.Module):
         src_vocab_size,
         tgt_vocab_size,
         share_tgt_emb_and_out=False,
-        init_type="xavier",
+        init_type=None,
     ):
         super().__init__()
         self.config = config
@@ -77,7 +77,7 @@ class CustomBartModelWithEmbedding(nn.Module):
                     elif init_type == "xavier":
                         nn.init.xavier_normal_(param)
                     else:
-                        raise ValueError("Unknown init type")
+                        continue
 
     def get_encoder_out(
         self,
