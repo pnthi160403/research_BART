@@ -93,8 +93,8 @@ class FineTuneBartWithRandomEncoder(nn.Module):
                     elif init_type == "xavier":
                         nn.init.xavier_normal_(param)
                     else:
-                        raise ValueError("Unknown init type")
-                        
+                        continue
+                    
     def get_encoder_out(
         self,
         input_ids,
