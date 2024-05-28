@@ -67,6 +67,7 @@ class FineTuneBartWithRandomEncoder(nn.Module):
         attention_mask,
         decoder_input_ids,
         decoder_attention_mask,
+        label=None,
     ):
         inputs_embeds = self.inputs_embeds(input_ids)
         inputs_embeds = self.random_encoder(
@@ -82,6 +83,12 @@ class FineTuneBartWithRandomEncoder(nn.Module):
         )   
         last_hidden_state = outputs.last_hidden_state
         logits = self.out(last_hidden_state)
+
+        if label is not None:
+            loss_fn = nn.CrossEntropyLoss()
+            loss = loss_fn(logits.view(-1, self.tgt_vocab_size), label.view(-1))
+            return logits, loss
+                
         return logits
     
     def initialize_weights(self, modules, init_type="normal", mean=0, std=0.02):
