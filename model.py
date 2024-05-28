@@ -88,6 +88,7 @@ def get_fine_tune_bart_with_random_encoder(config: dict, tokenizer_src, tokenize
         config=bart_config,
         src_vocab_size=tokenizer_src.get_vocab_size(),
         tgt_vocab_size=tokenizer_tgt.get_vocab_size(),
+        pad_idx=tokenizer_src.token_to_id("<pad>"),
         vocab_size_encoder_bart=vocab_size_encoder_bart,
         checkpoint_custom_bart_with_embedding=checkpoint,
         init_type=config["init_type"],
@@ -124,6 +125,7 @@ def get_bart_model_with_embedding(config: dict, tokenizer_src, tokenizer_tgt):
         config=bart_config,
         src_vocab_size=tokenizer_src.get_vocab_size(),
         tgt_vocab_size=tokenizer_tgt.get_vocab_size(),
+        pad_idx=tokenizer_src.token_to_id("<pad>"),
         share_tgt_emb_and_out=share_tgt_emb_and_out,
         init_type=init_type,
     )

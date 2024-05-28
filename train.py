@@ -174,7 +174,6 @@ def train(config):
                             label=label,
                         )
                         
-                        
                         # loss = loss_fn(logits.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
                         sum_loss_val += loss.item()
                         losses_val_step.append(loss.item())
