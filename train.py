@@ -76,10 +76,10 @@ def train(config):
         print("No model to preload, start training from scratch")
 
     # loss function
-    loss_fn = torch.nn.CrossEntropyLoss(
-        ignore_index=tokenizer_tgt.token_to_id("<pad>"),
-        label_smoothing=config["label_smoothing"],
-    ).to(device)
+    # loss_fn = torch.nn.CrossEntropyLoss(
+    #     ignore_index=tokenizer_tgt.token_to_id("<pad>"),
+    #     label_smoothing=config["label_smoothing"],
+    # ).to(device)
 
     if global_step == 0:
         write(config["loss_train"], []) # Oy for loss train in per epoch
@@ -121,19 +121,19 @@ def train(config):
             tgt_attention_mask = (tgt != tokenizer_tgt.token_to_id("<pad>")).type(torch.int64)
             label = batch['label'].to(device)
 
-            logits = model(
+            logits, loss = model(
                 input_ids=src,
                 attention_mask=src_attention_mask,
                 decoder_input_ids=tgt,
                 decoder_attention_mask=tgt_attention_mask,
+                label=label,
             )
-            
             
             current_lr = optimizer.param_groups[0]['lr']
             learning_rate_step.append(current_lr)
             timestep_lr.append(global_step)
 
-            loss = loss_fn(logits.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
+            # loss = loss_fn(logits.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
             sum_loss_train += loss.item()
             losses_train_step.append(loss.item())
             timestep_train.append(global_step)
@@ -166,15 +166,16 @@ def train(config):
                         tgt_attention_mask = (tgt != tokenizer_tgt.token_to_id("<pad>")).type(torch.int64)
                         label = batch['label'].to(device)
                         
-                        logits = model(
+                        logits, loss = model(
                             input_ids=src,
                             attention_mask=src_attention_mask,
                             decoder_input_ids=tgt,
                             decoder_attention_mask=tgt_attention_mask,
+                            label=label,
                         )
                         
                         
-                        loss = loss_fn(logits.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
+                        # loss = loss_fn(logits.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
                         sum_loss_val += loss.item()
                         losses_val_step.append(loss.item())
                         timestep_val.append(global_val_step)
