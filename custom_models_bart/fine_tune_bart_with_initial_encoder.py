@@ -85,7 +85,7 @@ class FineTuneBartWithRandomEncoder(nn.Module):
         logits = self.out(last_hidden_state)
 
         if label is not None:
-            loss_fn = nn.CrossEntropyLoss()
+            loss_fn = nn.CrossEntropyLoss(label_smoothing=0.01)
             loss = loss_fn(logits.view(-1, self.tgt_vocab_size), label.view(-1))
             return logits, loss
                 
