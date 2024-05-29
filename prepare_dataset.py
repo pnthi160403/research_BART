@@ -4,7 +4,7 @@ from torch.nn.utils.rnn import pad_sequence
 import torch
 import os
 
-from .utils import read_tokenizer_byte_level_bpe, read_wordpiece_tokenizer, read_wordlevel_tokenizer, api_tokenizer_huggingface
+from .utils import read_tokenizer_byte_level_bpe, api_tokenizer_huggingface
 
 # read dataset
 def read_ds(config: dict):

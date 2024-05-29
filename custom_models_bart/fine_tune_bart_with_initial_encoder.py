@@ -1,7 +1,7 @@
 from transformers import BartConfig, BartModel
 from .utils import load_model
 import torch.nn as nn
-from .custom_bart_with_embedding import CustomBartModelWithEmbedding
+from .custom_bart_model_with_embedding import CustomBartModelWithEmbedding
     
 # Fine-tune BART with initial encoder
 class FineTuneBartWithRandomEncoder(nn.Module):
