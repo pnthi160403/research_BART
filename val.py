@@ -54,10 +54,9 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
             pred_ids = padding[1]
             
             # recall, precision
-            recall_metric.add_batch(predictions=pred_ids, references=label_ids)
-            precision_metric.add_batch(predictions=pred_ids, references=label_ids)
-            print(f"{label_ids = }")
-            print(f"{pred_ids = }")
+            for item in zip(pred_ids, label_ids):
+                recall_metric.add(prediction=item[0], reference=item[1])
+                precision_metric.add(prediction=item[0], reference=item[1])
 
             # labels.append(label_ids)
             # preds.append(pred_ids)
