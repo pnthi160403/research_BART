@@ -54,8 +54,10 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
             pred_ids = padding[1]
             
             # recall, precision
-            recall_metric.add_batch(predictions=list(pred_ids.detach().cpu().numpy().astype(int)), references=list(label_ids.detach().cpu().numpy().astype(int)))
-            precision_metric.add_batch(predictions=list(pred_ids.detach().cpu().numpy().astype(int)), references=list(label_ids.detach().cpu().numpy().astype(int)))
+            recall_metric.add_batch(predictions=pred_ids, references=label_ids)
+            precision_metric.add_batch(predictions=pred_ids, references=label_ids)
+            print(f"{label_ids = }")
+            print(f"{pred_ids = }")
 
             # labels.append(label_ids)
             # preds.append(pred_ids)
@@ -192,7 +194,7 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
         # print(f"{f_05 = }")
                 
         bleus = bleu_metric.compute(max_order=4)['precisions']
-        recall = recall_metric.compute(average='weighted')
-        precision = precision_metric.compute(average='weighted')
+        recall = recall_metric.compute(average='weighted', zero_division=0)
+        precision = precision_metric.compute(average='weighted', zero_division=0)
         
         return bleus, recall, precision
