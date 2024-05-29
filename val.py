@@ -54,8 +54,8 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
             pred_ids = padding[1]
             
             # recall, precision
-            recall_metric.add(predictions=list(pred_ids.detach().cpu().numpy().astype(int)), references=list(label_ids.detach().cpu().numpy().astype(int)))
-            precision_metric.add(predictions=list(pred_ids.detach().cpu().numpy().astype(int)), references=list(label_ids.detach().cpu().numpy().astype(int)))
+            recall_metric.add_batch(predictions=list(pred_ids.detach().cpu().numpy().astype(int)), references=list(label_ids.detach().cpu().numpy().astype(int)))
+            precision_metric.add_batch(predictions=list(pred_ids.detach().cpu().numpy().astype(int)), references=list(label_ids.detach().cpu().numpy().astype(int)))
 
             # labels.append(label_ids)
             # preds.append(pred_ids)
