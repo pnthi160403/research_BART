@@ -11,8 +11,6 @@ class BartSeq2seqConfig:
         pad_idx=None,
         share_tgt_emb_and_out=False, 
         init_type=None,
-        num_labels=None,
-        vocab_size_encoder_bart=None,
     ):
         self.bart_config = bart_config
         self.src_vocab_size = src_vocab_size
@@ -152,6 +150,7 @@ def get_model(
     share_tgt_emb_and_out=False, 
     init_type=None,
     step_train=None,
+    vocab_size_encoder_bart=None,
     num_labels=None,
     checkpoint=None,
 ):
