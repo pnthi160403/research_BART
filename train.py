@@ -51,7 +51,7 @@ def train(config):
     model = get_model(
         config=config,
         model_train=config["model_train"],
-    )
+    ).to(device)
 
     # get dataloaders
     train_dataloader, val_dataloader, test_dataloader = get_dataloader(
