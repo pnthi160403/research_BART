@@ -91,6 +91,7 @@ def get_config(base_dir: str=None):
     config["init_type"] = "normal"
     config["share_tgt_emb_and_out"] = False
     config["checkpoint"] = None
+    config["num_labels"] = None
 
     # Optimizer Adam
     config["weight_decay"] = 0.0
