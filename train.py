@@ -145,7 +145,16 @@ def train(config):
         model.train()
         # shuffle dataloader
         train_dataloader, val_dataloader, test_dataloader = get_dataloader(
-            config=config,
+            tokenizer_src=tokenizer_src,
+            tokenizer_tgt=tokenizer_tgt,
+            batch_train=config["batch_train"],
+            batch_val=config["batch_val"],
+            batch_test=config["batch_test"],
+            lang_src=config["lang_src"],
+            lang_tgt=config["lang_tgt"],
+            train_ds_path=config["train_ds_path"],
+            val_ds_path=config["val_ds_path"],
+            test_ds_path=config["test_ds_path"],
         )
 
         batch_iterator = tqdm(train_dataloader, desc="Trainning")

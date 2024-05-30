@@ -1,8 +1,6 @@
 import torch
 from .utils import folders
 
-print(folders)
-
 # TPU
 # import torch
 # import torch_xla
