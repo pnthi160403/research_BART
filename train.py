@@ -3,24 +3,44 @@ import torch
 from tqdm import tqdm
 
 from .model import save_model, save_config, GET_MODEL
-from .prepare_dataset import get_dataloader, read_tokenizer
-from .utils import set_seed, create_dirs, lambda_lr, get_weights_file_path, weights_file_path, draw_graph, draw_multi_graph, read, write
+from .prepare_dataset.seq2seq import get_dataloader
+from .utils.tokenizers import read_tokenizer
+from .utils.figures import (
+    draw_graph,
+    draw_multi_graph,
+    read,
+    write,
+    figure_list_to_csv,
+)
+from .utils.folders import (
+    create_dirs,
+    get_weights_file_path,
+    weights_file_path,
+)
+from .utils.seed import set_seed
+from .utils.tokenizers import read_tokenizer
+
+# get optimizer lambda lr
+def lambda_lr(global_step: int, config):
+    global_step = max(global_step, 1)
+    return (config["d_model"] ** -0.5) * min(global_step ** (-0.5), global_step * config["warmup_steps"] ** (-1.5))
+
 
 def train(config):
     # create dirs
-    create_dirs(
-        config=config,
-        dirs=["model_folder", "log_dir", "log_files"]
-    )
+    create_dirs(dir_paths=[config["log_dir"], config["model_folder"], config["log_files"]])
     
     # set seed
-    set_seed()
+    set_seed(seed=config["seed"])
 
     # device
     device = config["device"]
 
     # read tokenizer
-    tokenizer_src, tokenizer_tgt = read_tokenizer(config=config)
+    tokenizer_src, tokenizer_tgt = read_tokenizer(
+        tokenizer_src_path=config["tokenizer_src_path"],
+        tokenizer_tgt_path=config["tokenizer_tgt_path"],
+    )
     config["src_vocab_size"] = tokenizer_src.get_vocab_size()
     config["tgt_vocab_size"] = tokenizer_tgt.get_vocab_size()
 
@@ -35,7 +55,16 @@ def train(config):
 
     # get dataloaders
     train_dataloader, val_dataloader, test_dataloader = get_dataloader(
-        config=config,
+        tokenizer_src=tokenizer_src,
+        tokenizer_tgt=tokenizer_tgt,
+        batch_train=config["batch_train"],
+        batch_val=config["batch_val"],
+        batch_test=config["batch_test"],
+        lang_src=config["lang_src"],
+        lang_tgt=config["lang_tgt"],
+        train_ds_path=config["train_ds_path"],
+        val_ds_path=config["val_ds_path"],
+        test_ds_path=config["test_ds_path"],
     )
 
     # optimizer
@@ -62,7 +91,19 @@ def train(config):
     )
 
     # load model
-    model_filename = (str(weights_file_path(config)[-1]) if weights_file_path(config) else None) if preload == 'latest' else get_weights_file_path(config, preload) if preload else None
+    model_folder_name=config["model_folder_name"]
+    model_base_name=config["model_base_name"]
+    weights_files = weights_file_path(
+        model_folder_name=model_folder_name,
+        model_base_name=model_base_name,
+    )
+    if weights_files is not None:
+        model_filename = (str(weights_files[-1]) if preload == 'latest' else get_weights_file_path(
+            model_folder_name=model_folder_name,
+            model_base_name=model_base_name,
+        )) if preload else None
+    else:
+        model_filename = None
     if model_filename:
         state = torch.load(model_filename)
         model.load_state_dict(state["model_state_dict"])
@@ -74,12 +115,6 @@ def train(config):
         print(f"Loaded model from {model_filename}")
     else:
         print("No model to preload, start training from scratch")
-
-    # loss function
-    # loss_fn = torch.nn.CrossEntropyLoss(
-    #     ignore_index=tokenizer_tgt.token_to_id("<pad>"),
-    #     label_smoothing=config["label_smoothing"],
-    # ).to(device)
 
     if global_step == 0:
         write(config["loss_train"], []) # Oy for loss train in per epoch
@@ -200,18 +235,6 @@ def train(config):
         # break
 
     # save model
-    if config["pretrain"]:
-        # save bart
-        save_model(
-            model=model.bart_model,
-            global_step=global_step,
-            global_val_step=global_val_step,
-            optimizer=optimizer,
-            lr_scheduler=lr_scheduler,
-            config=config,
-            save_model="bart"
-        )
-        
     save_model(
         model=model,
         global_step=global_step,

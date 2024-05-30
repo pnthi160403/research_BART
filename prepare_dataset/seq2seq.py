@@ -4,13 +4,14 @@ from torch.nn.utils.rnn import pad_sequence
 import torch
 import os
 
-from .utils import read_tokenizer_byte_level_bpe, api_tokenizer_huggingface
-
 # read dataset
-def read_ds(config: dict):
-    train_ds_path = config["train_ds"]
-    val_ds_path = config["val_ds"]
-    test_ds_path = config["test_ds"]
+def read_ds(
+        train_ds_path,
+        val_ds_path,
+        test_ds_path,
+        max_num_val=30000,
+        max_num_test=6000,
+):
 
     train_ds, val_ds, test_ds = None, None, None
     
@@ -21,23 +22,23 @@ def read_ds(config: dict):
 
     if val_ds_path and os.path.exists(val_ds_path):
         val_ds = pd.read_csv(val_ds_path)
-        if config["max_num_val"] < len(val_ds):
-            val_ds = val_ds[:config["max_num_val"]]
+        if max_num_val < len(val_ds):
+            val_ds = val_ds[:max_num_val]
     else:
         num_train = len(train_ds)
-        num_val = min(int(num_train * 0.1), config["max_num_val"])
+        num_val = min(int(num_train * 0.1), max_num_val)
         val_ds = train_ds[:num_val]
         train_ds = train_ds[num_val:]
         train_ds.reset_index(drop=True, inplace=True)
     
     if test_ds_path and os.path.exists(test_ds_path):
         test_ds = pd.read_csv(test_ds_path)
-        if config["max_num_test"] < len(test_ds):
-            test_ds = test_ds[:config["max_num_test"]]
+        if max_num_test < len(test_ds):
+            test_ds = test_ds[:max_num_test]
     else:
         num_train = len(train_ds)
-        test_ds = train_ds[:config["max_num_test"]]
-        train_ds = train_ds[config["max_num_test"]:]
+        test_ds = train_ds[:max_num_test]
+        train_ds = train_ds[max_num_test:]
         train_ds.reset_index(drop=True, inplace=True)
 
     print("Read dataset successfully")
@@ -48,49 +49,25 @@ def read_ds(config: dict):
 
     return train_ds, val_ds, test_ds
 
-def read_tokenizer(config: dict):
-    if config["use_tokenizer"] == "byte-level-bpe":
-        tokenizer_src, tokenizer_tgt = read_tokenizer_byte_level_bpe(config)
-    elif config["use_tokenizer"] == "huggingface":
-        tokenizer_src, tokenizer_tgt = api_tokenizer_huggingface(config)
-    # if config["use_tokenizer"] == "wordpiece":
-    #     tokenizer_src, tokenizer_tgt = read_wordpiece_tokenizer(config)
-    # if config["use_tokenizer"] == "wordlevel":
-    #     tokenizer_src, tokenizer_tgt = read_wordlevel_tokenizer(config)
-
-    print("Read tokenizer successfully")
-    print("Vocab size src: ", tokenizer_src.get_vocab_size())
-    print("Vocab size tgt: ", tokenizer_tgt.get_vocab_size())
-
-    assert tokenizer_src.token_to_id("<s>") == tokenizer_tgt.token_to_id("<s>"), "Special token id not match"
-    assert tokenizer_src.token_to_id("</s>") == tokenizer_tgt.token_to_id("</s>"), "Special token id not match"
-    assert tokenizer_src.token_to_id("<pad>") == tokenizer_tgt.token_to_id("<pad>"), "Special token id not match"
-    assert tokenizer_src.token_to_id("<unk>") == tokenizer_tgt.token_to_id("<unk>"), "Special token id not match"
-    assert tokenizer_src.token_to_id("<mask>") == tokenizer_tgt.token_to_id("<mask>"), "Special token id not match"
-
-    print("====================================")
-    
-    return tokenizer_src, tokenizer_tgt
-
 # custom dataset
-class CustomDataset(Dataset):
+class Seq2seqDataset(Dataset):
 
-    def __init__(self, ds: pd.DataFrame, tokenizer_src, tokenizer_tgt, config: dict):
+    def __init__(self, ds: pd.DataFrame, tokenizer_src, tokenizer_tgt, lang_src, lang_tgt):
         super().__init__()
         self.ds = ds
         self.tokenizer_src = tokenizer_src
         self.tokenizer_tgt = tokenizer_tgt
 
-        self.src_lang = config["lang_src"]
-        self.tgt_lang = config["lang_tgt"]
+        self.lang_src = lang_src
+        self.lang_tgt = lang_tgt
 
     def __len__(self):
         return len(self.ds)
 
     def __getitem__(self, idx):
         src_target_pair = self.ds.iloc[idx]
-        src_text = src_target_pair[self.src_lang]
-        tgt_text = src_target_pair[self.tgt_lang]       
+        src_text = src_target_pair[self.lang_src]
+        tgt_text = src_target_pair[self.lang_tgt]       
 
         return {
             'src_text': src_text,
@@ -157,36 +134,49 @@ def collate_fn(batch, tokenizer_src, tokenizer_tgt):
     }
 
 # get dataloader dataset
-def get_dataloader(config: dict):
-    tokenizer_src, tokenizer_tgt = read_tokenizer(config)
-    train_ds, val_ds, test_ds = read_ds(config)
-
-    batch_train = config['batch_train']
-    batch_val = config['batch_val']
-    batch_test = config['batch_test']
+def get_dataloader(
+        tokenizer_src,
+        tokenizer_tgt,
+        batch_train,
+        batch_val,
+        batch_test,
+        lang_src,
+        lang_tgt,
+        train_ds_path=None,
+        val_ds_path=None,
+        test_ds_path=None,
+):
+    train_ds, val_ds, test_ds = read_ds(
+        train_ds_path=train_ds_path,
+        val_ds_path=val_ds_path,
+        test_ds_path=test_ds_path,
+    )
 
     train_dataset, val_dataset, test_dataset = None, None, None
     train_dataloader, val_dataloader, test_dataloader = None, None, None
 
-    train_dataset = CustomDataset(
+    train_dataset = Seq2seqDataset(
         ds=train_ds,
         tokenizer_src=tokenizer_src,
         tokenizer_tgt=tokenizer_tgt,
-        config=config
+        lang_src=lang_src,
+        lang_tgt=lang_tgt,
     )
 
-    val_dataset = CustomDataset(
+    val_dataset = Seq2seqDataset(
         ds=val_ds,
         tokenizer_src=tokenizer_src,
         tokenizer_tgt=tokenizer_tgt,
-        config=config
+        lang_src=lang_src,
+        lang_tgt=lang_tgt,
     )
 
-    test_dataset = CustomDataset(
+    test_dataset = Seq2seqDataset(
         ds=test_ds,
         tokenizer_src=tokenizer_src,
         tokenizer_tgt=tokenizer_tgt,
-        config=config
+        lang_src=lang_src,
+        lang_tgt=lang_tgt,
     )
 
     train_dataloader = DataLoader(
@@ -227,3 +217,5 @@ def get_dataloader(config: dict):
     print("Get dataloader successfully")
 
     return train_dataloader, val_dataloader, test_dataloader
+
+__all__ = ["get_dataloader"]

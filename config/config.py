@@ -29,8 +29,8 @@ def get_config(base_dir: str=None):
         config["base_dir"] = base_dir
 
     # Tokenizer
-    config['tokenizer_tgt'] = None
-    config['tokenizer_src'] = None
+    config['tokenizer_tgt_path'] = None
+    config['tokenizer_src_path'] = None
     config["use_tokenizer"] = "huggingface"
     config["special_tokens"] = [
         "<s>",
@@ -43,11 +43,8 @@ def get_config(base_dir: str=None):
     config['min_frequency'] = 2
 
     # Directories
-    config["model_folder"] = join_base(config["base_dir"], "/model")
+    config["model_folder_name"] = join_base(config["base_dir"], "/model")
     config["model_basename"] = "model_"
-    config["model_bart_basename"] = "bart_model_"
-    config["model_inputs_embeds"] = "inputs_embeds_"
-    config["model_decoder_inputs_embeds"] = "decoder_inputs_embeds_"
     config["model_out"] = "out_"
     
     config["preload"] = "latest"
@@ -67,14 +64,15 @@ def get_config(base_dir: str=None):
     # Dataset
     config["lang_src"] = "noise_vi"
     config["lang_tgt"] = "vi"
-    config["train_ds"] = None
-    config["val_ds"] = None
-    config["test_ds"] = None
+    config["train_ds_path"] = None
+    config["val_ds_path"] = None
+    config["test_ds_path"] = None
     config["max_num_test"] = 10000
     config["max_num_val"] = 30000
     config["corpus"] = None
     config["max_len"] = 100
     config["vocab_size_encoder_bart"] = 30000
+    config["seed"] = 42
 
     # Train
     config["model_train"] = "bart"
