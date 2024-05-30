@@ -18,6 +18,6 @@ from .utils import (
     un_freeze_model,
 )
 
-from get_instance_bart import (
+from .get_instance_bart import (
     get_model,
 )
