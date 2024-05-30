@@ -44,7 +44,10 @@ def test(config):
         tokenizer_tgt=tokenizer_tgt
     ).to(device)
         
-    model_filenames = weights_file_path(config=config)
+    model_filenames = weights_file_path(
+        model_folder_name=config["model_folder_name"],
+        model_base_name=config["model_base_name"],
+    )
     model_filename = model_filenames[-1]
 
     if model_filename:

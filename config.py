@@ -46,7 +46,7 @@ def get_config(base_dir: str=None):
 
     # Directories
     config["model_folder_name"] = folders.join_base(config["base_dir"], "/model")
-    config["model_basename"] = "model_"
+    config["model_base_name"] = "model_"
     config["model_out"] = "out_"
     
     config["preload"] = "latest"

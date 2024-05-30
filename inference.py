@@ -26,7 +26,7 @@ def prepare_inference(config):
     # get model_filename
     model_filename = weights_file_path(
         model_folder_name=config["model_folder_name"],
-        model_basename=config["model_basename"],
+        model_base_name=config["model_base_name"],
     )[-1]
 
     model = load_model(
