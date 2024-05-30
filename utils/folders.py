@@ -1,6 +1,27 @@
 import os
 from pathlib import Path
 
+def read(file_path):
+    if not os.path.exists(file_path):
+        return []
+    data = []
+    with open(file_path, 'r', encoding='utf-8') as file:
+        for line in file:
+            val = float(line.strip())
+            data.append(val)
+    return data
+
+def write(file_path, data):
+    try:
+        with open(file_path, 'w', encoding='utf-8') as file:
+            for value in data:
+                file.write(f"{value}\n")
+    except Exception as e:
+        print(e)
+
+def join_base(base_dir: str, path: str):
+    return f"{base_dir}{path}"
+
 # create dirs
 def create_dirs(dir_paths: list):
     created_dirs = []
@@ -29,4 +50,4 @@ def weights_file_path(model_folder_name: str, model_base_name: str):
     weights_files.sort()
     return weights_files
 
-__all__ = ["create_dirs", "get_weights_file_path", "weights_file_path"]
+__all__ = ["create_dirs", "get_weights_file_path", "weights_file_path", "read", "write", "join_base"]

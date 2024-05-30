@@ -1,10 +1,9 @@
-from tokenizers import Tokenizer
 from .model import GET_MODEL
 import torch
 from .custom_models_bart import load_model
 from .beam_search import beam_search
 from .utils.tokenizers import read_tokenizer
-from .prepare_dataset.seq2seq import weights_file_path
+from .utils.folders import weights_file_path
 
 def prepare_inference(config):
     device = config["device"]

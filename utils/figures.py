@@ -1,27 +1,11 @@
 import os
 import matplotlib.pyplot as plt
 import pandas as pd
-
-def read(file_path):
-    if not os.path.exists(file_path):
-        return []
-    data = []
-    with open(file_path, 'r', encoding='utf-8') as file:
-        for line in file:
-            val = float(line.strip())
-            data.append(val)
-    return data
-
-def write(file_path, data):
-    try:
-        with open(file_path, 'w', encoding='utf-8') as file:
-            for value in data:
-                file.write(f"{value}\n")
-    except Exception as e:
-        print(e)
-
-def join_base(base_dir: str, path: str):
-    return f"{base_dir}{path}"
+from .folders import (
+    join_base,
+    read,
+    write
+)
 
 # figures
 def draw_graph(config, title, xlabel, ylabel, data, steps):
