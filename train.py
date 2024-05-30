@@ -51,7 +51,7 @@ def train(config):
     model = get_model(
         config=config,
         model_train=config["model_train"],
-    ).to(device)
+    )
 
     # get dataloaders
     train_dataloader, val_dataloader, test_dataloader = get_dataloader(
@@ -225,7 +225,8 @@ def train(config):
                         
                         global_val_step += 1
                         # debug
-                        break
+                        if global_step == 10:
+                            break
 
                     if global_step % config["val_steps"] == 0:
                         losses_train.append(sum_loss_train / len(train_dataloader))
@@ -239,9 +240,11 @@ def train(config):
                 break
 
             # debug
-            break
+            if global_step == 10:
+                break
         # debug
-        break
+        if global_step == 10:
+            break
 
     # save model
     save_model(

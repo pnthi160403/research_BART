@@ -37,6 +37,9 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
 
         labels = []
         preds = []
+        
+        # debug
+        debug = 0
 
         batch_iterator = tqdm(val_dataloader, desc=f"Testing model...")
         for batch in batch_iterator:
@@ -68,7 +71,8 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
             predicted.append(tokenizer_tgt.encode(pred_text).tokens)
 
             # debug
-            break
+            if count == 10:
+                break
 
             count += 1
 
