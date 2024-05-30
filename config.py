@@ -1,4 +1,4 @@
-from utils.folders import join_base
+from .utils import join_base
 import torch
 
 # TPU
