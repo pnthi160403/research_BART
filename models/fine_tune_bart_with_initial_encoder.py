@@ -15,7 +15,6 @@ class FineTuneBartWithRandomEncoderConfig:
         vocab_size_encoder_bart=None,
         pad_idx=None,
         init_type=None,
-        num_labels=None,
     ):
         self.bart_seq2seq_config = bart_seq2seq_config
         self.src_vocab_size = src_vocab_size
