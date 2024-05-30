@@ -1,9 +1,9 @@
-from .model import GET_MODEL
 import torch
-from .custom_models_bart import load_model
 from .beam_search import beam_search
 from .utils.tokenizers import read_tokenizer
 from .utils.folders import weights_file_path
+from .models.get_instance_bart import get_model
+from .models.utils import load_model
 
 def prepare_inference(config):
     device = config["device"]
@@ -15,12 +15,9 @@ def prepare_inference(config):
     )
     
     # get model
-    model_train = config["model_train"] 
-    get_model = GET_MODEL[model_train]
     model = get_model(
         config=config,
-        tokenizer_src=tokenizer_src,
-        tokenizer_tgt=tokenizer_tgt,
+        model_train=config["model_train"],
     ).to(device)
 
     # get model_filename
@@ -30,8 +27,8 @@ def prepare_inference(config):
     )[-1]
 
     model = load_model(
+        model=model,
         checkpoint=model_filename,
-        model=model
     )
 
     return config, model, tokenizer_src, tokenizer_tgt

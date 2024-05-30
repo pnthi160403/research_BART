@@ -2,7 +2,6 @@ import torch
 import torch
 from tqdm import tqdm
 
-from .model import save_model, save_config, GET_MODEL
 from .prepare_dataset.seq2seq import get_dataloader
 from .utils.tokenizers import read_tokenizer
 from .utils.figures import (
@@ -10,7 +9,8 @@ from .utils.figures import (
     draw_multi_graph,
     read,
     write,
-    figure_list_to_csv,
+    save_model,
+    save_config,
 )
 from .utils.folders import (
     create_dirs,
@@ -19,6 +19,8 @@ from .utils.folders import (
 )
 from .utils.seed import set_seed
 from .utils.tokenizers import read_tokenizer
+
+from .models.get_instance_bart import get_model
 
 # get optimizer lambda lr
 def lambda_lr(global_step: int, config):
@@ -43,14 +45,12 @@ def train(config):
     )
     config["src_vocab_size"] = tokenizer_src.get_vocab_size()
     config["tgt_vocab_size"] = tokenizer_tgt.get_vocab_size()
+    config["pad_idx"] = tokenizer_src.token_to_id("<pad>")
 
     # BART model
-    model_train = config["model_train"]
-    get_model = GET_MODEL[model_train]
     model = get_model(
         config=config,
-        tokenizer_src=tokenizer_src,
-        tokenizer_tgt=tokenizer_tgt
+        model_train=config["model_train"],
     ).to(device)
 
     # get dataloaders

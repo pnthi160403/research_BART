@@ -1,10 +1,11 @@
-import os
 import matplotlib.pyplot as plt
 import pandas as pd
+import torch
 from .folders import (
     join_base,
     read,
-    write
+    write,
+    get_weights_file_path,
 )
 
 # figures
@@ -54,4 +55,29 @@ def figure_list_to_csv(config, column_names, data, name_csv):
     except Exception as e:
         print(e)
 
-__all__ = ["read", "write", "draw_graph", "draw_multi_graph", "figure_list_to_csv"]
+# save model
+def save_model(model, global_step, global_val_step, optimizer, lr_scheduler, model_folder_name, model_base_name):
+    model_filename = get_weights_file_path(
+        model_folder_name=model_folder_name,
+        model_base_name=model_base_name,    
+        step=global_step
+    )
+
+    torch.save({
+        "global_step": global_step,
+        "global_val_step": global_val_step,
+        "model_state_dict": model.state_dict(),
+        "optimizer_state_dict": optimizer.state_dict(),
+        "lr_scheduler_state_dict": lr_scheduler.state_dict()
+    }, model_filename)
+    
+    print(f"Saved model at {model_filename}")
+
+# save config
+def save_config(config: dict, global_step: int):
+    config_filename = f"{config['model_folder_name']}/config_{global_step:010d}.json"
+    with open(config_filename, "w") as f:
+        json.dump(config, f)
+    print(f"Saved config at {config_filename}")
+
+__all__ = ["read", "write", "draw_graph", "draw_multi_graph", "figure_list_to_csv", "save_model", "save_config"]

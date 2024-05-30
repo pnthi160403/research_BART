@@ -2,55 +2,74 @@ from transformers import BartModel, BartConfig
 import torch.nn as nn
 from .utils import load_model
 
-class CustomBartModelWithEmbedding(nn.Module):
+class BartSeq2seqConfig:
     def __init__(
         self,
-        config: BartConfig,
+        bart_config,
         src_vocab_size,
         tgt_vocab_size,
         pad_idx=None,
-        share_tgt_emb_and_out=False,
+        share_tgt_emb_and_out=False, 
         init_type=None,
+        num_labels=None,
+        vocab_size_encoder_bart=None,
+    ):
+        self.bart_config = bart_config
+        self.src_vocab_size = src_vocab_size
+        self.tgt_vocab_size = tgt_vocab_size
+        self.pad_idx = pad_idx
+        self.share_tgt_emb_and_out = share_tgt_emb_and_out
+        self.init_type = init_type
+
+class BartSeq2seq(nn.Module):
+    def __init__(
+        self,
+        config: BartSeq2seqConfig,
+        checkpoint=None,
     ):
         super().__init__()
         self.config = config
         
         # vocab size
-        self.src_vocab_size = src_vocab_size
-        self.tgt_vocab_size = tgt_vocab_size
+        self.src_vocab_size = config.src_vocab_size
+        self.tgt_vocab_size = config.tgt_vocab_size
+
+        # num_labels
+        self.num_labels = config.num_labels
 
         # pad_idx
-        self.pad_idx = pad_idx
+        self.pad_idx = config.pad_idx
+
 
         # Encoder Embedding
         self.inputs_embeds = nn.Embedding(
             num_embeddings=self.src_vocab_size,
-            embedding_dim=self.config.d_model,
+            embedding_dim=self.config.bart_config.d_model,
         )
     
         # Decoder Embedding
         self.decoder_inputs_embeds = nn.Embedding(
             num_embeddings=self.tgt_vocab_size,
-            embedding_dim=self.config.d_model,
+            embedding_dim=self.config.bart_config.d_model,
         )
     
         # Bart model
-        self.bart_model = BartModel(config)
+        self.bart_model = BartModel(self.config.bart_config)
 
         # Prediction
-        self.out = nn.Linear(self.config.d_model, self.tgt_vocab_size)
+        self.out = nn.Linear(self.config.bart_config.d_model, self.tgt_vocab_size)
         
         # Initialize weights
         modules = [self.inputs_embeds, self.decoder_inputs_embeds, self.out]
         self.initialize_weights(
-            init_type=init_type,
+            init_type=self.config.init_type,
             modules=modules,
             mean=0,
-            std=self.config.init_std
+            std=self.config.bart_config.init_std
         )
 
         # Share the weights between embedding and linear layer
-        if share_tgt_emb_and_out:
+        if self.config.share_tgt_emb_and_out:
             self.out.weight = self.decoder_inputs_embeds.weight
 
     def forward(
@@ -122,4 +141,39 @@ class CustomBartModelWithEmbedding(nn.Module):
             encoder_attention_mask=encoder_attention_mask
         )
     
-__all__ = ["CustomBartModelWithEmbedding"]
+STEP_TRAIN = {
+}
+
+def get_model(
+    bart_config,
+    src_vocab_size,
+    tgt_vocab_size,
+    pad_idx=None,
+    share_tgt_emb_and_out=False, 
+    init_type=None,
+    step_train=None,
+    num_labels=None,
+    checkpoint=None,
+):
+    config = BartSeq2seqConfig(
+        bart_config,
+        src_vocab_size=src_vocab_size,
+        tgt_vocab_size=tgt_vocab_size,
+        pad_idx=pad_idx,
+        share_tgt_emb_and_out=share_tgt_emb_and_out,
+        init_type=init_type,
+    )
+
+    model = BartSeq2seq(
+        config=config,
+        checkpoint=checkpoint,
+    )
+
+    if step_train:
+        model = STEP_TRAIN[step_train](
+            config=config,
+            model=model
+        )
+    return model
+    
+__all__ = ["BartSeq2seq", "BartSeq2seqConfig", "get_model"]

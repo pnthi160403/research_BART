@@ -1,11 +1,11 @@
 import torch
-from .model import GET_MODEL
 from .val import validate
 from .utils.seed import set_seed
 from .utils.tokenizers import read_tokenizer
 from .utils.folders import weights_file_path
 from .utils.figures import figure_list_to_csv
 from .prepare_dataset.seq2seq import get_dataloader
+from .models.get_instance_bart import get_model
 
 def test(config):
     # set seed
@@ -36,12 +36,9 @@ def test(config):
     )
 
     # get model
-    model_train = config["model_train"]
-    get_model = GET_MODEL[model_train]
     model = get_model(
         config=config,
-        tokenizer_src=tokenizer_src,
-        tokenizer_tgt=tokenizer_tgt
+        model_train=config["model_train"],
     ).to(device)
         
     model_filenames = weights_file_path(

@@ -1,24 +1,5 @@
 import torch
-from .utils import folders
-
-# TPU
-# import torch
-# import torch_xla
-# import torch_xla.core.xla_model as xm
-# import torch_xla.distributed.data_parallel as dp
-# import torch_xla.distributed.parallel_loader as pl
-# import torch_xla.utils.serialization as xser
-# import torch_xla.debug.metrics as met
-# import torch_xla.debug.profiler as xp
-
-# def check_tpu():
-#     try:
-#         device = xm.xla_device()
-#         print(f"TPU is available. Device: {device}")
-#         return True
-#     except RuntimeError as e:
-#         print("TPU is not available.")
-#         return False
+from .utils.folders import join_base
 
 def get_config(base_dir: str=None):
     config = {}
@@ -43,23 +24,23 @@ def get_config(base_dir: str=None):
     config['min_frequency'] = 2
 
     # Directories
-    config["model_folder_name"] = folders.join_base(config["base_dir"], "/model")
+    config["model_folder_name"] = join_base(config["base_dir"], "/model")
     config["model_base_name"] = "model_"
     config["model_out"] = "out_"
     
     config["preload"] = "latest"
-    config["data"] = folders.join_base(config["base_dir"], "/data")
-    config["log_dir"] = folders.join_base(config["base_dir"], "/log")
-    config["log_files"] = folders.join_base(config["log_dir"], "/log_files")
-    config["loss_train"] = folders.join_base(config["log_files"], "/loss_train.json")
-    config["loss_val"] = folders.join_base(config["log_files"], "/loss_val.json")
-    config["loss_train_step"] = folders.join_base(config["log_files"], "/loss_train_step.json")
-    config["loss_val_step"] = folders.join_base(config["log_files"], "/loss_val_step.json")
-    config["learning_rate_step"] = folders.join_base(config["log_files"], "/learning_rate_step.json")
-    config["timestep_train"] = folders.join_base(config["log_files"], "/timestep_train.json")
-    config["timestep_val"] = folders.join_base(config["log_files"], "/timestep_val.json")
-    config["timestep_train_and_val"] = folders.join_base(config["log_files"], "/timestep_train_and_val.json")
-    config["timestep_lr"] = folders.join_base(config["log_files"], "/timestep_lr.json")
+    config["data"] = join_base(config["base_dir"], "/data")
+    config["log_dir"] = join_base(config["base_dir"], "/log")
+    config["log_files"] = join_base(config["log_dir"], "/log_files")
+    config["loss_train"] = join_base(config["log_files"], "/loss_train.json")
+    config["loss_val"] = join_base(config["log_files"], "/loss_val.json")
+    config["loss_train_step"] = join_base(config["log_files"], "/loss_train_step.json")
+    config["loss_val_step"] = join_base(config["log_files"], "/loss_val_step.json")
+    config["learning_rate_step"] = join_base(config["log_files"], "/learning_rate_step.json")
+    config["timestep_train"] = join_base(config["log_files"], "/timestep_train.json")
+    config["timestep_val"] = join_base(config["log_files"], "/timestep_val.json")
+    config["timestep_train_and_val"] = join_base(config["log_files"], "/timestep_train_and_val.json")
+    config["timestep_lr"] = join_base(config["log_files"], "/timestep_lr.json")
 
     # Dataset
     config["lang_src"] = "noise_vi"
@@ -124,10 +105,6 @@ def get_config(base_dir: str=None):
     config["warmup_steps"] = 4000
 
     # Device
-    # if check_tpu():
-    #     config["device"] = xm.xla_device()
-    # else:
-    #     config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
     config["device"] = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Metric
