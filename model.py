@@ -3,7 +3,7 @@ import torch
 from .custom_models_bart import first_fine_tune_bart_with_random_encoder, second_fine_tune_bart_with_random_encoder
 from .custom_models_bart import CustomBartModel, CustomBartModelWithEmbedding, FineTuneBartWithRandomEncoder
 import json
-from .utils import get_weights_file_path
+from .utils.folders import get_weights_file_path
 
 BART = "bart"
 BART_WITH_EMBEDDING = "bart_with_embedding"

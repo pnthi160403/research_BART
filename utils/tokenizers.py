@@ -15,11 +15,15 @@ class ApiTokenizerHuggingFace():
         type_token,
     ):
         super().__init__()
-        self.iterator = iterator
+        self.iterator = self.get_all_sentences(iterator)
         self.vocab_size = vocab_size
         self.min_frequency = min_frequency
         self.special_tokens = special_tokens
         self.type_token = type_token
+    
+    def get_all_sentences(dataset):
+        for item in dataset:
+            yield item
 
     def train(self) -> Tokenizer:
         if self.type_token == BPE_TOKEN:
