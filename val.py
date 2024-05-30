@@ -67,6 +67,9 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
             expected.append([tokenizer_tgt.encode(tgt_text).tokens])
             predicted.append(tokenizer_tgt.encode(pred_text).tokens)
 
+            # debug
+            break
+
             count += 1
 
             print_step = max(len(val_dataloader) // num_example, 1)
