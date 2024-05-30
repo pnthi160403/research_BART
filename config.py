@@ -136,7 +136,3 @@ def get_config(base_dir: str=None):
     config["use_pytorch_metric"] = False
 
     return config
-
-__all__ = [
-    "get_config"
-]

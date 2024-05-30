@@ -50,4 +50,11 @@ def weights_file_path(model_folder_name: str, model_base_name: str):
     weights_files.sort()
     return weights_files
 
-__all__ = ["create_dirs", "get_weights_file_path", "weights_file_path", "read", "write", "join_base"]
+__all__ = [
+    "create_dirs",
+    "get_weights_file_path",
+    "weights_file_path",
+    "read",
+    "write",
+    "join_base"
+]
