@@ -32,9 +32,6 @@ class BartSeq2seq(nn.Module):
         self.src_vocab_size = config.src_vocab_size
         self.tgt_vocab_size = config.tgt_vocab_size
 
-        # num_labels
-        self.num_labels = config.num_labels
-
         # pad_idx
         self.pad_idx = config.pad_idx
 
