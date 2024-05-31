@@ -3,6 +3,19 @@ from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
 import torch
 import os
+import zipfile
+
+def read_csv_from_zip(zip_path, csv_filename):
+    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        with zip_ref.open(csv_filename) as csv_file:
+            df = pd.read_csv(csv_file)
+    return df
+
+def get_file(file_path, file_name="zip_file.csv"):
+    if zipfile.is_zipfile(file_path):
+        return read_csv_from_zip(file_path, file_name)
+    else:
+        return pd.read_csv(file_path)
 
 # read dataset
 def read_ds(
@@ -16,12 +29,18 @@ def read_ds(
     train_ds, val_ds, test_ds = None, None, None
     
     if train_ds_path and os.path.exists(train_ds_path):
-        train_ds = pd.read_csv(train_ds_path)
+        train_ds = get_file(
+            file_path=train_ds_path,
+            file_name="train.csv",
+        )
     else:
         ValueError("Train dataset not found")
 
     if val_ds_path and os.path.exists(val_ds_path):
-        val_ds = pd.read_csv(val_ds_path)
+        val_ds = get_file(
+            file_path=val_ds_path,
+            file_name="val.csv",
+        )
         if max_num_val < len(val_ds):
             val_ds = val_ds[:max_num_val]
     else:
@@ -32,7 +51,10 @@ def read_ds(
         train_ds.reset_index(drop=True, inplace=True)
     
     if test_ds_path and os.path.exists(test_ds_path):
-        test_ds = pd.read_csv(test_ds_path)
+        test_ds = get_file(
+            file_path=test_ds_path,
+            file_name="test.csv",
+        )
         if max_num_test < len(test_ds):
             test_ds = test_ds[:max_num_test]
     else:
