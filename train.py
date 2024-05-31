@@ -228,11 +228,10 @@ def train(config):
                         # if global_step == 10:
                         #     break
 
-                    if global_step % config["val_steps"] == 0:
-                        losses_train.append(sum_loss_train / len(train_dataloader))
-                    else:
-                        losses_train.append(sum_loss_train / (global_step % config["val_steps"]))
+                    losses_train.append(sum_loss_train / config["val_steps"])
                     losses_val.append(sum_loss_val / len(val_dataloader))
+                    sum_loss_train = 0
+                    sum_loss_val = 0
 
                     timestep_train_and_val.append(global_step)
 
