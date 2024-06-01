@@ -142,6 +142,7 @@ def train(config):
     timestep_train_and_val = read(config["timestep_train_and_val"])
     timestep_lr = read(config["timestep_lr"])
 
+    i = 0
     while global_step < config["num_steps"]:
         torch.cuda.empty_cache()
         # train
@@ -161,7 +162,6 @@ def train(config):
             test_ds_path=config["test_ds_path"],
         )
 
-        i = 0
         batch_iterator = tqdm(train_dataloader, desc="Trainning")
         for batch in batch_iterator:
             i += 1
