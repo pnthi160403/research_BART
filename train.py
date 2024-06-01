@@ -232,15 +232,15 @@ def train(config):
                             # if global_step == 10:
                                 # break
 
-                        losses_train.append(sum_loss_train / (config["val_steps"] * step_accumulation))
-                        losses_val.append(sum_loss_val / len(val_dataloader))
-                        sum_loss_train = 0
-                        sum_loss_val = 0
+                    losses_train.append(sum_loss_train / (config["val_steps"] * step_accumulation))
+                    losses_val.append(sum_loss_val / len(val_dataloader))
+                    sum_loss_train = 0
+                    sum_loss_val = 0
 
-                        timestep_train_and_val.append(global_step)
+                    timestep_train_and_val.append(global_step)
 
-                    if global_step >= config["num_steps"]:
-                        break
+                if global_step >= config["num_steps"]:
+                    break
 
                 # debug
                 # if global_step == 10:
