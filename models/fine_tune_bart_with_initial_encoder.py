@@ -119,16 +119,33 @@ class FineTuneBartWithRandomEncoder(nn.Module):
                 
         return logits
     
-    def initialize_weights(self, modules, init_type="normal", mean=0, std=0.02):
+    def _init_weights(self, module, mean=0.0, std=0.02, init_type="normal"):
+        if isinstance(module, nn.Linear):
+            module.weight.data.normal_(mean=mean, std=std)
+            if module.bias is not None:
+                module.bias.data.zero_()
+        elif isinstance(module, nn.Embedding):
+            module.weight.data.normal_(mean=mean, std=std)
+            if module.padding_idx is not None:
+                module.weight.data[module.padding_idx].zero_()
+
+        # for param in module.parameters():
+        #     if param.dim() > 1:
+        #         if init_type == "normal":
+        #             nn.init.normal_(param, mean=mean, std=std)
+        #         elif init_type == "xavier":
+        #             nn.init.xavier_normal_(param)
+        #         else:
+        #             continue
+    
+    def initialize_weights(self, modules, init_type="normal", mean=0.0, std=0.02):
         for module in modules:
-            for param in module.parameters():
-                if param.dim() > 1:
-                    if init_type == "normal":
-                        nn.init.normal_(param, mean=mean, std=std)
-                    elif init_type == "xavier":
-                        nn.init.xavier_normal_(param)
-                    else:
-                        continue
+            self._init_weights(
+                module=module,
+                mean=mean,
+                std=std,
+                init_type=init_type
+            )
                     
     def get_encoder_out(
         self,
