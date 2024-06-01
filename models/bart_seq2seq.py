@@ -1,6 +1,6 @@
 import torch.nn as nn
 from .utils import load_model
-from transformers_huggingface import BartModel
+from .transformers_huggingface import BartModel
 
 class BartSeq2seqConfig:
     def __init__(
