@@ -164,6 +164,7 @@ def train(config):
         i = 0
         batch_iterator = tqdm(train_dataloader, desc="Trainning")
         for batch in batch_iterator:
+            i += 1
             src = batch["src"].to(device)
             tgt = batch["tgt"].to(device)
             src_attention_mask = (src != tokenizer_src.token_to_id("<pad>")).type(torch.int64)
@@ -180,8 +181,7 @@ def train(config):
             loss.backward()
             sum_loss_train += loss.item()
 
-            if (i + 1) % step_accumulation == 0:
-                i += 1
+            if i % step_accumulation == 0:
                 global_step += 1
                 current_lr = optimizer.param_groups[0]['lr']
                 learning_rate_step.append(current_lr)
@@ -209,6 +209,7 @@ def train(config):
 
                         # for batch in batch_iterator:
                         for batch in val_dataloader:
+                            global_val_step += 1
                             src = batch["src"].to(device)
                             tgt = batch["tgt"].to(device)
                             src_attention_mask = (src != tokenizer_src.token_to_id("<pad>")).type(torch.int64)
@@ -228,8 +229,6 @@ def train(config):
                             losses_val_step.append(loss.item())
                             timestep_val.append(global_val_step)
                             
-                            global_val_step += 1
-
                     losses_train.append(sum_loss_train / (config["val_steps"] * step_accumulation))
                     losses_val.append(sum_loss_val / len(val_dataloader))
                     sum_loss_train = 0
