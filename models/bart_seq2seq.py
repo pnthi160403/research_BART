@@ -1,6 +1,6 @@
-from transformers import BartModel, BartConfig
 import torch.nn as nn
 from .utils import load_model
+from .transformers_huggingface import BartModel
 
 class BartSeq2seqConfig:
     def __init__(
@@ -23,7 +23,6 @@ class BartSeq2seq(nn.Module):
     def __init__(
         self,
         config: BartSeq2seqConfig,
-        checkpoint=None,
     ):
         super().__init__()
         self.config = config
@@ -179,7 +178,6 @@ def get_model(
 
     model = BartSeq2seq(
         config=config,
-        checkpoint=checkpoint,
     )
 
     if step_train:

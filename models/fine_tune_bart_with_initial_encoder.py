@@ -45,14 +45,14 @@ class FineTuneBartWithRandomEncoder(nn.Module):
         self.pad_idx = config.pad_idx
         
         # Load checkpoint
-        custom_bart_with_embedding = BartSeq2seq(
+        bart_seq2seq = BartSeq2seq(
             config=config,
             src_vocab_size=self.vocab_size_encoder_bart,
             tgt_vocab_size=self.tgt_vocab_size,
             init_type=config.init_type,
         )
-        custom_bart_with_embedding = load_model(
-            model=custom_bart_with_embedding,
+        bart_seq2seq = load_model(
+            model=bart_seq2seq,
             checkpoint=checkpoint
         )
 
@@ -63,16 +63,16 @@ class FineTuneBartWithRandomEncoder(nn.Module):
         )
 
         # Tgt embedding
-        self.decoder_inputs_embeds = custom_bart_with_embedding.decoder_inputs_embeds
+        self.decoder_inputs_embeds = bart_seq2seq.decoder_inputs_embeds
 
         # Encoder initialization
         self.random_encoder = BartModel(config).encoder
 
         # Pretained BART model
-        self.bart_model = custom_bart_with_embedding.bart_model
+        self.bart_model = bart_seq2seq.bart_model
 
         # Prediction
-        self.out = custom_bart_with_embedding.out
+        self.out = bart_seq2seq.out
         
         # Initialize weights xavier
         modules = [self.inputs_embeds, self.random_encoder]

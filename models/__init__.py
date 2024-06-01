@@ -21,3 +21,12 @@ from .utils import (
 from .get_instance_bart import (
     get_model,
 )
+
+from .transformers_huggingface import (
+    BartAttention,
+    BartDecoder,
+    BartDecoderLayer,
+    BartEncoder,
+    BartEncoderLayer,
+    BartModel,
+)
