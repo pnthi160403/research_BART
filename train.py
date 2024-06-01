@@ -181,6 +181,8 @@ def train(config):
             sum_loss_train += loss.item()
 
             if (i + 1) % step_accumulation == 0:
+                i += 1
+                global_step += 1
                 current_lr = optimizer.param_groups[0]['lr']
                 learning_rate_step.append(current_lr)
                 timestep_lr.append(global_step)
@@ -197,8 +199,6 @@ def train(config):
                 optimizer.step()
                 lr_scheduler.step()
                 optimizer.zero_grad(set_to_none=True)
-
-                global_step += 1
 
                 if global_step % config["val_steps"] == 0:
                     # val
@@ -229,9 +229,6 @@ def train(config):
                             timestep_val.append(global_val_step)
                             
                             global_val_step += 1
-                            # debug
-                            # if global_step == 10:
-                                # break
 
                     losses_train.append(sum_loss_train / (config["val_steps"] * step_accumulation))
                     losses_val.append(sum_loss_val / len(val_dataloader))
@@ -239,16 +236,6 @@ def train(config):
                     sum_loss_val = 0
 
                     timestep_train_and_val.append(global_step)
-
-                if global_step >= config["num_steps"]:
-                    break
-
-                # debug
-                # if global_step == 10:
-                    # break
-            # debug
-            # if global_step == 10:
-                # break
 
     # save model
     save_model(
