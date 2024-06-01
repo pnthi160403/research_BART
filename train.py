@@ -164,6 +164,8 @@ def train(config):
 
         batch_iterator = tqdm(train_dataloader, desc="Trainning")
         for batch in batch_iterator:
+            if global_step >= config["num_steps"]:
+                break
             i += 1
             src = batch["src"].to(device)
             tgt = batch["tgt"].to(device)
