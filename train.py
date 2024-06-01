@@ -38,6 +38,10 @@ def train(config):
     # device
     device = config["device"]
 
+    # big batch
+    big_batch = config["big_batch"]
+    step_accumulation = big_batch // config["batch_train"]
+
     # read tokenizer
     tokenizer_src, tokenizer_tgt = read_tokenizer(
         tokenizer_src_path=config["tokenizer_src_path"],
@@ -157,8 +161,8 @@ def train(config):
             test_ds_path=config["test_ds_path"],
         )
 
-        batch_iterator = tqdm(train_dataloader, desc="Trainning")
-        for batch in batch_iterator:
+        batch_iterator = tqdm(enumerate(train_dataloader), desc="Trainning")
+        for i, batch in batch_iterator:
             src = batch["src"].to(device)
             tgt = batch["tgt"].to(device)
             src_attention_mask = (src != tokenizer_src.token_to_id("<pad>")).type(torch.int64)
@@ -172,78 +176,78 @@ def train(config):
                 decoder_attention_mask=tgt_attention_mask,
                 label=label,
             )
-            
-            current_lr = optimizer.param_groups[0]['lr']
-            learning_rate_step.append(current_lr)
-            timestep_lr.append(global_step)
-
-            # loss = loss_fn(logits.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
-            sum_loss_train += loss.item()
-            losses_train_step.append(loss.item())
-            timestep_train.append(global_step)
-
-            batch_iterator.set_postfix({
-                "loss": f"{loss.item():6.3f}",
-                "global_step": f"{global_step:010d}"
-            })
-
             loss.backward()
-            optimizer.step()
-            lr_scheduler.step()
-            optimizer.zero_grad(set_to_none=True)
+            sum_loss_train += loss.item()
 
-            global_step += 1
+            if (i + 1) % step_accumulation == 0:
+                current_lr = optimizer.param_groups[0]['lr']
+                learning_rate_step.append(current_lr)
+                timestep_lr.append(global_step)
 
+                # loss = loss_fn(logits.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
+                losses_train_step.append(loss.item())
+                timestep_train.append(global_step)
 
-            if global_step % config["val_steps"] == 0:
-                # val
-                with torch.no_grad():
-                    sum_loss_val = 0
-                    model.eval()
-                    # batch_iterator = tqdm(val_dataloader, desc="Validating")
+                batch_iterator.set_postfix({
+                    "loss": f"{loss.item():6.3f}",
+                    "global_step": f"{global_step:010d}"
+                })
 
-                    # for batch in batch_iterator:
-                    for batch in val_dataloader:
-                        src = batch["src"].to(device)
-                        tgt = batch["tgt"].to(device)
-                        src_attention_mask = (src != tokenizer_src.token_to_id("<pad>")).type(torch.int64)
-                        tgt_attention_mask = (tgt != tokenizer_tgt.token_to_id("<pad>")).type(torch.int64)
-                        label = batch['label'].to(device)
-                        
-                        logits, loss = model(
-                            input_ids=src,
-                            attention_mask=src_attention_mask,
-                            decoder_input_ids=tgt,
-                            decoder_attention_mask=tgt_attention_mask,
-                            label=label,
-                        )
-                        
-                        # loss = loss_fn(logits.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
-                        sum_loss_val += loss.item()
-                        losses_val_step.append(loss.item())
-                        timestep_val.append(global_val_step)
-                        
-                        global_val_step += 1
-                        # debug
-                        # if global_step == 10:
-                        #     break
+                optimizer.step()
+                lr_scheduler.step()
+                optimizer.zero_grad(set_to_none=True)
 
-                    losses_train.append(sum_loss_train / config["val_steps"])
-                    losses_val.append(sum_loss_val / len(val_dataloader))
-                    sum_loss_train = 0
-                    sum_loss_val = 0
+                global_step += 1
 
-                    timestep_train_and_val.append(global_step)
+                if global_step % config["val_steps"] == 0:
+                    # val
+                    with torch.no_grad():
+                        sum_loss_val = 0
+                        model.eval()
+                        # batch_iterator = tqdm(val_dataloader, desc="Validating")
 
-            if global_step >= config["num_steps"]:
-                break
+                        # for batch in batch_iterator:
+                        for batch in val_dataloader:
+                            src = batch["src"].to(device)
+                            tgt = batch["tgt"].to(device)
+                            src_attention_mask = (src != tokenizer_src.token_to_id("<pad>")).type(torch.int64)
+                            tgt_attention_mask = (tgt != tokenizer_tgt.token_to_id("<pad>")).type(torch.int64)
+                            label = batch['label'].to(device)
+                            
+                            logits, loss = model(
+                                input_ids=src,
+                                attention_mask=src_attention_mask,
+                                decoder_input_ids=tgt,
+                                decoder_attention_mask=tgt_attention_mask,
+                                label=label,
+                            )
+                            
+                            # loss = loss_fn(logits.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
+                            sum_loss_val += loss.item()
+                            losses_val_step.append(loss.item())
+                            timestep_val.append(global_val_step)
+                            
+                            global_val_step += 1
+                            # debug
+                            if global_step == 10:
+                                break
 
+                        losses_train.append(sum_loss_train / (config["val_steps"] * step_accumulation))
+                        losses_val.append(sum_loss_val / len(val_dataloader))
+                        sum_loss_train = 0
+                        sum_loss_val = 0
+
+                        timestep_train_and_val.append(global_step)
+
+                    if global_step >= config["num_steps"]:
+                        break
+
+                # debug
+                if global_step == 10:
+                    break
             # debug
-            # if global_step == 10:
-                # break
-        # debug
-        # if global_step == 10:
-            # break
+            if global_step == 10:
+                break
 
     # save model
     save_model(

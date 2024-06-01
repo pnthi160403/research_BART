@@ -63,6 +63,7 @@ def get_config(base_dir: str=None):
     config["continue_step"] = False
     
     # Trainning loop
+    config["big_batch"] = 128
     config["batch_train"] = 32
     config["batch_val"] = 32
     config["batch_test"] = 1
