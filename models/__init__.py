@@ -29,4 +29,5 @@ from .transformers_huggingface import (
     BartEncoder,
     BartEncoderLayer,
     BartModel,
+    BartConfig,
 )
