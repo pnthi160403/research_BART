@@ -161,8 +161,9 @@ def train(config):
             test_ds_path=config["test_ds_path"],
         )
 
-        batch_iterator = tqdm(enumerate(train_dataloader), desc="Trainning")
-        for i, batch in batch_iterator:
+        i = 0
+        batch_iterator = tqdm(train_dataloader, desc="Trainning")
+        for batch in batch_iterator:
             src = batch["src"].to(device)
             tgt = batch["tgt"].to(device)
             src_attention_mask = (src != tokenizer_src.token_to_id("<pad>")).type(torch.int64)
