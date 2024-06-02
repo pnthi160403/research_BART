@@ -22,6 +22,7 @@ class BartEmbeds(nn.Module):
         self.embed_positions = nn.Embedding(
             max_position_embeddings,
             embedding_dim,
+            padding_idx=padding_idx,
         )
         self.register_buffer(
             "pos_ids",

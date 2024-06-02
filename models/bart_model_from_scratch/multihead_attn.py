@@ -60,7 +60,8 @@ class BartAttention(nn.Module):
                 raise ValueError(
                     f"Attention mask should be of size {(bsz, 1, tgt_len, src_len)}, but is {attention_mask.size()}"
                 )
-            attn_weights = attn_weights.view(bsz, self.num_heads, tgt_len, src_len) + attention_mask
+            attn_weights = attn_weights.view(bsz, self.num_heads, tgt_len, src_len)
+            attn_weights = attn_weights.masked_fill_(attention_mask == 0, -1e9)
             if attn_weights.dtype == torch.float16:
                 attn_weights = torch.clamp(attn_weights, min=-1e4, max=1e4)
             elif attn_weights.dtype == torch.float32:
