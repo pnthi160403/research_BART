@@ -33,6 +33,7 @@ def get_bart_config(config):
         decoder_layerdrop=config["decoder_layerdrop"],
         scale_embedding=config["scale_embedding"],
         vocab_size=config["tgt_vocab_size"],
+        pad_token_id=config["pad_idx"],
     )
 
     if not bart_config:
