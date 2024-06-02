@@ -49,6 +49,7 @@ def get_model(config, model_train):
     step_train = config["step_train"]
     checkpoint = config["checkpoint"]
     num_labels = config["num_labels"]
+    share_tgt_emb_and_out = config["share_tgt_emb_and_out"]
     bart_config = get_bart_config(config)
 
     get_model_fn = GET_MODEL[model_train]
@@ -62,6 +63,7 @@ def get_model(config, model_train):
         step_train=step_train,
         num_labels=num_labels,
         checkpoint=checkpoint,
+        share_tgt_emb_and_out=share_tgt_emb_and_out,
     )
 
     return model
