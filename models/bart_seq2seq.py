@@ -39,12 +39,14 @@ class BartSeq2seq(nn.Module):
         self.inputs_embeds = nn.Embedding(
             num_embeddings=self.src_vocab_size,
             embedding_dim=self.config.bart_config.d_model,
+            padding_idx=self.pad_idx,
         )
     
         # Decoder Embedding
         self.decoder_inputs_embeds = nn.Embedding(
             num_embeddings=self.tgt_vocab_size,
             embedding_dim=self.config.bart_config.d_model,
+            padding_idx=self.pad_idx,
         )
     
         # Bart model

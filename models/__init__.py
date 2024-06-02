@@ -31,3 +31,5 @@ from .transformers_huggingface import (
     BartModel,
     BartConfig,
 )
+
+from .bart_model_from_scatch import *
