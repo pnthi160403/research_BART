@@ -21,16 +21,20 @@ class BartSeq2seq(nn.Module):
         # pad_idx
         self.pad_idx = config.pad_token_id
 
+        # src_vocab_size, tgt_vocab_size
+        self.tgt_vocab_size = config.tgt_vocab_size
+        self.src_vocab_size = config.src_vocab_size
+
         # encoder_embeds
         self.inputs_embeds = BartEmbeds(
-            num_embeddings=config.src_vocab_size,
+            num_embeddings=self.src_vocab_size,
             embedding_dim=config.d_model,
             padding_idx=config.pad_token_id,
             max_position_embeddings=config.max_position_embeddings
         )
         # decoder_embeds
         self.decoder_inputs_embeds = BartEmbeds(
-            num_embeddings=config.tgt_vocab_size,
+            num_embeddings=self.tgt_vocab_size,
             embedding_dim=config.d_model,
             padding_idx=config.pad_token_id,
             max_position_embeddings=config.max_position_embeddings
@@ -39,7 +43,7 @@ class BartSeq2seq(nn.Module):
         self.encoder = BartEncoder(config)
         self.decoder = BartDecoder(config)
         # out
-        self.out = nn.Linear(config.d_model, config.tgt_vocab_size)
+        self.out = nn.Linear(config.d_model, self.tgt_vocab_size)
         self.apply(lambda module: _init_weights(
             module=module,
             std=config.init_std,
