@@ -4,7 +4,6 @@ from transformers import BartConfig
 from .encoder import BartEncoder
 from .decoder import BartDecoder
 from .embeds import BartEmbeds
-import inspect
 from .utils.init_weights import (
     _init_weights,
 )
@@ -16,7 +15,7 @@ from .out_form import (
 class BartSeq2seq(nn.Module):
     def __init__(
         self,
-        config: BartConfig,
+        config,
     ):
         super().__init__()
 
@@ -99,4 +98,25 @@ class BartSeq2seq(nn.Module):
             logits=decoder_out,
         )
     
-__all__ = ["BartSeq2seq"]
+def get_model(
+    bart_config: BartConfig,
+    src_vocab_size: int,
+    tgt_vocab_size: int,
+    vocab_size_encoder_bart: int=None,
+    pad_idx: int=2,
+    init_type: str="normal",
+    step_train: str=None,
+    num_labels: int=None,
+    checkpoint: str=None,
+    share_tgt_emb_and_out: bool=False,
+):
+    config = bart_config
+    config.src_vocab_size = src_vocab_size
+    config.tgt_vocab_size = tgt_vocab_size
+    config.pad_token_id = pad_idx
+
+    model = BartSeq2seq(
+        config=config,
+    )
+    
+__all__ = ["BartSeq2seq", "get_model"]

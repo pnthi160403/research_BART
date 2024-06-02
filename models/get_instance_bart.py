@@ -1,5 +1,6 @@
 from .bart_seq2seq import get_model as get_bart_seq2seq
 from .fine_tune_bart_with_initial_encoder import get_model as get_fine_tune_bart_with_random_encoder
+from .bart_model_from_scratch.model_seq2seq import get_model as get_bart_seq2seq_from_scratch
 from .transformers_huggingface import BartConfig
 
 BART_SEQ2SEQ = "bart_seq2seq"
@@ -9,6 +10,7 @@ FINE_TUNE_BART_WITH_RANDOM_ENCODER = "fine_tune_bart_with_random_encoder"
 GET_MODEL = {
     BART_SEQ2SEQ: get_bart_seq2seq,
     FINE_TUNE_BART_WITH_RANDOM_ENCODER: get_fine_tune_bart_with_random_encoder,
+    BART_SEQ2SEQ_FROM_SCRATCH: get_bart_seq2seq_from_scratch,
 }
 
 

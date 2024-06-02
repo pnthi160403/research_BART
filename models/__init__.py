@@ -39,6 +39,6 @@ from .bart_model_from_scratch import (
     BartAttention,
     BartDecoderLayer,
     BartEncoderLayer,
-    BartModelSeq2seq,
     BartEmbeds,
+    BartSeq2seq,
 )
