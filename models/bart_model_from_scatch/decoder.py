@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from .config import BartConfig
-from .encoder_layer import BartEncoderLayer
+from .decoder_layer import BartDecoderLayer
 from .embeds import BartEmbeds
 from .utils import (
     create_encoder_atn_mask,
@@ -17,7 +17,7 @@ class BartEncoder(nn.Module):
         self.dropout = nn.Dropout(config.dropout)
         self.layerdrop = config.encoder_layerdrop
         self.layers = nn.ModuleList([
-            BartEncoderLayer(config) for _ in range(config.encoder_layers)
+            BartDecoderLayer(config) for _ in range(config.encoder_layers)
         ])
         self.layernorm_embedding = nn.LayerNorm(config.d_model)
 

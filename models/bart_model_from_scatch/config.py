@@ -8,6 +8,8 @@ class BartConfig:
         decoder_attention_heads=12,
         decoder_ffn_dim=3072,
         encoder_ffn_dim=3072,
+        encoder_layerdrop=0.0,
+        decoder_layerdrop=0.0,
         activation_function="gelu",
         dropout=0.01,
         attention_dropout=0.01,
