@@ -45,6 +45,7 @@ class BartDecoder(nn.Module):
             encoder_attention_mask = create_encoder_atn_mask(
                 attention_mask=encoder_attention_mask,
                 dtype=input_embeds.dtype,
+                tgt_len=hidden_states.shape[1],
             )
 
         # print("attention_mask shape", attention_mask.shape)
