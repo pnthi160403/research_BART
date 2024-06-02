@@ -35,7 +35,6 @@ from .transformers_huggingface import (
 from .bart_model_from_scratch import (
     BartEncoder,
     BartDecoder,
-    BartConfig,
     BartAttention,
     BartDecoderLayer,
     BartEncoderLayer,

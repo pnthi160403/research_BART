@@ -18,6 +18,8 @@ class BartSeq2seq(nn.Module):
         config,
     ):
         super().__init__()
+        # pad_idx
+        self.pad_idx = config.pad_token_id
 
         # encoder_embeds
         self.inputs_embeds = BartEmbeds(
@@ -49,6 +51,7 @@ class BartSeq2seq(nn.Module):
         attention_mask: torch.Tensor,
         decoder_input_ids: torch.Tensor,
         decoder_attention_mask: torch.Tensor,
+        label: torch.Tensor=None,
     ):
         # encoder
         encoder_hidden_states = self.encoder(
@@ -63,8 +66,20 @@ class BartSeq2seq(nn.Module):
             encoder_attention_mask=attention_mask,
         )
         # out
-        out = self.out(decoder_hidden_states)
-        return out
+        logits = self.out(decoder_hidden_states)
+
+        if label is not None:
+            if self.pad_idx is not None:
+                loss_fn = nn.CrossEntropyLoss(
+                    ignore_index=self.pad_idx,
+                    label_smoothing=0.01,
+                )
+            else:
+                loss_fn = nn.CrossEntropyLoss(label_smoothing=0.01)
+            loss = loss_fn(logits.view(-1, self.tgt_vocab_size), label.view(-1))
+            return logits, loss
+        else:
+            return logits
     
     def get_encoder_out(
         self,
