@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .config import BartConfig
+from transformers import BartConfig
 from .multihead_attn import BartAttention
 from .utils import (
     ACT_FN,
@@ -42,6 +42,7 @@ class BartDecoderLayer(nn.Module):
         encoder_hidden_states: torch.Tensor=None,
         encoder_attention_mask: torch.Tensor=None,
         layer_head_mask: torch.Tensor=None,
+        cross_attn_layer_head_mask: torch.Tensor=None,
     ):
         residual = hidden_states
         hidden_states =self.self_attn(
@@ -58,7 +59,7 @@ class BartDecoderLayer(nn.Module):
             hidden_states=hidden_states,
             key_value_states=encoder_hidden_states,
             attention_mask=encoder_attention_mask,
-            layer_head_mask=layer_head_mask,
+            layer_head_mask=cross_attn_layer_head_mask,
         )
         hidden_states = self.dropout(hidden_states)
         hidden_states = hidden_states + residual

@@ -7,7 +7,7 @@ class BartEmbeds(nn.Module):
         num_embeddings: int,
         embedding_dim: int,
         padding_idx: int,
-        max_position_embeddings: int,
+        max_position_embeddings: int=1024,
         shared: bool = False,
         embed_scale: float=1.0,
     ):

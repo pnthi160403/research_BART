@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .config import BartConfig
+from transformers import BartConfig
 from .encoder_layer import BartEncoderLayer
 from .embeds import BartEmbeds
 from .utils import (

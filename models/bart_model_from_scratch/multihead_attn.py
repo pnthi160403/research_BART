@@ -57,6 +57,12 @@ class BartAttention(nn.Module):
 
         if attention_mask is not None:
             attn_weights = attn_weights.view(bsz, self.num_heads, tgt_len, src_len) + attention_mask
+            if attn_weights.dtype == torch.float16:
+                attn_weights = torch.clamp(attn_weights, min=-1e4, max=1e4)
+            elif attn_weights.dtype == torch.float32:
+                attn_weights = torch.clamp(attn_weights, min=-1e9, max=1e9)
+            else:
+                raise ValueError(f"Unsupported dtype {attn_weights.dtype}")
             attn_weights = attn_weights.view(bsz * self.num_heads, tgt_len, src_len)
 
         attention_mask = nn.functional.softmax(attn_weights, dim=-1)

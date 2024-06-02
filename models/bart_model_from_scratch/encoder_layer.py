@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .config import BartConfig
+from transformers import BartConfig
 from .multihead_attn import BartAttention
 from .utils import (
     ACT_FN,
