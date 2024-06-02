@@ -129,7 +129,7 @@ def get_model(
     config.src_vocab_size = src_vocab_size
     config.tgt_vocab_size = tgt_vocab_size
     config.pad_token_id = pad_idx
-
+    print(f"{ config = }")
     model = BartSeq2seq(
         config=config,
     )

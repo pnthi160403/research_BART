@@ -18,6 +18,7 @@ from .decoder import (
 )
 from .model_seq2seq import (
     BartSeq2seq,
+    get_model,
 )
 
 from .utils.act_fn import (
