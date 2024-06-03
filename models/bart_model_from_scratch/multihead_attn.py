@@ -35,7 +35,7 @@ class BartAttention(nn.Module):
         d_k = query.shape[-1]
         attention_scores = (query @ key.transpose(-2, -1)) / math.sqrt(d_k)
         if mask is not None:
-            attention_scores.masked_fill_(mask == 0, float("-inf"))
+            attention_scores = attention_scores.masked_fill(mask == 0, float("-inf"))
         attention_scores = attention_scores.softmax(dim=-1)
         if dropout is not None:
             attention_scores = dropout(attention_scores)
@@ -48,7 +48,10 @@ class BartAttention(nn.Module):
         attention_mask: torch.Tensor=None,
         layer_head_mask: torch.Tensor=None,
     ):
-        query_states = self.q_proj(hidden_states)
+        bsz, tgt_len, embed_dim = hidden_states.size()
+        assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
+
+        query_states = self.q_proj(hidden_states) * self.scaling
         if key_value_states is None:
             key_states = self.k_proj(hidden_states)
             value_states = self.v_proj(hidden_states)
@@ -56,16 +59,17 @@ class BartAttention(nn.Module):
             key_states = self.k_proj(key_value_states)
             value_states = self.v_proj(key_value_states)
 
-        query_states = query_states.view(query_states.shape[0], query_states.shape[1], self.num_heads,self.head_dim).transpose(1, 2)
-        key_states = key_states.view(key_states.shape[0], key_states.shape[1], self.num_heads,self.head_dim).transpose(1, 2)
-        value_states = value_states.view(value_states.shape[0], value_states.shape[1], self.num_heads,self.head_dim).transpose(1, 2)
+        query_states = self._shape(query_states, tgt_len, bsz)
+        key_states = self._shape(key_states, -1, bsz)
+        value_states = self._shape(value_states, -1, bsz)
 
-        if layer_head_mask is not None:
-            attn_weights = layer_head_mask.view(1, -1, 1, 1) * attn_weights.view(hidden_states.shape[0], self.num_heads, hidden_states.shape[1], hidden_states.shape[1])
-            attn_weights = attn_weights.view(hidden_states.shape[0] * self.num_heads, hidden_states.shape[1],hidden_states.shape[1])
-            
         attn_weights = BartAttention._sdpa(query_states, key_states, value_states, attention_mask, self.dropout)
-        attn_weights = attn_weights.transpose(1, 2).contiguous().view(attn_weights.shape[0], -1, self.num_heads * self.head_dim)
+        
+        if layer_head_mask is not None:
+            attn_weights = layer_head_mask.view(1, -1, 1, 1) * attn_weights.view(bsz, self.num_heads, tgt_len, tgt_len)
+            attn_weights = attn_weights.view(bsz * self.num_heads, tgt_len, tgt_len)
+
+        attn_weights = attn_weights.transpose(1, 2).contiguous().view(bsz, tgt_len, self.num_heads * self.head_dim)
 
         attn_output = self.out_proj(attn_weights)
 
