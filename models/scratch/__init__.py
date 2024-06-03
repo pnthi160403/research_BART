@@ -12,6 +12,11 @@ from .seq2seq import (
     get_model,
 )
 
+from .fine_tune_seq2seq import (
+    FineTuneBartSeq2seq,
+    get_model,
+)
+
 from .utils import (
     load_model,
     freeze_model,

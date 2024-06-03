@@ -32,12 +32,12 @@ from .transformers_huggingface import (
     BartConfig,
 )
 
-from .bart_model_from_scratch import (
-    BartEncoder,
-    BartDecoder,
-    BartAttention,
-    BartDecoderLayer,
-    BartEncoderLayer,
-    BartEmbeds,
+from .scratch.seq2seq import (
+    get_model,
     BartSeq2seq,
+)
+
+from .scratch.fine_tune_seq2seq import (
+    get_model,
+    FineTuneBartSeq2seq,
 )
