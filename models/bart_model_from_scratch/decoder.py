@@ -41,12 +41,10 @@ class BartDecoder(nn.Module):
                 tgt_len=input_embeds.shape[1],
             )
         
-        # if encoder_attention_mask is not None:
-        #     encoder_attention_mask = create_encoder_atn_mask(
-        #         attention_mask=encoder_attention_mask,
-        #         dtype=input_embeds.dtype,
-        #         tgt_len=hidden_states.shape[1],
-        #     )
+        if encoder_attention_mask is not None:
+            encoder_attention_mask = create_encoder_atn_mask(
+                attention_mask=encoder_attention_mask,
+            )
 
         # print("attention_mask shape", attention_mask.shape)
         # print("encoder_attention_mask shape", encoder_attention_mask.shape)
@@ -60,7 +58,7 @@ class BartDecoder(nn.Module):
                 hidden_states=hidden_states,
                 attention_mask=attention_mask,
                 encoder_hidden_states=encoder_hidden_states,
-                # encoder_attention_mask=encoder_attention_mask,
+                encoder_attention_mask=encoder_attention_mask,
                 layer_head_mask=(head_mask[idx] if head_mask is not None else None),
                 cross_attn_layer_head_mask=(
                     cross_attn_head_mask[idx] if cross_attn_head_mask is not None else None

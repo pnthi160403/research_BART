@@ -32,7 +32,6 @@ def create_decoder_atn_mask(
     )
     expanded_attn_mask = expand_mask(
         attention_mask=attention_mask,
-        tgt_len=tgt_len,
     )
     return expanded_attn_mask & causal_4d_mask
 
