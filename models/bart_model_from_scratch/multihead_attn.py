@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import math
 
 class BartAttention(nn.Module):
     def __init__(
@@ -53,22 +54,16 @@ class BartAttention(nn.Module):
         value_states = value_states.reshape(*proj_shape)
 
         src_len = key_states.size(1)
-        attn_weights = torch.bmm(query_states, key_states.transpose(1, 2))
-
+        # attn_weights = torch.bmm(query_states, key_states.transpose(1, 2))
+        attn_weights = query_states @ key_states.transpose(1, 2) / math.sqrt(self.head_dim)
         if attention_mask is not None:
-            if attention_mask.size() != (bsz, 1, tgt_len, src_len):
-                raise ValueError(
-                    f"Attention mask should be of size {(bsz, 1, tgt_len, src_len)}, but is {attention_mask.size()}"
-                )
             attn_weights = attn_weights.view(bsz, self.num_heads, tgt_len, src_len)
+            print(f"{ attention_mask = }")
+            print(f"{ attention_mask.shape = }")
+            print(f"{ attn_weights.shape = }")
             attn_weights = attn_weights.masked_fill_(attention_mask == 0, -1e9)
-            # if attn_weights.dtype == torch.float16:
-            #     attn_weights = torch.clamp(attn_weights, min=-1e4, max=1e4)
-            # elif attn_weights.dtype == torch.float32:
-            #     attn_weights = torch.clamp(attn_weights, min=-1e9, max=1e9)
-            # else:
-            #     raise ValueError(f"Unsupported dtype {attn_weights.dtype}")
-            attn_weights = attn_weights.view(bsz * self.num_heads, tgt_len, src_len)
+        attn_weights = attn_weights.view(bsz * self.num_heads, tgt_len, src_len)
+
 
         attention_mask = nn.functional.softmax(attn_weights, dim=-1)
 

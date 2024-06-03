@@ -27,7 +27,6 @@ def lambda_lr(global_step: int, config):
     global_step = max(global_step, 1)
     return (config["d_model"] ** -0.5) * min(global_step ** (-0.5), global_step * config["warmup_steps"] ** (-1.5))
 
-
 def train(config):
     # create dirs
     create_dirs(dir_paths=[config["log_dir"], config["model_folder_name"], config["log_files"]])

@@ -34,7 +34,7 @@ class BartEncoder(nn.Module):
         if attention_mask is not None:
             attention_mask = create_encoder_atn_mask(
                 attention_mask=attention_mask,
-                dtype=input_embeds.dtype,
+                # dtype=input_embeds.dtype,
             )
 
         for idx, encoder_layer in enumerate(self.layers):
