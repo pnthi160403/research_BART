@@ -9,6 +9,7 @@ from .utils.metrics import (
     torchmetrics_recall,
     torchmetrics_precision,
     torchmetrics_f_beta,
+    torchmetrics_rouge,
     torcheval_recall,
     torcheval_precision,
     torcheval_f_beta,
@@ -38,9 +39,6 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
         labels = []
         preds = []
         
-        # debug
-        debug = 0
-
         batch_iterator = tqdm(val_dataloader, desc=f"Testing model...")
         for batch in batch_iterator:
             src_text = batch["src_text"][0]
@@ -69,7 +67,6 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
             source_texts.append(tokenizer_src.encode(src_text).tokens)
             expected.append([tokenizer_tgt.encode(tgt_text).tokens])
             predicted.append(tokenizer_tgt.encode(pred_text).tokens)
-
             # debug
             # if count == 10:
             #     break
@@ -106,14 +103,6 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
                         pad_index=pad_token_id,
                         device=device
                     )
-                    # f_05 = torchmetrics_f_beta(
-                    #     preds=pred_ids,
-                    #     target=label_ids,
-                    #     beta=config["f_beta"],
-                    #     tgt_vocab_size=vocab_size,
-                    #     pad_index=pad_token_id,
-                    #     device=device
-                    # )
                 else:
                     recall = torcheval_recall(
                         input=pred_ids,
@@ -127,21 +116,15 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
                         device=device
                     )
 
-                    # f_05 = torcheval_f_beta(
-                    #     recall=recall,
-                    #     precision=precision,
-                    #     beta=config["f_beta"]
-                    # )
-
                 recall = recall.item()
                 precision = precision.item()
-                # f_05 = f_05.item()
                 print(f"{recall = }")
                 print(f"{precision = }")
-                # print(f"{f_05 = }")
             
         labels = torch.cat(labels, dim=0)
         preds = torch.cat(preds, dim=0)
+
+        recall, precision = None, None
 
         if not config["use_pytorch_metric"]:
             recall = torchmetrics_recall(
@@ -158,14 +141,11 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
                 pad_index=pad_token_id,
                 device=device
                 )
-            # f_05 = torchmetrics_f_beta(
-            #     preds=preds,
-            #     target=labels,
-            #     beta=config["f_beta"],
-            #     tgt_vocab_size=vocab_size,
-            #     pad_index=pad_token_id,
-            #     device=device
-            #     )
+            rouges = torchmetrics_rouge(
+                preds=preds,
+                target=labels,
+                device=device
+            )
         else:
             recall = torcheval_recall(
                 input=preds,
@@ -179,20 +159,16 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
                 device=device
             )
 
-            # f_05 = torcheval_f_beta(
-            #     recall=recall,
-            #     precision=precision,
-            #     beta=config["f_beta"]
-            # )
-
         bleus = torchtext_bleu_score(refs=expected,
                                     cands=predicted)
         
-        recall = recall.item()
-        precision = precision.item()
-        # f_05 = f_05.item()
-        print(f"{recall = }")
-        print(f"{precision = }")
-        # print(f"{f_05 = }")
-                
-        return bleus, recall, precision
+        res = {}
+        for i in range(0, len(bleus)):
+            res[f"bleu_{i+1}"] = bleus[i]
+        if recall is not None:
+            res["recall"] = recall.item()
+        if precision is not None:
+            res["precision"] = precision.item()
+        for key, val in rouges.items():
+            res[key] = val
+        return res

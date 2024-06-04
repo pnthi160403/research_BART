@@ -2,6 +2,7 @@ import torch
 from torcheval.metrics.functional.classification import multiclass_accuracy, multiclass_recall, multiclass_precision
 from torchtext.data.metrics import bleu_score
 from torchmetrics import Recall, Precision, FBetaScore, Accuracy
+from torchmetrics.text.rouge import ROUGEScore
 
 # metrics
 def torchmetrics_recall(preds, target, tgt_vocab_size: int, pad_index: int, device):
@@ -19,6 +20,10 @@ def torchmetrics_accuracy(preds, target, tgt_vocab_size: int, pad_index: int, de
 def torchmetrics_f_beta(preds, target, beta: float, tgt_vocab_size: int, pad_index: int, device):
     f_beta = FBetaScore(task="multiclass", average='weighted', num_classes=tgt_vocab_size, beta=beta, ignore_index=pad_index).to(device)
     return f_beta(preds, target)
+
+def torchmetrics_rouge(preds, target, device):
+    rouge = ROUGEScore().to(device)
+    return rouge(preds, target)
 
 def torcheval_recall(input: torch.tensor, target: torch.tensor, device):
     return multiclass_recall(
@@ -49,4 +54,14 @@ def torchtext_bleu_score(refs, cands):
                                  weights=weights))
     return scores
 
-__all__ = ["torchmetrics_recall", "torchmetrics_precision", "torchmetrics_accuracy", "torchmetrics_f_beta", "torcheval_recall", "torcheval_precision", "torcheval_f_beta", "torchtext_bleu_score"]
+__all__ = [
+    "torchmetrics_recall",
+    "torchmetrics_precision",
+    "torchmetrics_accuracy",
+    "torchmetrics_f_beta",
+    "torchmetrics_rouge",
+    "torcheval_recall",
+    "torcheval_precision",
+    "torcheval_f_beta",
+    "torchtext_bleu_score"
+]

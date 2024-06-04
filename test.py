@@ -54,17 +54,25 @@ def test(config):
         print("No model to preload!")
 
     for beam_size in beams:
-        bleus, recall, precision = validate(
+        res = validate(
             model=model,
             config=config,
             beam_size=beam_size,
             val_dataloader=test_dataloader
         )
 
+        column_names = []
+        data = []
+        for name, value in res.items():
+            if value is None:
+                continue
+            column_names.append(name)
+            data.append(value)
+
         data_frame = figure_list_to_csv(
             config=config,
-            column_names=["bleu_1", "bleu_2", "bleu_3", "bleu_4", "recall", "precision"],
-            data=bleus + [recall, precision],
+            column_names=column_names,
+            data=data,
             name_csv=f"results_beam_{beam_size}"
         )
 
