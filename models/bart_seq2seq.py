@@ -1,18 +1,39 @@
 import torch.nn as nn
 from .utils import load_model
 from .transformers_huggingface import BartModel
+from transformers import BartConfig
 
-class BartSeq2seqConfig:
+class BartSeq2seqConfig(BartConfig):
     def __init__(
         self,
-        bart_config,
-        src_vocab_size,
-        tgt_vocab_size,
-        pad_idx=None,
-        share_tgt_emb_and_out=False, 
-        init_type=None,
+        config: BartConfig,
+        src_vocab_size: int,
+        tgt_vocab_size: int,
+        pad_idx: int,
+        share_tgt_emb_and_out: bool,
+        init_type: str,
     ):
-        self.bart_config = bart_config
+        super().__init__(
+            d_model=config.d_model,
+            encoder_layers=config.encoder_layers,
+            decoder_layers=config.decoder_layers,
+            encoder_attention_heads=config.encoder_attention_heads,
+            decoder_attention_heads=config.decoder_attention_heads,
+            decoder_ffn_dim=config.decoder_ffn_dim,
+            encoder_ffn_dim=config.encoder_ffn_dim,
+            activation_function=config.activation_function,
+            dropout=config.dropout,
+            attention_dropout=config.attention_dropout,
+            activation_dropout=config.activation_dropout,
+            classifier_dropout=config.classifier_dropout,
+            max_position_embeddings=config.max_position_embeddings,
+            init_std=config.init_std,
+            encoder_layerdrop=config.encoder_layerdrop,
+            decoder_layerdrop=config.decoder_layerdrop,
+            scale_embedding=config.scale_embedding,
+            vocab_size=tgt_vocab_size,
+            pad_token_id=pad_idx,
+        )
         self.src_vocab_size = src_vocab_size
         self.tgt_vocab_size = tgt_vocab_size
         self.pad_idx = pad_idx
@@ -37,22 +58,22 @@ class BartSeq2seq(nn.Module):
         # Encoder Embedding
         self.inputs_embeds = nn.Embedding(
             num_embeddings=self.src_vocab_size,
-            embedding_dim=self.config.bart_config.d_model,
+            embedding_dim=self.config.d_model,
             padding_idx=self.pad_idx,
         )
     
         # Decoder Embedding
         self.decoder_inputs_embeds = nn.Embedding(
             num_embeddings=self.tgt_vocab_size,
-            embedding_dim=self.config.bart_config.d_model,
+            embedding_dim=self.config.d_model,
             padding_idx=self.pad_idx,
         )
     
         # Bart model
-        self.bart_model = BartModel(self.config.bart_config)
+        self.bart_model = BartModel(self.config)
 
         # Prediction
-        self.out = nn.Linear(self.config.bart_config.d_model, self.tgt_vocab_size)
+        self.out = nn.Linear(self.config.d_model, self.tgt_vocab_size)
         
         # Initialize weights
         modules = [self.inputs_embeds, self.decoder_inputs_embeds, self.out]
@@ -60,7 +81,7 @@ class BartSeq2seq(nn.Module):
             init_type=self.config.init_type,
             modules=modules,
             mean=0,
-            std=self.config.bart_config.init_std
+            std=self.config.init_std
         )
 
         # Share the weights between embedding and linear layer
@@ -108,15 +129,6 @@ class BartSeq2seq(nn.Module):
             module.weight.data.normal_(mean=mean, std=std)
             if module.padding_idx is not None:
                 module.weight.data[module.padding_idx].zero_()
-
-        # for param in module.parameters():
-        #     if param.dim() > 1:
-        #         if init_type == "normal":
-        #             nn.init.normal_(param, mean=mean, std=std)
-        #         elif init_type == "xavier":
-        #             nn.init.xavier_normal_(param)
-        #         else:
-        #             continue
     
     def initialize_weights(self, modules, init_type="normal", mean=0.0, std=0.02):
         for module in modules:
@@ -164,19 +176,18 @@ def get_model(
     share_tgt_emb_and_out=False, 
     init_type=None,
     step_train=None,
-    vocab_size_encoder_bart=None,
     num_labels=None,
     checkpoint=None,
+    src_vocab_size_random_encoder=None
 ):
     config = BartSeq2seqConfig(
-        bart_config,
+        config=bart_config,
         src_vocab_size=src_vocab_size,
         tgt_vocab_size=tgt_vocab_size,
         pad_idx=pad_idx,
         share_tgt_emb_and_out=share_tgt_emb_and_out,
         init_type=init_type,
     )
-
     model = BartSeq2seq(
         config=config,
     )

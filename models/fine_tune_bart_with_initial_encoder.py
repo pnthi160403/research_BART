@@ -1,4 +1,4 @@
-from transformers import BartConfig, BartModel
+from .transformers_huggingface import BartModel, BartEncoder, BartConfig
 from .utils import load_model, freeze_model, un_freeze_model, show_layer_un_freeze
 import torch.nn as nn
 from .bart_seq2seq import (
@@ -6,83 +6,51 @@ from .bart_seq2seq import (
     BartSeq2seqConfig,
 )
 
-class FineTuneBartWithRandomEncoderConfig:
+class FineTuneBartWithRandomEncoderConfig(BartSeq2seqConfig):
     def __init__(
         self,
-        bart_seq2seq_config,
-        src_vocab_size,
-        tgt_vocab_size,
-        vocab_size_encoder_bart=None,
-        pad_idx=None,
-        init_type=None,
+        config: BartConfig,
+        src_vocab_size_random_encoder: int,
     ):
-        self.bart_seq2seq_config = bart_seq2seq_config
-        self.src_vocab_size = src_vocab_size
-        self.tgt_vocab_size = tgt_vocab_size
-        self.vocab_size_encoder_bart = vocab_size_encoder_bart
-        self.pad_idx = pad_idx
-        self.init_type = init_type
+        super().__init__(
+            config=config,
+            src_vocab_size=config.src_vocab_size,
+            tgt_vocab_size=config.tgt_vocab_size,
+            pad_idx=config.pad_idx,
+            share_tgt_emb_and_out=config.share_tgt_emb_and_out,
+            init_type=config.init_type,
+        )
+        self.src_vocab_size_random_encoder = src_vocab_size_random_encoder
+
     
 # Fine-tune BART with initial encoder
-class FineTuneBartWithRandomEncoder(nn.Module):
+class FineTuneBartWithRandomEncoder(BartSeq2seq):
     def __init__(
         self,
-        config: FineTuneBartWithRandomEncoderConfig,
-        checkpoint=None,
+        config,
     ):
-        super(FineTuneBartWithRandomEncoder, self).__init__()
-        self.config = config
+        super(FineTuneBartWithRandomEncoder, self).__init__(config=config)
 
-        # vocab size
-        self.src_vocab_size = config.src_vocab_size
-        self.tgt_vocab_size = config.tgt_vocab_size
-        if config.vocab_size_encoder_bart is None:
-            ValueError("vocab_size_encoder_bart is None")
-            
-        self.vocab_size_encoder_bart = config.vocab_size_encoder_bart
-
-        # pad_idx
-        self.pad_idx = config.pad_idx
-        
-        # Load checkpoint
-        bart_seq2seq = BartSeq2seq(
-            config=config,
-            src_vocab_size=self.vocab_size_encoder_bart,
-            tgt_vocab_size=self.tgt_vocab_size,
-            init_type=config.init_type,
-        )
-        bart_seq2seq = load_model(
-            model=bart_seq2seq,
-            checkpoint=checkpoint
-        )
-
-        # Src embedding
+        del self.inputs_embeds
         self.inputs_embeds = nn.Embedding(
-            num_embeddings=self.src_vocab_size,
-            embedding_dim=self.config.d_model,
+            num_embeddings=config.vocab_size_encoder_bart,
+            embedding_dim=config.d_model,
+            padding_idx=config.pad_idx,
+        )
+        self.random_encoder = BartEncoder(
+            config=config,
+            embed_tokens=self.inputs_embeds,
         )
 
-        # Tgt embedding
-        self.decoder_inputs_embeds = bart_seq2seq.decoder_inputs_embeds
-
-        # Encoder initialization
-        self.random_encoder = BartModel(config).encoder
-
-        # Pretained BART model
-        self.bart_model = bart_seq2seq.bart_model
-
-        # Prediction
-        self.out = bart_seq2seq.out
-        
-        # Initialize weights xavier
-        modules = [self.inputs_embeds, self.random_encoder]
+        # Initialize weights
+        modules = [self.inputs_embeds]
         self.initialize_weights(
-            modules=modules,
             init_type=config.init_type,
+            modules=modules,
             mean=0,
-            std=self.config.init_std
+            std=config.init_std
         )
-        
+
     def forward(
         self,
         input_ids,
@@ -118,34 +86,6 @@ class FineTuneBartWithRandomEncoder(nn.Module):
             return logits, loss
                 
         return logits
-    
-    def _init_weights(self, module, mean=0.0, std=0.02, init_type="normal"):
-        if isinstance(module, nn.Linear):
-            module.weight.data.normal_(mean=mean, std=std)
-            if module.bias is not None:
-                module.bias.data.zero_()
-        elif isinstance(module, nn.Embedding):
-            module.weight.data.normal_(mean=mean, std=std)
-            if module.padding_idx is not None:
-                module.weight.data[module.padding_idx].zero_()
-
-        # for param in module.parameters():
-        #     if param.dim() > 1:
-        #         if init_type == "normal":
-        #             nn.init.normal_(param, mean=mean, std=std)
-        #         elif init_type == "xavier":
-        #             nn.init.xavier_normal_(param)
-        #         else:
-        #             continue
-    
-    def initialize_weights(self, modules, init_type="normal", mean=0.0, std=0.02):
-        for module in modules:
-            self._init_weights(
-                module=module,
-                mean=mean,
-                std=std,
-                init_type=init_type
-            )
                     
     def get_encoder_out(
         self,
@@ -179,20 +119,16 @@ class FineTuneBartWithRandomEncoder(nn.Module):
         return outputs
     
 def first_fine_tune_bart_with_random_encoder(config, model):
-    freeze_modules = [
-        model.bart_model,
-        model.decoder_inputs_embeds,
-        model.out
-    ]
-
-    model = freeze_model(
-        model=model,
-        modules=freeze_modules
-    )
+    for param in model.parameters():
+        param.requires_grad = False
 
     un_freeze_modules = [
-        model.bart_model.encoder.layers[0].self_attn,
+        model.bart_model.encoder.layers[0].self_attn.k_proj,
+        model.bart_model.encoder.layers[0].self_attn.v_proj,
+        model.bart_model.encoder.layers[0].self_attn.q_proj,
+        model.bart_model.encoder.layers[0].self_attn.out_proj,
         model.bart_model.encoder.embed_positions,
+        model.random_encoder,
     ]
 
     model = un_freeze_model(
@@ -205,6 +141,8 @@ def first_fine_tune_bart_with_random_encoder(config, model):
     return model
 
 def second_fine_tune_bart_with_random_encoder(config, model):
+    for param in model.parameters():
+        param.requires_grad = True
     return model
 
 STEP_TRAIN = {
@@ -216,35 +154,45 @@ def get_model(
     bart_config,
     src_vocab_size,
     tgt_vocab_size,
-    vocab_size_encoder_bart=30000,
     pad_idx=None,
     init_type=None,
     step_train=None,
     checkpoint=None,
     num_labels=None,
+    src_vocab_size_random_encoder=None,
 ):
-    
+    config = bart_config
     bart_seq2seq_config = BartSeq2seqConfig(
-        bart_config=bart_config,
+        config=config,
         src_vocab_size=src_vocab_size,
         tgt_vocab_size=tgt_vocab_size,
         pad_idx=pad_idx,
         init_type=init_type,
     )
 
+    bart_seq2seq_model = BartSeq2seq(
+        config=bart_seq2seq_config,
+    )
+
+    assert checkpoint, "checkpoint is required"
+    bart_seq2seq_model = load_model(
+        model=bart_seq2seq_model,
+        checkpoint=checkpoint,
+    )
+
     config = FineTuneBartWithRandomEncoderConfig(
-        bart_seq2seq_config=bart_seq2seq_config,
-        src_vocab_size=src_vocab_size,
-        tgt_vocab_size=tgt_vocab_size,
-        vocab_size_encoder_bart=vocab_size_encoder_bart,
-        pad_idx=pad_idx,
-        init_type=init_type,
+        config=bart_config,
+        src_vocab_size_random_encoder=src_vocab_size_random_encoder,
     )
 
     model = FineTuneBartWithRandomEncoder(
         config=config,
         checkpoint=checkpoint,
     )
+
+    model.decoder_inputs_embeds.load_state_dict(bart_seq2seq_model.decoder_inputs_embeds.state_dict())
+    model.out.load_state_dict(bart_seq2seq_model.out.state_dict())
+    model.bart_model.load_state_dict(bart_seq2seq_model.bart_model.state_dict())
 
     if step_train:
         model = STEP_TRAIN[step_train](
