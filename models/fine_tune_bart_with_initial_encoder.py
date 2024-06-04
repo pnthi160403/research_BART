@@ -1,4 +1,4 @@
-from .transformers_huggingface import BartModel, BartEncoder, BartConfig
+from .transformers_huggingface import BartEncoder, BartConfig
 from .utils import load_model, freeze_model, un_freeze_model, show_layer_un_freeze
 import torch.nn as nn
 from .bart_seq2seq import (
@@ -6,39 +6,39 @@ from .bart_seq2seq import (
     BartSeq2seqConfig,
 )
 
-class FineTuneBartWithRandomEncoderConfig(BartSeq2seqConfig):
+class FineTuneBartWithRandomEncoderConfig:
     def __init__(
         self,
         config: BartConfig,
+        src_vocab_size: int,
+        tgt_vocab_size: int,
+        pad_idx: int,
         src_vocab_size_bart_encoder: int,
+        init_type: str="normal",
     ):
-        super().__init__(
-            config=config,
-            src_vocab_size=config.src_vocab_size,
-            tgt_vocab_size=config.tgt_vocab_size,
-            pad_idx=config.pad_idx,
-            share_tgt_emb_and_out=config.share_tgt_emb_and_out,
-            init_type=config.init_type,
-        )
-        self.bart_seq2seq_config = config
+        self.bart_config = config
+        self.pad_idx = pad_idx
+        self.src_vocab_size = src_vocab_size
+        self.tgt_vocab_size = tgt_vocab_size
         self.src_vocab_size_bart_encoder = src_vocab_size_bart_encoder
+        self.init_type = init_type
 
     
 # Fine-tune BART with initial encoder
 class FineTuneBartWithRandomEncoder(BartSeq2seq):
     def __init__(
         self,
-        config,
+        config: FineTuneBartWithRandomEncoderConfig,
     ):
         super(FineTuneBartWithRandomEncoder, self).__init__(config=config)
 
         del self.inputs_embeds
         self.inputs_embeds = nn.Embedding(
             num_embeddings=config.src_vocab_size,
-            embedding_dim=config.d_model,
+            embedding_dim=config.bart_config.d_model,
             padding_idx=config.pad_idx,
         )
-        _config = config
+        _config = config.bart_config
         _config.encoder_layers = 1
         self.random_encoder = BartEncoder(
             config=_config,
@@ -51,7 +51,7 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
             init_type=config.init_type,
             modules=modules,
             mean=0,
-            std=config.init_std
+            std=config.bart_config.init_std,
         )
 
     def forward(
@@ -165,13 +165,13 @@ def get_model(
     src_vocab_size_bart_encoder=None,
     share_tgt_emb_and_out=False,
 ):
-    bart_config
     bart_seq2seq_config = BartSeq2seqConfig(
         config=bart_config,
         src_vocab_size=src_vocab_size_bart_encoder,
         tgt_vocab_size=tgt_vocab_size,
         pad_idx=pad_idx,
         init_type=init_type,
+        share_tgt_emb_and_out=share_tgt_emb_and_out,
     )
 
     bart_seq2seq_model = BartSeq2seq(
@@ -187,6 +187,10 @@ def get_model(
     config = FineTuneBartWithRandomEncoderConfig(
         config=bart_config,
         src_vocab_size_bart_encoder=src_vocab_size_bart_encoder,
+        src_vocab_size=src_vocab_size,
+        tgt_vocab_size=tgt_vocab_size,
+        pad_idx=pad_idx,
+        init_type=init_type,
     )
 
     model = FineTuneBartWithRandomEncoder(
