@@ -165,9 +165,9 @@ def get_model(
     src_vocab_size_bart_encoder=None,
     share_tgt_emb_and_out=False,
 ):
-    config = bart_config
+    bart_config
     bart_seq2seq_config = BartSeq2seqConfig(
-        config=config,
+        config=bart_config,
         src_vocab_size=src_vocab_size_bart_encoder,
         tgt_vocab_size=tgt_vocab_size,
         pad_idx=pad_idx,

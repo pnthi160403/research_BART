@@ -48,7 +48,8 @@ class BartSeq2seq(nn.Module):
     ):
         super().__init__()
         self.config = config
-        
+        print(f"config: {config}")
+
         # vocab size
         self.src_vocab_size = config.src_vocab_size
         self.tgt_vocab_size = config.tgt_vocab_size
