@@ -20,6 +20,7 @@ class FineTuneBartWithRandomEncoderConfig(BartSeq2seqConfig):
             share_tgt_emb_and_out=config.share_tgt_emb_and_out,
             init_type=config.init_type,
         )
+        self.bart_seq2seq_config = config
         self.src_vocab_size_bart_encoder = src_vocab_size_bart_encoder
 
     
@@ -28,7 +29,6 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
     def __init__(
         self,
         config,
-        config_random_encoder,
     ):
         super(FineTuneBartWithRandomEncoder, self).__init__(config=config)
 
@@ -191,7 +191,6 @@ def get_model(
 
     model = FineTuneBartWithRandomEncoder(
         config=config,
-        checkpoint=checkpoint,
     )
 
     model.decoder_inputs_embeds.load_state_dict(bart_seq2seq_model.decoder_inputs_embeds.state_dict())

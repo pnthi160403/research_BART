@@ -34,6 +34,7 @@ class BartSeq2seqConfig(BartConfig):
             vocab_size=tgt_vocab_size,
             pad_token_id=pad_idx,
         )
+        self.bart_config = config
         self.src_vocab_size = src_vocab_size
         self.tgt_vocab_size = tgt_vocab_size
         self.pad_idx = pad_idx
@@ -70,7 +71,7 @@ class BartSeq2seq(nn.Module):
         )
     
         # Bart model
-        self.bart_model = BartModel(self.config)
+        self.bart_model = BartModel(self.config.bart_config)
 
         # Prediction
         self.out = nn.Linear(self.config.d_model, self.tgt_vocab_size)
