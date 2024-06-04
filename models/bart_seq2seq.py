@@ -178,7 +178,7 @@ def get_model(
     step_train=None,
     num_labels=None,
     checkpoint=None,
-    src_vocab_size_random_encoder=None
+    src_vocab_size_random_encoder=None,
 ):
     config = BartSeq2seqConfig(
         config=bart_config,
