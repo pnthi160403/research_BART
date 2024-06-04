@@ -28,6 +28,7 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
     def __init__(
         self,
         config,
+        config_random_encoder,
     ):
         super(FineTuneBartWithRandomEncoder, self).__init__(config=config)
 
@@ -37,8 +38,10 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
             embedding_dim=config.d_model,
             padding_idx=config.pad_idx,
         )
+        _config = config
+        _config.encoder_layers = 1
         self.random_encoder = BartEncoder(
-            config=config,
+            config=_config,
             embed_tokens=self.inputs_embeds,
         )
 
