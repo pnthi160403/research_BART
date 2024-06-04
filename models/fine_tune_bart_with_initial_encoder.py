@@ -9,14 +9,16 @@ from .bart_seq2seq import (
 class FineTuneBartWithRandomEncoderConfig:
     def __init__(
         self,
-        config: BartConfig,
+        config_bart_seq2seq: BartSeq2seqConfig,
+        config_bart: BartConfig,
         src_vocab_size: int,
         tgt_vocab_size: int,
         pad_idx: int,
         src_vocab_size_bart_encoder: int,
         init_type: str="normal",
     ):
-        self.bart_config = config
+        self.bart_seq2seq_config = config_bart_seq2seq
+        self.bart_config = config_bart
         self.pad_idx = pad_idx
         self.src_vocab_size = src_vocab_size
         self.tgt_vocab_size = tgt_vocab_size
@@ -30,7 +32,9 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
         self,
         config: FineTuneBartWithRandomEncoderConfig,
     ):
-        super(FineTuneBartWithRandomEncoder, self).__init__(config=config)
+        super(FineTuneBartWithRandomEncoder, self).__init__(
+            config=config.bart_seq2seq_config
+        )
 
         del self.inputs_embeds
         self.inputs_embeds = nn.Embedding(
@@ -185,7 +189,8 @@ def get_model(
     )
 
     config = FineTuneBartWithRandomEncoderConfig(
-        config=bart_config,
+        config_bart=bart_config,
+        config_bart_seq2seq=bart_seq2seq_config,
         src_vocab_size_bart_encoder=src_vocab_size_bart_encoder,
         src_vocab_size=src_vocab_size,
         tgt_vocab_size=tgt_vocab_size,
