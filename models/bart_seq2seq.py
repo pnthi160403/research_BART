@@ -10,8 +10,8 @@ class BartSeq2seqConfig(BartConfig):
         src_vocab_size: int,
         tgt_vocab_size: int,
         pad_idx: int,
-        share_tgt_emb_and_out: bool,
-        init_type: str,
+        share_tgt_emb_and_out: bool=False,
+        init_type: str="normal",
     ):
         super().__init__(
             d_model=config.d_model,
@@ -178,7 +178,7 @@ def get_model(
     step_train=None,
     num_labels=None,
     checkpoint=None,
-    src_vocab_size_random_encoder=None,
+    src_vocab_size_bart_encoder=None,
 ):
     config = BartSeq2seqConfig(
         config=bart_config,

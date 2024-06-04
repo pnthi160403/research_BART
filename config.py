@@ -52,7 +52,7 @@ def get_config(base_dir: str=None):
     config["max_num_val"] = 30000
     config["corpus"] = None
     config["max_len"] = 100
-    config["src_vocab_size_random_encoder"] = 30000
+    config["src_vocab_size_bart_encoder"] = 30000
     config["seed"] = 42
 
     # Train

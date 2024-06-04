@@ -10,7 +10,7 @@ class FineTuneBartWithRandomEncoderConfig(BartSeq2seqConfig):
     def __init__(
         self,
         config: BartConfig,
-        src_vocab_size_random_encoder: int,
+        src_vocab_size_bart_encoder: int,
     ):
         super().__init__(
             config=config,
@@ -20,7 +20,7 @@ class FineTuneBartWithRandomEncoderConfig(BartSeq2seqConfig):
             share_tgt_emb_and_out=config.share_tgt_emb_and_out,
             init_type=config.init_type,
         )
-        self.src_vocab_size_random_encoder = src_vocab_size_random_encoder
+        self.src_vocab_size_bart_encoder = src_vocab_size_bart_encoder
 
     
 # Fine-tune BART with initial encoder
@@ -34,7 +34,7 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
 
         del self.inputs_embeds
         self.inputs_embeds = nn.Embedding(
-            num_embeddings=config.vocab_size_encoder_bart,
+            num_embeddings=config.src_vocab_size,
             embedding_dim=config.d_model,
             padding_idx=config.pad_idx,
         )
@@ -162,13 +162,13 @@ def get_model(
     step_train=None,
     checkpoint=None,
     num_labels=None,
-    src_vocab_size_random_encoder=None,
+    src_vocab_size_bart_encoder=None,
     share_tgt_emb_and_out=False,
 ):
     config = bart_config
     bart_seq2seq_config = BartSeq2seqConfig(
         config=config,
-        src_vocab_size=src_vocab_size,
+        src_vocab_size=src_vocab_size_bart_encoder,
         tgt_vocab_size=tgt_vocab_size,
         pad_idx=pad_idx,
         init_type=init_type,
@@ -176,6 +176,8 @@ def get_model(
 
     bart_seq2seq_model = BartSeq2seq(
         config=bart_seq2seq_config,
+        src_vocab_size=src_vocab_size,
+        tgt_vocab_size=tgt_vocab_size,
     )
 
     assert checkpoint, "checkpoint is required"
@@ -186,7 +188,7 @@ def get_model(
 
     config = FineTuneBartWithRandomEncoderConfig(
         config=bart_config,
-        src_vocab_size_random_encoder=src_vocab_size_random_encoder,
+        src_vocab_size_bart_encoder=src_vocab_size_bart_encoder,
     )
 
     model = FineTuneBartWithRandomEncoder(

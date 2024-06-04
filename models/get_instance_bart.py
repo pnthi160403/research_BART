@@ -56,7 +56,7 @@ def get_model(config, model_train):
     checkpoint = config["checkpoint"]
     num_labels = config["num_labels"]
     share_tgt_emb_and_out = config["share_tgt_emb_and_out"]
-    src_vocab_size_random_encoder = config["src_vocab_size_random_encoder"]
+    src_vocab_size_bart_encoder = config["src_vocab_size_bart_encoder"]
     bart_config = get_bart_config(config)
 
     get_model_fn = GET_MODEL[model_train]
@@ -64,7 +64,7 @@ def get_model(config, model_train):
         bart_config=bart_config,
         src_vocab_size=src_vocab_size,
         tgt_vocab_size=tgt_vocab_size,
-        src_vocab_size_random_encoder=src_vocab_size_random_encoder,
+        src_vocab_size_bart_encoder=src_vocab_size_bart_encoder,
         pad_idx=pad_idx,
         init_type=init_type,
         step_train=step_train,
