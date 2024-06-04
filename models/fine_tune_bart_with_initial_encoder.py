@@ -176,8 +176,6 @@ def get_model(
 
     bart_seq2seq_model = BartSeq2seq(
         config=bart_seq2seq_config,
-        src_vocab_size=src_vocab_size,
-        tgt_vocab_size=tgt_vocab_size,
     )
 
     assert checkpoint, "checkpoint is required"
