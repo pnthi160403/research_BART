@@ -177,5 +177,5 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
         if precision is not None:
             res["precision"] = precision.item()
         for key, val in rouges.items():
-            res[key] = val
+            res[key] = val.item()
         return res
