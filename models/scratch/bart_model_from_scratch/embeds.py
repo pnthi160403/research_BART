@@ -49,7 +49,10 @@ class BartEmbeds(nn.Module):
             input_ids: torch.Tensor=None,
             input_embeds: torch.Tensor=None,
         ):
-        bsz, seq_len = input_ids.size()
+        if input_ids is not None:
+            bsz, seq_len = input_ids.size()
+        else:
+            bsz, seq_len = input_embeds.size()
         pos_ids = self.pos_ids[:seq_len]
         if input_embeds is None:
             input_embeds = self.embed_tokens(input_ids) * self.embed_scale

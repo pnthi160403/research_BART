@@ -190,30 +190,30 @@ def get_model(
         config=bart_seq2seq_config,
     )
 
-    assert checkpoint, "checkpoint is required"
-    bart_seq2seq_model = load_model(
-        model=bart_seq2seq_model,
-        checkpoint=checkpoint,
-    )
+    if step_train == "FIRST":
+        bart_seq2seq_model = load_model(
+            model=bart_seq2seq_model,
+            checkpoint=checkpoint,
+        )
 
-    config = FineTuneBartWithRandomEncoderConfig(
-        config_bart=bart_config,
-        config_bart_seq2seq=bart_seq2seq_config,
-        src_vocab_size_bart_encoder=src_vocab_size_bart_encoder,
-        src_vocab_size=src_vocab_size,
-        tgt_vocab_size=tgt_vocab_size,
-        pad_idx=pad_idx,
-        init_type=init_type,
-    )
+        config = FineTuneBartWithRandomEncoderConfig(
+            config_bart=bart_config,
+            config_bart_seq2seq=bart_seq2seq_config,
+            src_vocab_size_bart_encoder=src_vocab_size_bart_encoder,
+            src_vocab_size=src_vocab_size,
+            tgt_vocab_size=tgt_vocab_size,
+            pad_idx=pad_idx,
+            init_type=init_type,
+        )
 
-    model = FineTuneBartWithRandomEncoder(
-        config=config,
-    )
+        model = FineTuneBartWithRandomEncoder(
+            config=config,
+        )
 
-    model.encoder.load_state_dict(bart_seq2seq_model.encoder.state_dict())
-    model.decoder.load_state_dict(bart_seq2seq_model.decoder.state_dict())
-    model.decoder_inputs_embeds.load_state_dict(bart_seq2seq_model.decoder_inputs_embeds.state_dict())
-    model.inputs_embeds.embed_positions.load_state_dict(bart_seq2seq_model.inputs_embeds.embed_positions.state_dict())
+        model.encoder.load_state_dict(bart_seq2seq_model.encoder.state_dict())
+        model.decoder.load_state_dict(bart_seq2seq_model.decoder.state_dict())
+        model.decoder_inputs_embeds.load_state_dict(bart_seq2seq_model.decoder_inputs_embeds.state_dict())
+        model.inputs_embeds.embed_positions.load_state_dict(bart_seq2seq_model.inputs_embeds.embed_positions.state_dict())
 
     if step_train:
         model = STEP_TRAIN[step_train](
