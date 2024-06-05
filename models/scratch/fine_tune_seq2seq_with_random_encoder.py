@@ -96,7 +96,7 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
             input_ids=input_ids,
             attention_mask=attention_mask
         )
-        super().forward(
+        return super().forward(
             input_embeds=inputs_embeds,
             attention_mask=attention_mask,
             decoder_input_ids=decoder_input_ids,
