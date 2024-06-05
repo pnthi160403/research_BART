@@ -190,7 +190,7 @@ def get_model(
         config=bart_seq2seq_config,
     )
 
-    if step_train == "FIRST":
+    if step_train == 'FIRST':
         bart_seq2seq_model = load_model(
             model=bart_seq2seq_model,
             checkpoint=checkpoint,
