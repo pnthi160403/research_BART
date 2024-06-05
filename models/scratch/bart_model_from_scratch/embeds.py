@@ -55,8 +55,8 @@ class BartEmbeds(nn.Module):
         else:
             bsz, seq_len, d_model = input_embeds.size()
         pos_ids = self.pos_ids[:seq_len]
-        if input_ids is None:
-            input_embeds = self.embed_tokens(input_ids) * self.embed_scale
+        if input_ids is not None:
+            input_embeds = self.embed_tokens(input_ids)
         return input_embeds * self.embed_scale + self.embed_positions(pos_ids)
     
 __all__ = ["BartEmbeds"]

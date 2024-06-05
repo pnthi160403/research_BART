@@ -7,8 +7,8 @@ class BartAttention(nn.Module):
         self,
         embed_dim: int,
         num_heads: int,
-        dropout: float = 0.0,
-        bias: bool = True,
+        dropout: float=0.0,
+        bias: bool=True,
     ):
         super().__init__()
         self.embed_dim = embed_dim
