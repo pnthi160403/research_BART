@@ -38,6 +38,9 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
 
         labels = []
         preds = []
+
+        rouge_preds = []
+        rouge_targets = []
         
         batch_iterator = tqdm(val_dataloader, desc=f"Testing model...")
         for batch in batch_iterator:
@@ -54,6 +57,10 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
             )
             
             pred_text = tokenizer_tgt.decode(pred_ids.detach().cpu().numpy())
+
+            rouge_preds.append(pred_text)
+            rouge_targets.append(tgt_text)  
+            
             pred_ids = torch.tensor(tokenizer_tgt.encode(pred_text).ids, dtype=torch.int64).to(device)
             label_ids = torch.tensor(tokenizer_tgt.encode(tgt_text).ids, dtype=torch.int64).to(device)
 
@@ -141,11 +148,11 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
                 pad_index=pad_token_id,
                 device=device
                 )
-            # rouges = torchmetrics_rouge(
-            #     preds=preds,
-            #     target=labels,
-            #     device=device
-            # )
+            rouges = torchmetrics_rouge(
+                preds=rouge_preds,
+                target=rouge_targets,
+                device=device
+            )
         else:
             recall = torcheval_recall(
                 input=preds,
@@ -169,6 +176,6 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
             res["recall"] = recall.item()
         if precision is not None:
             res["precision"] = precision.item()
-        # for key, val in rouges.items():
-        #     res[key] = val
+        for key, val in rouges.items():
+            res[key] = val
         return res
