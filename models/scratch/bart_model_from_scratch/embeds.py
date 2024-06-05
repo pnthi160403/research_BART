@@ -10,15 +10,19 @@ class BartEmbeds(nn.Module):
         max_position_embeddings: int=1024,
         shared: bool = False,
         embed_scale: float=1.0,
+        embed_tokens: nn.Embedding=None,
     ):
         super().__init__()
 
         self.embed_scale = embed_scale
-        self.embed_tokens = nn.Embedding(
-            num_embeddings,
-            embedding_dim,
-            padding_idx=padding_idx,
-        )
+        if embed_tokens is not None:
+            self.embed_tokens = embed_tokens
+        else:
+            self.embed_tokens = nn.Embedding(
+                num_embeddings,
+                embedding_dim,
+                padding_idx=padding_idx,
+            )
         self.embed_positions = nn.Embedding(
             max_position_embeddings,
             embedding_dim,
@@ -30,11 +34,22 @@ class BartEmbeds(nn.Module):
         )
         if shared:
             self.embed_positions.weight = self.embed_tokens.weight
+    
+    def set_embed_tokens(self, embed_tokens: nn.Embedding):
+        self.embed_tokens = embed_tokens
 
-    def forward(self, input_ids: torch.Tensor):
+    def forward(
+            self, 
+            input_ids: torch.Tensor=None,
+            input_embeds: torch.Tensor=None,
+        ):
         bsz, seq_len = input_ids.size()
         pos_ids = self.pos_ids[:seq_len]
-        embeds = self.embed_tokens(input_ids) * self.embed_scale + self.embed_positions(pos_ids)
+        if input_embeds is None:
+            input_embeds = self.embed_tokens(input_ids) * self.embed_scale
+        else:
+            input_embeds = input_embeds * self.embed_scale
+        embeds = input_embeds + self.embed_positions(pos_ids)
         return embeds
     
 __all__ = ["BartEmbeds"]

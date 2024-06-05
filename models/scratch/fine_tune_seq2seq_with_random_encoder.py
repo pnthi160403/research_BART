@@ -30,6 +30,44 @@ class FineTuneBartWithRandomEncoderConfig:
         self.src_vocab_size_bart_encoder = src_vocab_size_bart_encoder
         self.init_type = init_type
 
+class RandomEncoder(nn.Module):
+    def __init__(
+        self,
+        config: BartConfig,
+    ):
+        super().__init__()
+        self.inputs_embeds = BartEmbeds(
+            num_embeddings=config.vocab_size,
+            embedding_dim=config.d_model,
+            padding_idx=config.pad_token_id,
+            max_position_embeddings=config.max_position_embeddings,
+        )
+        self.encoder = BartEncoder(
+            config=config,
+        )
+
+        # Initialize weights
+        modules = [self.inputs_embeds, self.encoder]
+        for module in modules:
+            _init_weights(
+                module=module,
+                mean=0.0,
+                std=config.init_std,
+            )
+        
+    def forward(
+        self,
+        input_ids,
+        attention_mask
+    ):
+        inputs_embeds = self.inputs_embeds(input_ids)
+        inputs_embeds = self.encoder(
+            input_embeds=inputs_embeds,
+            attention_mask=attention_mask
+        )
+
+        return inputs_embeds
+
 
 # Fine-tune BART with initial encoder
 class FineTuneBartWithRandomEncoder(BartSeq2seq):
@@ -42,20 +80,14 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
         )
 
         del self.inputs_embeds.embed_tokens
-        self.random_input_embeds = BartEmbeds(
-            num_embeddings=self.src_vocab_size,
-            embedding_dim=config.bart_config.d_model,
-            padding_idx=config.pad_idx,
-            max_position_embeddings=config.bart_config.max_position_embeddings,
-        )
         _config = config.bart_config
         _config.encoder_layers = 1
-        self.random_encoder = BartEncoder(
-            config=_config,
+        _config.vocab_size = self.src_vocab_size
+        self.random_encoder = RandomEncoder(
+            config=_config
         )
-
         # Initialize weights
-        modules = [self.random_input_embeds, self.random_encoder]
+        modules = [self.random_encoder]
         for module in modules:
             _init_weights(
                 module=module,
@@ -71,9 +103,8 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
         decoder_attention_mask,
         label=None,
     ):
-        inputs_embeds = self.random_input_embeds(input_ids)
         inputs_embeds = self.random_encoder(
-            inputs_embeds=inputs_embeds,
+            intput_ids=input_ids,
             attention_mask=attention_mask
         )
         decoder_inputs_embeds = self.decoder_inputs_embeds(decoder_input_ids)
@@ -90,9 +121,8 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
         input_ids,
         attention_mask
     ):
-        inputs_embeds = self.random_input_embeds(input_ids)
         inputs_embeds = self.random_encoder(
-            inputs_embeds=inputs_embeds,
+            inputs_embeds=input_ids,
             attention_mask=attention_mask
         )
 
@@ -124,9 +154,8 @@ def first_fine_tune_bart_with_random_encoder(config, model):
         model.encoder.layers[0].self_attn.v_proj,
         model.encoder.layers[0].self_attn.q_proj,
         model.encoder.layers[0].self_attn.out_proj,
-        model.encoder.input_embeds.embed_positions,
+        model.input_embeds.embed_positions,
         model.random_encoder,
-        model.random_input_embeds,
     ]
 
     model = un_freeze_model(

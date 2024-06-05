@@ -79,12 +79,16 @@ class BartSeq2seq(nn.Module):
         # encoder
         if input_embeds is not None:
             encoder_hidden_states = self.encoder(
-                input_embeds=input_embeds,
+                input_embeds=self.inputs_embeds(
+                    input_embeds=input_embeds,
+                ),
                 attention_mask=attention_mask,
             )
         else:
             encoder_hidden_states = self.encoder(
-                input_embeds=self.inputs_embeds(input_ids),
+                input_embeds=self.inputs_embeds(
+                    input_ids=input_ids,
+                ),
                 attention_mask=attention_mask,
             )
         # decoder
@@ -118,12 +122,16 @@ class BartSeq2seq(nn.Module):
     ):
         if input_embeds is not None:
             encoder_out = self.encoder(
-                input_embeds=input_embeds,
+                input_embeds=self.inputs_embeds(
+                    input_embeds=input_embeds,
+                ),
                 attention_mask=attention_mask,
             )
         else:
             encoder_out = self.encoder(
-                input_embeds=self.inputs_embeds(input_ids),
+                input_embeds=self.inputs_embeds(
+                    input_ids=input_ids,
+                ),
                 attention_mask=attention_mask,
             )
 
