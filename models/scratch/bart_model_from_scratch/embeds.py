@@ -12,6 +12,7 @@ class BartEmbeds(nn.Module):
         shared: bool = False,
         embed_scale: float=1.0,
         embed_tokens: nn.Embedding=None,
+        init_std: float=0.02,
     ):
         super().__init__()
 
@@ -38,7 +39,7 @@ class BartEmbeds(nn.Module):
 
         self.apply(lambda module: _init_weights(
             module=module,
-            std=0.02,
+            std=init_std,
         ))
     
     def set_embed_tokens(self, embed_tokens: nn.Embedding):
@@ -52,13 +53,10 @@ class BartEmbeds(nn.Module):
         if input_ids is not None:
             bsz, seq_len = input_ids.size()
         else:
-            bsz, seq_len = input_embeds.size()
+            bsz, seq_len, d_model = input_embeds.size()
         pos_ids = self.pos_ids[:seq_len]
-        if input_embeds is None:
+        if input_ids is None:
             input_embeds = self.embed_tokens(input_ids) * self.embed_scale
-        else:
-            input_embeds = input_embeds * self.embed_scale
-        embeds = input_embeds + self.embed_positions(pos_ids)
-        return embeds
+        return input_embeds * self.embed_scale + self.embed_positions(pos_ids)
     
 __all__ = ["BartEmbeds"]

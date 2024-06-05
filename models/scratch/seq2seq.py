@@ -47,6 +47,7 @@ class BartSeq2seq(nn.Module):
             embedding_dim=config.bart_config.d_model,
             padding_idx=config.pad_idx,
             max_position_embeddings=config.bart_config.max_position_embeddings,
+            init_std=config.bart_config.init_std,
         )
         if input_embeds is not None:
             self.inputs_embeds = input_embeds
