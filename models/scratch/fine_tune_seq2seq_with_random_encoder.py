@@ -107,11 +107,10 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
             intput_ids=input_ids,
             attention_mask=attention_mask
         )
-        decoder_inputs_embeds = self.decoder_inputs_embeds(decoder_input_ids)
         super().forward(
             input_embeds=inputs_embeds,
             attention_mask=attention_mask,
-            decoder_input_embeds=decoder_inputs_embeds,
+            decoder_input_ids=decoder_input_ids,
             decoder_attention_mask=decoder_attention_mask,
             label=label,
         )
