@@ -214,6 +214,7 @@ def get_model(
         model.decoder.load_state_dict(bart_seq2seq_model.decoder.state_dict())
         model.decoder_inputs_embeds.load_state_dict(bart_seq2seq_model.decoder_inputs_embeds.state_dict())
         model.inputs_embeds.embed_positions.load_state_dict(bart_seq2seq_model.inputs_embeds.embed_positions.state_dict())
+        model.out.load_state_dict(bart_seq2seq_model.out.state_dict())
 
         print("Load model from checkpoint successfully")
 
