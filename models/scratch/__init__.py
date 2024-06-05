@@ -17,6 +17,12 @@ from .fine_tune_seq2seq import (
     get_model,
 )
 
+from .fine_tune_seq2seq_with_random_encoder import (
+    get_model,
+    FineTuneBartWithRandomEncoder,
+    FineTuneBartWithRandomEncoderConfig,
+)
+
 from .utils import (
     load_model,
     freeze_model,

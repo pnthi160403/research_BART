@@ -36,8 +36,11 @@ from .scratch.seq2seq import (
     get_model,
     BartSeq2seq,
 )
-
 from .scratch.fine_tune_seq2seq import (
     get_model,
     FineTuneBartSeq2seq,
+)
+from .scratch.fine_tune_seq2seq_with_random_encoder import (
+    get_model,
+    FineTuneBartWithRandomEncoder,
 )

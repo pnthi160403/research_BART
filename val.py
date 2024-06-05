@@ -141,11 +141,11 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
                 pad_index=pad_token_id,
                 device=device
                 )
-            rouges = torchmetrics_rouge(
-                preds=preds,
-                target=labels,
-                device=device
-            )
+            # rouges = torchmetrics_rouge(
+            #     preds=preds,
+            #     target=labels,
+            #     device=device
+            # )
         else:
             recall = torcheval_recall(
                 input=preds,
@@ -169,6 +169,6 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
             res["recall"] = recall.item()
         if precision is not None:
             res["precision"] = precision.item()
-        for key, val in rouges.items():
-            res[key] = val
+        # for key, val in rouges.items():
+        #     res[key] = val
         return res
