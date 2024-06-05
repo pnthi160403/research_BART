@@ -154,7 +154,7 @@ def first_fine_tune_bart_with_random_encoder(config, model):
         model.encoder.layers[0].self_attn.v_proj,
         model.encoder.layers[0].self_attn.q_proj,
         model.encoder.layers[0].self_attn.out_proj,
-        model.input_embeds.embed_positions,
+        model.inputs_embeds.embed_positions,
         model.random_encoder,
     ]
 
