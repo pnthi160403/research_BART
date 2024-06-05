@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from .utils.init_weights import _init_weights
 
 class BartEmbeds(nn.Module):
     def __init__(
@@ -34,6 +35,11 @@ class BartEmbeds(nn.Module):
         )
         if shared:
             self.embed_positions.weight = self.embed_tokens.weight
+
+        self.apply(lambda module: _init_weights(
+            module=module,
+            std=0.02,
+        ))
     
     def set_embed_tokens(self, embed_tokens: nn.Embedding):
         self.embed_tokens = embed_tokens

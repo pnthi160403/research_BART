@@ -47,14 +47,11 @@ class RandomEncoder(nn.Module):
         )
 
         # Initialize weights
-        modules = [self.inputs_embeds, self.encoder]
-        for module in modules:
-            _init_weights(
-                module=module,
-                mean=0.0,
-                std=config.init_std,
-            )
-        
+        self.apply(lambda module: _init_weights(
+            module=module,
+            std=config.init_std,
+        ))
+
     def forward(
         self,
         input_ids,
@@ -86,14 +83,6 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
         self.random_encoder = RandomEncoder(
             config=_config
         )
-        # Initialize weights
-        modules = [self.random_encoder]
-        for module in modules:
-            _init_weights(
-                module=module,
-                mean=0.0,
-                std=config.bart_config.init_std,
-            )
 
     def forward(
         self,
@@ -104,7 +93,7 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
         label=None,
     ):
         inputs_embeds = self.random_encoder(
-            intput_ids=input_ids,
+            input_ids=input_ids,
             attention_mask=attention_mask
         )
         super().forward(

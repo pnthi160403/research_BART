@@ -6,6 +6,9 @@ from .embeds import BartEmbeds
 from .utils import (
     create_encoder_atn_mask,
 )
+from .utils.init_weights import (
+    _init_weights,
+)
 
 class BartEncoder(nn.Module):
     def __init__(
@@ -20,6 +23,11 @@ class BartEncoder(nn.Module):
             BartEncoderLayer(config) for _ in range(config.encoder_layers)
         ])
         self.layernorm_embedding = nn.LayerNorm(config.d_model)
+
+        self.apply(lambda module: _init_weights(
+            module=module,
+            std=config.init_std,
+        ))
 
     def forward(
         self,

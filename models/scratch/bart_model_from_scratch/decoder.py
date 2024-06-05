@@ -8,6 +8,10 @@ from .utils.mask import (
     create_encoder_atn_mask,
 )
 
+from .utils.init_weights import (
+    _init_weights,
+)
+
 class BartDecoder(nn.Module):
     def __init__(
         self,
@@ -21,6 +25,11 @@ class BartDecoder(nn.Module):
             BartDecoderLayer(config) for _ in range(config.encoder_layers)
         ])
         self.layernorm_embedding = nn.LayerNorm(config.d_model)
+
+        self.apply(lambda module: _init_weights(
+            module=module,
+            std=config.init_std,
+        ))
 
     def forward(
         self,
@@ -45,9 +54,6 @@ class BartDecoder(nn.Module):
             encoder_attention_mask = create_encoder_atn_mask(
                 attention_mask=encoder_attention_mask,
             )
-
-        # print("attention_mask shape", attention_mask.shape)
-        # print("encoder_attention_mask shape", encoder_attention_mask.shape)
 
         for idx, decoder_layer in enumerate(self.layers):
             if self.training:
