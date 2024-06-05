@@ -1,10 +1,15 @@
-from .transformers_huggingface import BartEncoder, BartConfig
 from .utils import load_model, freeze_model, un_freeze_model, show_layer_un_freeze
 import torch.nn as nn
-from .bart_seq2seq import (
+from .bart_model_from_scratch import (
+    BartEncoder,
+    BartEmbeds,
+    _init_weights,
+)
+from .seq2seq import (
     BartSeq2seq,
     BartSeq2seqConfig,
 )
+from transformers import BartConfig
 
 class FineTuneBartWithRandomEncoderConfig:
     def __init__(
@@ -36,27 +41,27 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
             config=config.bart_seq2seq_config
         )
 
-        del self.inputs_embeds
-        self.inputs_embeds = nn.Embedding(
-            num_embeddings=config.src_vocab_size,
+        del self.inputs_embeds.embed_tokens
+        self.random_input_embeds = BartEmbeds(
+            num_embeddings=self.src_vocab_size,
             embedding_dim=config.bart_config.d_model,
             padding_idx=config.pad_idx,
+            max_position_embeddings=config.bart_config.max_position_embeddings,
         )
         _config = config.bart_config
         _config.encoder_layers = 1
         self.random_encoder = BartEncoder(
-            config=_config,
-            embed_tokens=self.inputs_embeds,
+            config=config,
         )
 
         # Initialize weights
-        modules = [self.inputs_embeds]
-        self.initialize_weights(
-            init_type=config.init_type,
-            modules=modules,
-            mean=0,
-            std=config.bart_config.init_std,
-        )
+        modules = [self.random_input_embeds, self.random_encoder]
+        for module in modules:
+            _init_weights(
+                module=module,
+                mean=0.0,
+                std=config.bart_config.init_std,
+            )
 
     def forward(
         self,
@@ -66,47 +71,33 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
         decoder_attention_mask,
         label=None,
     ):
-        inputs_embeds = self.inputs_embeds(input_ids)
+        inputs_embeds = self.random_input_embeds(input_ids)
         inputs_embeds = self.random_encoder(
             inputs_embeds=inputs_embeds,
             attention_mask=attention_mask
-        ).last_hidden_state
+        )
         decoder_inputs_embeds = self.decoder_inputs_embeds(decoder_input_ids)
-        outputs = self.bart_model(
-            inputs_embeds=inputs_embeds,
+        super().forward(
+            input_embeds=inputs_embeds,
             attention_mask=attention_mask,
-            decoder_inputs_embeds=decoder_inputs_embeds,
+            decoder_input_embeds=decoder_inputs_embeds,
             decoder_attention_mask=decoder_attention_mask,
-        )   
-        last_hidden_state = outputs.last_hidden_state
-        logits = self.out(last_hidden_state)
-
-        if label is not None:
-            if self.pad_idx is not None:
-                loss_fn = nn.CrossEntropyLoss(
-                    ignore_index=self.pad_idx,
-                    label_smoothing=0.01,
-                )
-            else:
-                loss_fn = nn.CrossEntropyLoss(label_smoothing=0.01)
-            loss = loss_fn(logits.view(-1, self.tgt_vocab_size), label.view(-1))
-            return logits, loss
-                
-        return logits
+            label=label,
+        )
                     
     def get_encoder_out(
         self,
         input_ids,
         attention_mask
     ):
-        inputs_embeds = self.inputs_embeds(input_ids)
+        inputs_embeds = self.random_input_embeds(input_ids)
         inputs_embeds = self.random_encoder(
             inputs_embeds=inputs_embeds,
             attention_mask=attention_mask
-        ).last_hidden_state
+        )
 
-        return self.bart_model.encoder(
-            inputs_embeds=inputs_embeds,
+        return super().get_encoder_out(
+            input_embeds=inputs_embeds,
             attention_mask=attention_mask
         )
     
@@ -117,26 +108,25 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
         encoder_hidden_states,
         encoder_attention_mask
     ):
-        outputs = self.bart_model.decoder(
+        return super().get_decoder_out(
             input_ids=input_ids,
             attention_mask=attention_mask,
             encoder_hidden_states=encoder_hidden_states,
             encoder_attention_mask=encoder_attention_mask
         )
-        return outputs
     
 def first_fine_tune_bart_with_random_encoder(config, model):
     for param in model.parameters():
         param.requires_grad = False
 
     un_freeze_modules = [
-        model.bart_model.encoder.layers[0].self_attn.k_proj,
-        model.bart_model.encoder.layers[0].self_attn.v_proj,
-        model.bart_model.encoder.layers[0].self_attn.q_proj,
-        model.bart_model.encoder.layers[0].self_attn.out_proj,
-        model.bart_model.encoder.embed_positions,
+        model.encoder.layers[0].self_attn.k_proj,
+        model.encoder.layers[0].self_attn.v_proj,
+        model.encoder.layers[0].self_attn.q_proj,
+        model.encoder.layers[0].self_attn.out_proj,
+        model.encoder.input_embeds.embed_positions,
         model.random_encoder,
-        model.inputs_embeds,
+        model.random_input_embeds,
     ]
 
     model = un_freeze_model(
@@ -203,9 +193,10 @@ def get_model(
         config=config,
     )
 
+    model.encoder.load_state_dict(bart_seq2seq_model.encoder.state_dict())
+    model.decoder.load_state_dict(bart_seq2seq_model.decoder.state_dict())
     model.decoder_inputs_embeds.load_state_dict(bart_seq2seq_model.decoder_inputs_embeds.state_dict())
-    model.out.load_state_dict(bart_seq2seq_model.out.state_dict())
-    model.bart_model.load_state_dict(bart_seq2seq_model.bart_model.state_dict())
+    model.inputs_embeds.embed_positions.load_state_dict(bart_seq2seq_model.inputs_embeds.embed_positions.state_dict())
 
     if step_train:
         model = STEP_TRAIN[step_train](

@@ -26,4 +26,4 @@ def load_model(checkpoint, model):
     model.load_state_dict(state["model_state_dict"])
     return model
 
-__all__ = ["load_model", "freeze_model", "un_freeze_model"]
+__all__ = ["load_model", "freeze_model", "un_freeze_model", "show_layer_un_freeze"]

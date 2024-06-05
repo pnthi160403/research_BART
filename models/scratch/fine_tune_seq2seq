@@ -1,4 +1,7 @@
-from .transformers_huggingface import BartEncoder, BartConfig
+from .bart_model_from_scratch import (
+    BartEmbeds,
+    BartEncoder,
+)
 from .utils import load_model, freeze_model, un_freeze_model, show_layer_un_freeze
 import torch.nn as nn
 from .bart_seq2seq import (
@@ -136,7 +139,6 @@ def first_fine_tune_bart_with_random_encoder(config, model):
         model.bart_model.encoder.layers[0].self_attn.out_proj,
         model.bart_model.encoder.embed_positions,
         model.random_encoder,
-        model.inputs_embeds,
     ]
 
     model = un_freeze_model(

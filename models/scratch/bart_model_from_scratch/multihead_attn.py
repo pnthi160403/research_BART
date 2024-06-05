@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import math
+from .utils import _init_weights
 
 class BartAttention(nn.Module):
     def __init__(
