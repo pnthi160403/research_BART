@@ -30,7 +30,7 @@ class FineTuneBartWithRandomEncoderConfig:
         self.src_vocab_size_bart_encoder = src_vocab_size_bart_encoder
         self.init_type = init_type
 
-    
+
 # Fine-tune BART with initial encoder
 class FineTuneBartWithRandomEncoder(BartSeq2seq):
     def __init__(
@@ -51,7 +51,7 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
         _config = config.bart_config
         _config.encoder_layers = 1
         self.random_encoder = BartEncoder(
-            config=config,
+            config=_config,
         )
 
         # Initialize weights
