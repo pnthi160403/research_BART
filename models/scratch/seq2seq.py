@@ -7,7 +7,6 @@ from .bart_model_from_scratch import (
     BartEmbeds,
     BartEncoderOut,
     BartDecoderOut,
-    BartModel,
     _init_weights,
 )
 
@@ -28,15 +27,13 @@ class BartSeq2seqConfig:
         self.share_tgt_emb_and_out = share_tgt_emb_and_out
         self.init_type = init_type
 
-class BartSeq2seq(BartModel):
+class BartSeq2seq(nn.Module):
     def __init__(
         self,
         config: BartSeq2seqConfig,
-        input_embeds: torch.Tensor=None,
+        inputs_embeds: torch.Tensor=None,
     ):
-        super(BartSeq2seq, self).__init__(
-            config=config.bart_config,
-        )
+        super().__init__()
         # pad_idx
         self.pad_idx = config.pad_idx
 
@@ -52,8 +49,8 @@ class BartSeq2seq(BartModel):
             max_position_embeddings=config.bart_config.max_position_embeddings,
             init_std=config.bart_config.init_std,
         )
-        if input_embeds is not None:
-            self.inputs_embeds = input_embeds
+        if inputs_embeds is not None:
+            self.inputs_embeds = inputs_embeds
         # decoder_embeds
         self.decoder_inputs_embeds = BartEmbeds(
             num_embeddings=self.tgt_vocab_size,
@@ -61,6 +58,9 @@ class BartSeq2seq(BartModel):
             padding_idx=config.pad_idx,
             max_position_embeddings=config.bart_config.max_position_embeddings,
         )
+        # encoder, decoder
+        self.encoder = BartEncoder(config.bart_config)
+        self.decoder = BartDecoder(config.bart_config)
         # out
         self.out = nn.Linear(config.bart_config.d_model, self.tgt_vocab_size)
         _init_weights(
@@ -77,16 +77,30 @@ class BartSeq2seq(BartModel):
         input_ids: torch.Tensor=None,
         inputs_embeds: torch.Tensor=None,
     ):
-        if inputs_embeds is None:
-            inputs_embeds = self.inputs_embeds(input_ids)
-        decoder_inputs_embeds = self.decoder_inputs_embeds(decoder_input_ids)
-        hidden_states = super().forward(
-            inputs_embeds=inputs_embeds,
-            attention_mask=attention_mask,
-            decoder_inputs_embeds=decoder_inputs_embeds,
-            decoder_attention_mask=decoder_attention_mask,
+        # encoder
+        if inputs_embeds is not None:
+            encoder_hidden_states = self.encoder(
+                inputs_embeds=self.inputs_embeds(
+                    inputs_embeds=inputs_embeds,
+                ),
+                attention_mask=attention_mask,
+            )
+        else:
+            encoder_hidden_states = self.encoder(
+                inputs_embeds=self.inputs_embeds(
+                    input_ids=input_ids,
+                ),
+                attention_mask=attention_mask,
+            )
+        # decoder
+        decoder_hidden_states = self.decoder(
+            inputs_embeds=self.decoder_inputs_embeds(decoder_input_ids),
+            attention_mask=decoder_attention_mask,
+            encoder_hidden_states=encoder_hidden_states,
+            encoder_attention_mask=attention_mask,
         )
-        logits = self.out(hidden_states)
+        # out
+        logits = self.out(decoder_hidden_states)
 
         if label is not None:
             if self.pad_idx is not None:
@@ -107,11 +121,23 @@ class BartSeq2seq(BartModel):
         input_ids: torch.Tensor=None,
         inputs_embeds: torch.Tensor=None,
     ):
-        if inputs_embeds is None:
-            inputs_embeds = self.inputs_embeds(input_ids)
-        return super().get_encoder_out(
-            inputs_embeds=inputs_embeds,
-            attention_mask=attention_mask,
+        if inputs_embeds is not None:
+            encoder_out = self.encoder(
+                inputs_embeds=self.inputs_embeds(
+                    inputs_embeds=inputs_embeds,
+                ),
+                attention_mask=attention_mask,
+            )
+        else:
+            encoder_out = self.encoder(
+                inputs_embeds=self.inputs_embeds(
+                    input_ids=input_ids,
+                ),
+                attention_mask=attention_mask,
+            )
+
+        return BartEncoderOut(
+            logits=encoder_out,
         )
     
     def get_decoder_out(
@@ -121,12 +147,15 @@ class BartSeq2seq(BartModel):
         encoder_hidden_states: torch.Tensor,
         encoder_attention_mask: torch.Tensor,
     ):
-        inputs_embeds = self.decoder_inputs_embeds(input_ids)
-        return super().get_decoder_out(
-            inputs_embeds=inputs_embeds,
+        decoder_out = self.decoder(
+            inputs_embeds=self.decoder_inputs_embeds(input_ids),
             attention_mask=attention_mask,
             encoder_hidden_states=encoder_hidden_states,
             encoder_attention_mask=encoder_attention_mask,
+        )
+
+        return BartDecoderOut(
+            logits=decoder_out,
         )
     
 def get_model(
@@ -140,15 +169,14 @@ def get_model(
     num_labels=None,
     src_vocab_size_bart_encoder=None,
     share_tgt_emb_and_out=False,
-    **kwargs,
 ):
     config = BartSeq2seqConfig(
-        config=bart_config,
-        src_vocab_size=src_vocab_size,
-        tgt_vocab_size=tgt_vocab_size,
-        pad_idx=pad_idx,
-        share_tgt_emb_and_out=share_tgt_emb_and_out,
-        init_type=init_type,
+    config=bart_config,
+    src_vocab_size=src_vocab_size,
+    tgt_vocab_size=tgt_vocab_size,
+    pad_idx=pad_idx,
+    share_tgt_emb_and_out=share_tgt_emb_and_out,
+    init_type=init_type,
     )
     model = BartSeq2seq(
         config=config,
