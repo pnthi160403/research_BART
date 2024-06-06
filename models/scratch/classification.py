@@ -4,6 +4,8 @@ from .bart_model_from_scratch import (
     BartModel,
     BartClassificationHead,
     BartEmbeds,
+    BartEncoder,
+    BartDecoder,
     _init_weights,
 )
 from transformers import BartConfig
@@ -63,6 +65,9 @@ class BartClassification(BartModel):
             padding_idx=config.pad_idx,
             max_position_embeddings=config.bart_config.max_position_embeddings,
         )
+        # encoder, decoder
+        self.encoder = BartEncoder(config.bart_config)
+        self.decoder = BartDecoder(config.bart_config)
         # out
         self.out = BartClassificationHead(
             input_dim=config.bart_config.d_model,
@@ -85,21 +90,41 @@ class BartClassification(BartModel):
         input_ids: torch.Tensor=None,
         inputs_embeds: torch.Tensor=None,
     ):
-        if inputs_embeds is None:
-            inputs_embeds = self.inputs_embeds(input_ids)
-        decoder_inputs_embeds = self.decoder_inputs_embeds(decoder_input_ids)
-        hidden_states = super().forward(
-            inputs_embeds=inputs_embeds,
-            attention_mask=attention_mask,
-            decoder_inputs_embeds=decoder_inputs_embeds,
-            decoder_attention_mask=decoder_attention_mask,
+        # encoder
+        if inputs_embeds is not None:
+            encoder_hidden_states = self.encoder(
+                inputs_embeds=self.inputs_embeds(
+                    inputs_embeds=inputs_embeds,
+                ),
+                attention_mask=attention_mask,
+            )
+        else:
+            encoder_hidden_states = self.encoder(
+                inputs_embeds=self.inputs_embeds(
+                    input_ids=input_ids,
+                ),
+                attention_mask=attention_mask,
+            )
+        # decoder
+        decoder_hidden_states = self.decoder(
+            inputs_embeds=self.decoder_inputs_embeds(decoder_input_ids),
+            attention_mask=decoder_attention_mask,
+            encoder_hidden_states=encoder_hidden_states,
+            encoder_attention_mask=attention_mask,
         )
-        logits = self.out(
-            hidden_states=hidden_states
-        )
+        # out
+        logits = self.out(decoder_hidden_states)
 
         if label is not None:
-            loss_fn = nn.CrossEntropyLoss()
+            if self.pad_idx is not None:
+                loss_fn = nn.CrossEntropyLoss(
+                    ignore_index=self.pad_idx,
+                    label_smoothing=0.01,
+                )
+            else:
+                loss_fn = nn.CrossEntropyLoss(
+                    label_smoothing=0.01,
+                )
             loss = loss_fn(logits.view(-1, self.num_labels), label.view(-1))
             return logits, loss
         else:
