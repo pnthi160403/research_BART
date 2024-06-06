@@ -134,8 +134,11 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
         )
     
 def first_fine_tune_bart_with_random_encoder(config, model):
-    for param in model.parameters():
-        param.requires_grad = False
+    freeze_modules = [module for module in model.modules()]
+    model = freeze_model(
+        model=model,
+        modules=freeze_modules,
+    )
 
     un_freeze_modules = [
         model.encoder.layers[0].self_attn.k_proj,
@@ -145,7 +148,6 @@ def first_fine_tune_bart_with_random_encoder(config, model):
         model.inputs_embeds.embed_positions,
         model.random_encoder,
     ]
-
     model = un_freeze_model(
         model=model,
         modules=un_freeze_modules

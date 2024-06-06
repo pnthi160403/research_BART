@@ -20,6 +20,9 @@ def test(config):
         tokenizer_src_path=config["tokenizer_src_path"],
         tokenizer_tgt_path=config["tokenizer_tgt_path"],
     )
+    config["src_vocab_size"] = tokenizer_src.get_vocab_size()
+    config["tgt_vocab_size"] = tokenizer_tgt.get_vocab_size()
+    config["pad_idx"] = tokenizer_src.token_to_id("<pad>")
 
     # get dataloader
     train_dataloader, val_dataloader, test_dataloader = get_dataloader(
