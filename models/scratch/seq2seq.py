@@ -75,7 +75,6 @@ class BartSeq2seq(BartModel):
         input_ids: torch.Tensor=None,
         inputs_embeds: torch.Tensor=None,
     ):
-        # encoder
         if inputs_embeds is None:
             inputs_embeds = self.inputs_embeds(input_ids)
         decoder_inputs_embeds = self.decoder_inputs_embeds(decoder_input_ids)
@@ -139,6 +138,7 @@ def get_model(
     num_labels=None,
     src_vocab_size_bart_encoder=None,
     share_tgt_emb_and_out=False,
+    **kwargs,
 ):
     config = BartSeq2seqConfig(
     config=bart_config,

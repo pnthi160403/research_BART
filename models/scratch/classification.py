@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 from .bart_model_from_scratch import (
     BartModel,
     BartClassificationHead,
@@ -35,8 +36,10 @@ class BartClassification(BartModel):
         input_embeds: torch.Tensor=None,
     ):
         super().__init__(config.bart_config)
+        # num_labels
         self.num_labels = num_labels
-                # pad_idx
+        
+        # pad_idx
         self.pad_idx = config.pad_idx
 
         # src_vocab_size, tgt_vocab_size
@@ -82,4 +85,30 @@ class BartClassification(BartModel):
         input_ids: torch.Tensor=None,
         inputs_embeds: torch.Tensor=None,
     ):
-        pass
+        if inputs_embeds is None:
+            inputs_embeds = self.inputs_embeds(input_ids)
+        decoder_inputs_embeds = self.decoder_inputs_embeds(decoder_input_ids)
+        hidden_states = super().forward(
+            inputs_embeds=inputs_embeds,
+            attention_mask=attention_mask,
+            decoder_inputs_embeds=decoder_inputs_embeds,
+            decoder_attention_mask=decoder_attention_mask,
+        )
+        logits = self.out(
+            hidden_states=hidden_states
+        )
+
+        if label is not None:
+            loss_fn = nn.CrossEntropyLoss()
+            loss = loss_fn(logits.view(-1, self.num_labels), label.view(-1))
+            return logits, loss
+        else:
+            return logits
+        
+def get_model(
+        
+        
+__all__ = [
+    "BartClassificationConfig",
+    "BartClassification",
+]
