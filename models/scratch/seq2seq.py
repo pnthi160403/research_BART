@@ -7,6 +7,7 @@ from .bart_model_from_scratch import (
     BartEmbeds,
     BartEncoderOut,
     BartDecoderOut,
+    BartModel,
     _init_weights,
 )
 
@@ -27,13 +28,13 @@ class BartSeq2seqConfig:
         self.share_tgt_emb_and_out = share_tgt_emb_and_out
         self.init_type = init_type
 
-class BartSeq2seq(nn.Module):
+class BartSeq2seq(BartModel):
     def __init__(
         self,
         config: BartSeq2seqConfig,
         input_embeds: torch.Tensor=None,
     ):
-        super().__init__()
+        super().__init__(config.bart_config)
         # pad_idx
         self.pad_idx = config.pad_idx
 
@@ -58,9 +59,6 @@ class BartSeq2seq(nn.Module):
             padding_idx=config.pad_idx,
             max_position_embeddings=config.bart_config.max_position_embeddings,
         )
-        # encoder, decoder
-        self.encoder = BartEncoder(config.bart_config)
-        self.decoder = BartDecoder(config.bart_config)
         # out
         self.out = nn.Linear(config.bart_config.d_model, self.tgt_vocab_size)
         _init_weights(
@@ -75,32 +73,19 @@ class BartSeq2seq(nn.Module):
         decoder_attention_mask: torch.Tensor,
         label: torch.Tensor=None,
         input_ids: torch.Tensor=None,
-        input_embeds: torch.Tensor=None,
+        inputs_embeds: torch.Tensor=None,
     ):
         # encoder
-        if input_embeds is not None:
-            encoder_hidden_states = self.encoder(
-                input_embeds=self.inputs_embeds(
-                    input_embeds=input_embeds,
-                ),
-                attention_mask=attention_mask,
-            )
-        else:
-            encoder_hidden_states = self.encoder(
-                input_embeds=self.inputs_embeds(
-                    input_ids=input_ids,
-                ),
-                attention_mask=attention_mask,
-            )
-        # decoder
-        decoder_hidden_states = self.decoder(
-            input_embeds=self.decoder_inputs_embeds(decoder_input_ids),
-            attention_mask=decoder_attention_mask,
-            encoder_hidden_states=encoder_hidden_states,
-            encoder_attention_mask=attention_mask,
+        if inputs_embeds is None:
+            inputs_embeds = self.inputs_embeds(input_ids)
+        decoder_inputs_embeds = self.decoder_inputs_embeds(decoder_input_ids)
+        hidden_states = super().forward(
+            inputs_embeds=inputs_embeds,
+            attention_mask=attention_mask,
+            decoder_inputs_embeds=decoder_inputs_embeds,
+            decoder_attention_mask=decoder_attention_mask,
         )
-        # out
-        logits = self.out(decoder_hidden_states)
+        logits = self.out(hidden_states)
 
         if label is not None:
             if self.pad_idx is not None:
@@ -119,25 +104,13 @@ class BartSeq2seq(nn.Module):
         self,
         attention_mask: torch.Tensor,
         input_ids: torch.Tensor=None,
-        input_embeds: torch.Tensor=None,
+        inputs_embeds: torch.Tensor=None,
     ):
-        if input_embeds is not None:
-            encoder_out = self.encoder(
-                input_embeds=self.inputs_embeds(
-                    input_embeds=input_embeds,
-                ),
-                attention_mask=attention_mask,
-            )
-        else:
-            encoder_out = self.encoder(
-                input_embeds=self.inputs_embeds(
-                    input_ids=input_ids,
-                ),
-                attention_mask=attention_mask,
-            )
-
-        return BartEncoderOut(
-            logits=encoder_out,
+        if inputs_embeds is None:
+            inputs_embeds = self.inputs_embeds(input_ids)
+        return super().get_encoder_out(
+            attention_mask=attention_mask,
+            inputs_embeds=inputs_embeds,
         )
     
     def get_decoder_out(
@@ -147,15 +120,12 @@ class BartSeq2seq(nn.Module):
         encoder_hidden_states: torch.Tensor,
         encoder_attention_mask: torch.Tensor,
     ):
-        decoder_out = self.decoder(
-            input_embeds=self.decoder_inputs_embeds(input_ids),
+        decoder_inputs_embeds = self.decoder_inputs_embeds(input_ids)
+        return super().get_decoder_out(
+            decoder_inputs_embeds=decoder_inputs_embeds,
             attention_mask=attention_mask,
             encoder_hidden_states=encoder_hidden_states,
             encoder_attention_mask=encoder_attention_mask,
-        )
-
-        return BartDecoderOut(
-            logits=decoder_out,
         )
     
 def get_model(

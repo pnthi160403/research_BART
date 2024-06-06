@@ -31,11 +31,11 @@ class BartEncoder(nn.Module):
 
     def forward(
         self,
-        input_embeds: torch.Tensor,
+        inputs_embeds: torch.Tensor,
         attention_mask: torch.Tensor,
         head_mask: torch.Tensor = None,
     ):
-        hidden_states = input_embeds
+        hidden_states = inputs_embeds
         hidden_states = self.layernorm_embedding(hidden_states)
         hidden_states = self.dropout(hidden_states)
 

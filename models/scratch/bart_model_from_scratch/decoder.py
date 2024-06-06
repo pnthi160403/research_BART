@@ -33,21 +33,21 @@ class BartDecoder(nn.Module):
 
     def forward(
         self,
-        input_embeds: torch.Tensor,
+        inputs_embeds: torch.Tensor,
         attention_mask: torch.Tensor,
         encoder_hidden_states: torch.Tensor=None,
         encoder_attention_mask: torch.Tensor=None,
         head_mask: torch.Tensor=None,
         cross_attn_head_mask: torch.Tensor=None,
     ):
-        hidden_states = input_embeds
+        hidden_states = inputs_embeds
         hidden_states = self.layernorm_embedding(hidden_states)
         hidden_states = self.dropout(hidden_states)
 
         if attention_mask is not None:
             attention_mask = create_decoder_atn_mask(
                 attention_mask=attention_mask,
-                tgt_len=input_embeds.shape[1],
+                tgt_len=inputs_embeds.shape[1],
             )
         
         if encoder_attention_mask is not None:

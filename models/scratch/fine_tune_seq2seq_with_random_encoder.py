@@ -59,7 +59,7 @@ class RandomEncoder(nn.Module):
     ):
         inputs_embeds = self.inputs_embeds(input_ids)
         inputs_embeds = self.encoder(
-            input_embeds=inputs_embeds,
+            inputs_embeds=inputs_embeds,
             attention_mask=attention_mask
         )
 
@@ -97,7 +97,7 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
             attention_mask=attention_mask
         )
         return super().forward(
-            input_embeds=inputs_embeds,
+            inputs_embeds=inputs_embeds,
             attention_mask=attention_mask,
             decoder_input_ids=decoder_input_ids,
             decoder_attention_mask=decoder_attention_mask,
@@ -115,7 +115,7 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
         )
 
         return super().get_encoder_out(
-            input_embeds=inputs_embeds,
+            inputs_embeds=inputs_embeds,
             attention_mask=attention_mask
         )
     

@@ -16,8 +16,14 @@ from .encoder import (
 from .decoder import (
     BartDecoder,
 )
+from .model import (
+    BartModel,
+)
+from .classification_head import (
+    BartClassificationHead,
+)
 
-from .out_form import (
+from .utils.out_form import (
     BartEncoderOut,
     BartDecoderOut,
 )
