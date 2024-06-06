@@ -106,9 +106,35 @@ class BartClassification(BartModel):
             return logits
         
 def get_model(
-        
+    bart_config,
+    src_vocab_size,
+    tgt_vocab_size,
+    pad_idx=None,
+    init_type=None,
+    step_train=None,
+    checkpoint=None,
+    num_labels=None,
+    src_vocab_size_bart_encoder=None,
+    share_tgt_emb_and_out=False,
+    **kwargs,
+):
+    config = BartClassificationConfig(
+        config=bart_config,
+        src_vocab_size=src_vocab_size,
+        tgt_vocab_size=tgt_vocab_size,
+        num_labels=num_labels,
+        pad_idx=pad_idx,
+        share_tgt_emb_and_out=share_tgt_emb_and_out,
+        init_type=init_type,
+    )
+    model = BartClassification(
+        config=config,
+        num_labels=num_labels,
+    )
+    return model
         
 __all__ = [
     "BartClassificationConfig",
     "BartClassification",
+    "get_model",
 ]

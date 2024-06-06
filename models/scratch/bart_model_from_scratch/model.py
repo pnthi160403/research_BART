@@ -14,9 +14,6 @@ class BartModel(nn.Module):
         config: BartConfig,
     ):
         super().__init__()
-        # pad_idx
-        self.pad_idx = config.pad_idx
-
         # encoder, decoder
         self.encoder = BartEncoder(config)
         self.decoder = BartDecoder(config)
