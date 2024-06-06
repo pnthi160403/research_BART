@@ -169,6 +169,7 @@ def get_model(
     num_labels=None,
     src_vocab_size_bart_encoder=None,
     share_tgt_emb_and_out=False,
+    **kwargs,
 ):
     config = BartSeq2seqConfig(
     config=bart_config,
