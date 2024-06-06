@@ -119,8 +119,6 @@ def train(config):
     else:
         print("No model to preload, start training from scratch")
 
-    print(f"Optimizer: {optimizer}")
-
     if global_step == 0:
         write(config["loss_train"], []) # Oy for loss train in per epoch
         write(config["loss_val"], []) # Oy for loss val in per epoch
