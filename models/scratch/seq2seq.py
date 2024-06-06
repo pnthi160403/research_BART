@@ -86,8 +86,6 @@ class BartSeq2seq(BartModel):
         )
         logits = self.out(hidden_states)
 
-        print(f"{ logits.size() = }")
-
         if label is not None:
             if self.pad_idx is not None:
                 loss_fn = nn.CrossEntropyLoss(
@@ -143,12 +141,12 @@ def get_model(
     **kwargs,
 ):
     config = BartSeq2seqConfig(
-    config=bart_config,
-    src_vocab_size=src_vocab_size,
-    tgt_vocab_size=tgt_vocab_size,
-    pad_idx=pad_idx,
-    share_tgt_emb_and_out=share_tgt_emb_and_out,
-    init_type=init_type,
+        config=bart_config,
+        src_vocab_size=src_vocab_size,
+        tgt_vocab_size=tgt_vocab_size,
+        pad_idx=pad_idx,
+        share_tgt_emb_and_out=share_tgt_emb_and_out,
+        init_type=init_type,
     )
     model = BartSeq2seq(
         config=config,
