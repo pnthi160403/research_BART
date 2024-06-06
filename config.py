@@ -94,6 +94,18 @@ def get_config(base_dir: str=None):
     config["checkpoint"] = None
     config["num_labels"] = None
 
+    # Random Encoder config
+    config["random_encoder_layers"] = 2
+    config["random_decoder_layers"] = 2
+    config["random_encoder_attention_heads"] = 4
+    config["random_decoder_attention_heads"] = 4
+    config["random_decoder_ffn_dim"] = 512
+    config["random_encoder_ffn_dim"] = 512
+    config["random_activation_function"] = "gelu"
+    config["random_dropout"] = 0.1
+    config["random_attention_dropout"] = 0.1
+    config["random_activation_dropout"] = 0.1
+
     # Optimizer Adam
     config["weight_decay"] = 0.0
     config["lr"] = 0.5

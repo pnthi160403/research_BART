@@ -133,7 +133,7 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
             encoder_attention_mask=encoder_attention_mask
         )
     
-def first_fine_tune_bart_with_random_encoder(config, model):
+def first_fine_tune_bart_with_random_encoder(model):
     freeze_modules = [module for module in model.modules()]
     model = freeze_model(
         model=model,
@@ -157,7 +157,7 @@ def first_fine_tune_bart_with_random_encoder(config, model):
 
     return model
 
-def second_fine_tune_bart_with_random_encoder(config, model):
+def second_fine_tune_bart_with_random_encoder(model):
     for param in model.parameters():
         param.requires_grad = True
     return model
@@ -171,6 +171,16 @@ def get_model(
     bart_config,
     src_vocab_size,
     tgt_vocab_size,
+    # random_encoder_layers,
+    # random_decoder_layers,
+    # random_encoder_attention_heads,
+    # random_decoder_attention_heads,
+    # random_decoder_ffn_dim,
+    # random_encoder_ffn_dim,
+    # random_activation_function,
+    # random_dropout,
+    # random_attention_dropout,
+    # random_activation_dropout,
     pad_idx=None,
     init_type=None,
     step_train=None,
@@ -193,24 +203,24 @@ def get_model(
         config=bart_seq2seq_config,
     )
 
+    config = FineTuneBartWithRandomEncoderConfig(
+        config_bart=bart_config,
+        config_bart_seq2seq=bart_seq2seq_config,
+        src_vocab_size_bart_encoder=src_vocab_size_bart_encoder,
+        src_vocab_size=src_vocab_size,
+        tgt_vocab_size=tgt_vocab_size,
+        pad_idx=pad_idx,
+        init_type=init_type,
+    )
+
+    model = FineTuneBartWithRandomEncoder(
+        config=config,
+    )
+
     if step_train == 'FIRST':
         bart_seq2seq_model = load_model(
             model=bart_seq2seq_model,
             checkpoint=checkpoint,
-        )
-
-        config = FineTuneBartWithRandomEncoderConfig(
-            config_bart=bart_config,
-            config_bart_seq2seq=bart_seq2seq_config,
-            src_vocab_size_bart_encoder=src_vocab_size_bart_encoder,
-            src_vocab_size=src_vocab_size,
-            tgt_vocab_size=tgt_vocab_size,
-            pad_idx=pad_idx,
-            init_type=init_type,
-        )
-
-        model = FineTuneBartWithRandomEncoder(
-            config=config,
         )
 
         model.encoder.load_state_dict(bart_seq2seq_model.encoder.state_dict())
@@ -223,10 +233,8 @@ def get_model(
 
     if step_train:
         model = STEP_TRAIN[step_train](
-            config=config,
             model=model
         )
-        
     return model
 
 __all__ = [

@@ -63,6 +63,16 @@ def get_model(config, model_train):
     num_labels = config["num_labels"]
     share_tgt_emb_and_out = config["share_tgt_emb_and_out"]
     src_vocab_size_bart_encoder = config["src_vocab_size_bart_encoder"]
+    random_encoder_layers = config["random_encoder_layers"]
+    random_decoder_layers = config["random_decoder_layers"]
+    random_encoder_attention_heads = config["random_encoder_attention_heads"]
+    random_decoder_attention_heads = config["random_decoder_attention_heads"]
+    random_decoder_ffn_dim = config["random_decoder_ffn_dim"]
+    random_encoder_ffn_dim = config["random_encoder_ffn_dim"]
+    random_activation_function = config["random_activation_function"]
+    random_dropout = config["random_dropout"]
+    random_attention_dropout = config["random_attention_dropout"]
+    random_activation_dropout = config["random_activation_dropout"]
     bart_config = get_bart_config(config)
 
     get_model_fn = GET_MODEL[model_train]
@@ -77,6 +87,16 @@ def get_model(config, model_train):
         num_labels=num_labels,
         checkpoint=checkpoint,
         share_tgt_emb_and_out=share_tgt_emb_and_out,
+        random_encoder_layers=random_encoder_layers,
+        random_decoder_layers=random_decoder_layers,
+        random_encoder_attention_heads=random_encoder_attention_heads,
+        random_decoder_attention_heads=random_decoder_attention_heads,
+        random_decoder_ffn_dim=random_decoder_ffn_dim,
+        random_encoder_ffn_dim=random_encoder_ffn_dim,
+        random_activation_function=random_activation_function,
+        random_dropout=random_dropout,
+        random_attention_dropout=random_attention_dropout,
+        random_activation_dropout=random_activation_dropout,
     )
 
     return model
