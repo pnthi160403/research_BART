@@ -48,15 +48,15 @@ class BartEmbeds(nn.Module):
     def forward(
             self, 
             input_ids: torch.Tensor=None,
-            input_embeds: torch.Tensor=None,
+            inputs_embeds: torch.Tensor=None,
         ):
         if input_ids is not None:
             bsz, seq_len = input_ids.size()
         else:
-            bsz, seq_len, d_model = input_embeds.size()
+            bsz, seq_len, d_model = inputs_embeds.size()
         pos_ids = self.pos_ids[:seq_len]
         if input_ids is not None:
-            input_embeds = self.embed_tokens(input_ids)
-        return input_embeds * self.embed_scale + self.embed_positions(pos_ids)
+            inputs_embeds = self.embed_tokens(input_ids)
+        return inputs_embeds * self.embed_scale + self.embed_positions(pos_ids)
     
 __all__ = ["BartEmbeds"]

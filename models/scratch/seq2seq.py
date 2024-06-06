@@ -77,30 +77,16 @@ class BartSeq2seq(BartModel):
         input_ids: torch.Tensor=None,
         inputs_embeds: torch.Tensor=None,
     ):
-        # encoder
-        if inputs_embeds is not None:
-            encoder_hidden_states = self.encoder(
-                input_embeds=self.inputs_embeds(
-                    inputs_embeds=inputs_embeds,
-                ),
-                attention_mask=attention_mask,
-            )
-        else:
-            encoder_hidden_states = self.encoder(
-                inputs_embeds=self.inputs_embeds(
-                    input_ids=input_ids,
-                ),
-                attention_mask=attention_mask,
-            )
-        # decoder
-        decoder_hidden_states = self.decoder(
-            input_embeds=self.decoder_inputs_embeds(decoder_input_ids),
-            attention_mask=decoder_attention_mask,
-            encoder_hidden_states=encoder_hidden_states,
-            encoder_attention_mask=attention_mask,
+        if inputs_embeds is None:
+            inputs_embeds = self.inputs_embeds(input_ids)
+        decoder_inputs_embeds = self.decoder_inputs_embeds(decoder_input_ids)
+        hidden_states = super().forward(
+            inputs_embeds=inputs_embeds,
+            attention_mask=attention_mask,
+            decoder_inputs_embeds=decoder_inputs_embeds,
+            decoder_attention_mask=decoder_attention_mask,
         )
-        # out
-        logits = self.out(decoder_hidden_states)
+        logits = self.out(hidden_states)
 
         if label is not None:
             if self.pad_idx is not None:
