@@ -86,6 +86,8 @@ class BartSeq2seq(BartModel):
         )
         logits = self.out(hidden_states)
 
+        print(f"{ logits.size() = }")
+
         if label is not None:
             if self.pad_idx is not None:
                 loss_fn = nn.CrossEntropyLoss(
