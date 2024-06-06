@@ -26,11 +26,11 @@ class BartModel(nn.Module):
         decoder_attention_mask: torch.Tensor,
     ):
         encoder_hidden_states = self.encoder(
-            input_embeds=inputs_embeds,
+            inputs_embeds=inputs_embeds,
             attention_mask=attention_mask,
         )
         decoder_hidden_states = self.decoder(
-            input_embeds=decoder_inputs_embeds,
+            inputs_embeds=decoder_inputs_embeds,
             attention_mask=decoder_attention_mask,
             encoder_hidden_states=encoder_hidden_states,
             encoder_attention_mask=attention_mask,
@@ -45,7 +45,7 @@ class BartModel(nn.Module):
         attention_mask: torch.Tensor,
     ):
         encoder_out = self.encoder(
-            input_embeds=inputs_embeds,
+            inputs_embeds=inputs_embeds,
             attention_mask=attention_mask,
         )
         return BartEncoderOut(

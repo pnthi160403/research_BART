@@ -1,6 +1,7 @@
 from .bart_seq2seq import get_model as get_bart_seq2seq
 from .fine_tune_bart_with_initial_encoder import get_model as get_fine_tune_bart_with_random_encoder
 from .scratch.seq2seq import get_model as get_bart_seq2seq_from_scratch
+from .scratch.classification import get_model as get_bart_classification_from_scratch
 from .scratch.fine_tune_seq2seq import get_model as get_fine_tune_seq2seq_from_scratch
 from .scratch.fine_tune_seq2seq_with_random_encoder import get_model as get_fine_tune_seq2seq_with_random_encoder_from_scratch
 from .transformers_huggingface import BartConfig
@@ -9,6 +10,7 @@ BART_SEQ2SEQ = "bart_seq2seq"
 FINE_TUNE_BART_WITH_RANDOM_ENCODER = "fine_tune_bart_with_random_encoder"
 
 BART_SEQ2SEQ_FROM_SCRATCH = "bart_seq2seq_from_scratch"
+BART_CLASSIFICATION_FROM_SCRATCH = "bart_classification_from_scratch"
 FINE_TUNE_BART_SEQ2SEQ_FROM_SCRATCH = "fine_tune_bart_seq2seq_from_scratch"
 FINE_TUNE_SEQ2SEQ_WITH_RANDOM_ENCODER_FROM_SCRATCH = "fine_tune_seq2seq_with_random_encoder_from_scratch"
 
@@ -16,6 +18,7 @@ GET_MODEL = {
     BART_SEQ2SEQ: get_bart_seq2seq,
     FINE_TUNE_BART_WITH_RANDOM_ENCODER: get_fine_tune_bart_with_random_encoder,
     BART_SEQ2SEQ_FROM_SCRATCH: get_bart_seq2seq_from_scratch,
+    BART_CLASSIFICATION_FROM_SCRATCH: get_bart_classification_from_scratch,
     FINE_TUNE_BART_SEQ2SEQ_FROM_SCRATCH: get_fine_tune_seq2seq_from_scratch,
     FINE_TUNE_SEQ2SEQ_WITH_RANDOM_ENCODER_FROM_SCRATCH: get_fine_tune_seq2seq_with_random_encoder_from_scratch,
 }

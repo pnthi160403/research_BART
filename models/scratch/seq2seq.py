@@ -108,8 +108,8 @@ class BartSeq2seq(BartModel):
         if inputs_embeds is None:
             inputs_embeds = self.inputs_embeds(input_ids)
         return super().get_encoder_out(
-            attention_mask=attention_mask,
             inputs_embeds=inputs_embeds,
+            attention_mask=attention_mask,
         )
     
     def get_decoder_out(
@@ -119,9 +119,9 @@ class BartSeq2seq(BartModel):
         encoder_hidden_states: torch.Tensor,
         encoder_attention_mask: torch.Tensor,
     ):
-        decoder_inputs_embeds = self.decoder_inputs_embeds(input_ids)
+        inputs_embeds = self.decoder_inputs_embeds(input_ids)
         return super().get_decoder_out(
-            decoder_inputs_embeds=decoder_inputs_embeds,
+            inputs_embeds=inputs_embeds,
             attention_mask=attention_mask,
             encoder_hidden_states=encoder_hidden_states,
             encoder_attention_mask=encoder_attention_mask,
