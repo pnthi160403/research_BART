@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import torch
 import json
+import zipfile
+import os
 from .folders import (
     join_base,
     read,
@@ -58,6 +60,15 @@ def figure_list_to_csv(config, column_names, data, name_csv):
     except Exception as e:
         print(e)
 
+def zip_directory(directory_path, output_zip_path):
+    with zipfile.ZipFile(output_zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(directory_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                # Add file to zip, preserving the directory structure
+                arcname = os.path.relpath(file_path, start=directory_path)
+                zipf.write(file_path, arcname)
+
 # save model
 def save_model(model, global_step, global_val_step, optimizer, lr_scheduler, model_folder_name, model_base_name):
     model_filename = get_weights_file_path(
@@ -83,4 +94,13 @@ def save_config(config: dict, global_step: int):
         json.dump(config, f)
     print(f"Saved config at {config_filename}")
 
-__all__ = ["read", "write", "draw_graph", "draw_multi_graph", "figure_list_to_csv", "save_model", "save_config"]
+__all__ = [
+    "read",
+    "write",
+    "draw_graph",
+    "draw_multi_graph",
+    "figure_list_to_csv",
+    "save_model",
+    "save_config",
+    "zip_directory",
+]

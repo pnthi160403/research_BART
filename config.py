@@ -25,12 +25,14 @@ def get_config(base_dir: str=None):
 
     # Directories
     config["model_folder_name"] = join_base(config["base_dir"], "/model")
+    config["model_folder_name_zip"] = join_base(config["base_dir"], "/model.zip")
     config["model_base_name"] = "model_"
     config["model_out"] = "out_"
     
     config["preload"] = "latest"
     config["data"] = join_base(config["base_dir"], "/data")
     config["log_dir"] = join_base(config["base_dir"], "/log")
+    config["log_dir_zip"] = join_base(config["base_dir"], "/log.zip")
     config["log_files"] = join_base(config["log_dir"], "/log_files")
     config["loss_train"] = join_base(config["log_files"], "/loss_train.json")
     config["loss_val"] = join_base(config["log_files"], "/loss_val.json")

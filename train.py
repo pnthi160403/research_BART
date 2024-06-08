@@ -11,6 +11,7 @@ from .utils.figures import (
     write,
     save_model,
     save_config,
+    zip_directory,
 )
 from .utils.folders import (
     create_dirs,
@@ -307,4 +308,14 @@ def train(config):
         ylabel="Learning rate value",
         data=learning_rate_step,
         steps=timestep_lr
+    )
+
+    # zip directory
+    zip_directory(
+        directory_path=config["log_dir"],
+        output_zip_path=config["log_dir_zip"],
+    )
+    zip_directory(
+        directory_path=config["model_folder_name"],
+        output_zip_path=config["model_folder_name_zip"],
     )

@@ -3,7 +3,7 @@ from .val import validate
 from .utils.seed import set_seed
 from .utils.tokenizers import read_tokenizer
 from .utils.folders import weights_file_path
-from .utils.figures import figure_list_to_csv
+from .utils.figures import figure_list_to_csv, zip_directory
 from .prepare_dataset.seq2seq import get_dataloader
 from .models.get_instance_bart import get_model
 
@@ -77,6 +77,11 @@ def test(config):
             column_names=column_names,
             data=data,
             name_csv=f"results_beam_{beam_size}"
+        )
+
+        zip_directory(
+            directory_path=config["log_dir"],
+            output_zip_path=config["log_dir_zip"]
         )
 
         print(data_frame)
