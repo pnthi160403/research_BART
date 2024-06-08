@@ -20,6 +20,9 @@ from .utils.folders import (
 )
 from .utils.seed import set_seed
 from .utils.tokenizers import read_tokenizer
+from .utils.optimizers import (
+    GET_OPTIMIZER,
+)
 
 from .models.get_instance_bart import get_model
 
@@ -72,8 +75,9 @@ def train(config):
     )
 
     # optimizer
-    optimizer = torch.optim.AdamW(
-        filter(lambda p: p.requires_grad, model.parameters()),
+    optimizer_name = config["optimizer_name"]
+    optimizer = GET_OPTIMIZER[optimizer_name](
+        model=model,
         lr=config["lr"],
         eps=config["eps"],
         weight_decay=config["weight_decay"],

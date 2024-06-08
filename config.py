@@ -1,5 +1,9 @@
 import torch
 from .utils.folders import join_base
+from .utils.optimizers import (
+    ADAMW,
+    RADAM,
+)
 
 def get_config(base_dir: str=None):
     config = {}
@@ -108,7 +112,8 @@ def get_config(base_dir: str=None):
     config["random_attention_dropout"] = 0.1
     config["random_activation_dropout"] = 0.1
 
-    # Optimizer Adam
+    # Optimizer
+    config["optimizer_name"] = ADAMW
     config["weight_decay"] = 0.0
     config["lr"] = 0.5
     config["eps"] = 1e-9
