@@ -39,7 +39,7 @@ def create_dirs(dir_paths: list):
 
 # file path
 def get_weights_file_path(model_folder_name: str, model_base_name: str, step: int):
-    model_name = f"{model_base_name}_{step:010d}.pt"
+    model_name = f"{model_base_name}{step:010d}.pt"
     return f"{model_folder_name}/{model_name}"
 
 def weights_file_path(model_folder_name: str, model_base_name: str):
