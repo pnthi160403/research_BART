@@ -183,12 +183,14 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
                                         cands=predicted)
         
         res = {}
-        for i in range(0, len(bleus)):
-            res[f"bleu_{i+1}"] = bleus[i]
-        if recall is not None:
+        if config["use_bleu"]:
+            for i in range(0, len(bleus)):
+                res[f"bleu_{i+1}"] = bleus[i]
+        if recall is not None and config["use_recall"]:
             res["recall"] = recall.item()
-        if precision is not None:
+        if precision is not None and config["use_precision"]:
             res["precision"] = precision.item()
-        for key, val in rouges.items():
-            res[key] = val.item()
+        if rouges is not None and config["use_rouge"]:
+            for key, val in rouges.items():
+                res[key] = val.item()
         return res
