@@ -90,8 +90,8 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
                 print(f"{f'TOKENS TARGET: ':>12}{[tokenizer_tgt.encode(tgt_text).tokens]}")
                 print(f"{f'TOKENS PREDICTED: ':>12}{tokenizer_tgt.encode(pred_text).tokens}")
                 if config["use_bleu"]:
-                    scores = torchtext_bleu_score(refs=[[tokenizer_tgt.encode(tgt_text).tokens]],
-                                            cands=[tokenizer_tgt.encode(pred_text).tokens])
+                    scores = torchtext_bleu_score(refs=[[tgt_text.split()]],
+                                            cands=[pred_text.split()])
                     print(f'BLEU OF SENTENCE {count}')
                     for i in range(0, len(scores)):
                         print(f'BLEU_{i + 1}: {scores[i]}')
