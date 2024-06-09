@@ -84,6 +84,12 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
             config=_config
         )
 
+        # Initialize weights
+        self.random_encoder.apply(lambda module: _init_weights(
+            module=module,
+            std=config.bart_config.init_std,
+        ))
+
     def forward(
         self,
         input_ids,
