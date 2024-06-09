@@ -78,7 +78,7 @@ class FineTuneBartWithRandomEncoder(BartSeq2seq):
 
         del self.inputs_embeds.embed_tokens
         _config = config.bart_config
-        _config.encoder_layers = 1
+        _config.encoder_layers = 3
         _config.vocab_size = self.src_vocab_size
         self.random_encoder = RandomEncoder(
             config=_config
@@ -159,7 +159,9 @@ def first_fine_tune_bart_with_random_encoder(model):
 
 def second_fine_tune_bart_with_random_encoder(model):
     for param in model.parameters():
-        param.requires_grad = True
+        if param.requires_grad == False:
+            param.requires_grad = True
+            
     return model
 
 STEP_TRAIN = {
