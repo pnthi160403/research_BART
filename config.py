@@ -132,5 +132,9 @@ def get_config(base_dir: str=None):
     config["f_beta"] = 0.5
     config["beams"] = [1]
     config["use_pytorch_metric"] = False
+    config["use_bleu"] = True
+    config["use_recall"] = False
+    config["use_precision"] = False
+    config["use_rouge"] = False
 
     return config

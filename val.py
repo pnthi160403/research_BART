@@ -89,85 +89,98 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
                 print(f"{f'PREDICTED: ':>12}{pred_text}")
                 print(f"{f'TOKENS TARGET: ':>12}{[tokenizer_tgt.encode(tgt_text).tokens]}")
                 print(f"{f'TOKENS PREDICTED: ':>12}{tokenizer_tgt.encode(pred_text).tokens}")
-                scores = torchtext_bleu_score(refs=[[tokenizer_tgt.encode(tgt_text).tokens]],
-                                        cands=[tokenizer_tgt.encode(pred_text).tokens])
-                print(f'BLEU OF SENTENCE {count}')
-                for i in range(0, len(scores)):
-                    print(f'BLEU_{i + 1}: {scores[i]}')
-                
+                if config["use_bleu"]:
+                    scores = torchtext_bleu_score(refs=[[tokenizer_tgt.encode(tgt_text).tokens]],
+                                            cands=[tokenizer_tgt.encode(pred_text).tokens])
+                    print(f'BLEU OF SENTENCE {count}')
+                    for i in range(0, len(scores)):
+                        print(f'BLEU_{i + 1}: {scores[i]}')
+                    
                 if not config["use_pytorch_metric"]:
-                    recall = torchmetrics_recall(
-                        preds=pred_ids,
-                        target=label_ids,
-                        tgt_vocab_size=vocab_size,
-                        pad_index=pad_token_id,
-                        device=device
-                    )
-                    precision = torchmetrics_precision(
-                        preds=pred_ids,
-                        target=label_ids,
-                        tgt_vocab_size=vocab_size,
-                        pad_index=pad_token_id,
-                        device=device
-                    )
+                    if config["use_recall"]:
+                        recall = torchmetrics_recall(
+                            preds=pred_ids,
+                            target=label_ids,
+                            tgt_vocab_size=vocab_size,
+                            pad_index=pad_token_id,
+                            device=device
+                        )
+                        recall = recall.item()
+                        print(f"{recall = }")
+                    if config["use_precision"]:
+                        precision = torchmetrics_precision(
+                            preds=pred_ids,
+                            target=label_ids,
+                            tgt_vocab_size=vocab_size,
+                            pad_index=pad_token_id,
+                            device=device
+                        )
+                        precision = precision.item()
+                        print(f"{precision = }")
                 else:
-                    recall = torcheval_recall(
-                        input=pred_ids,
-                        target=label_ids,
-                        device=device
-                    )
+                    if config["use_recall"]:
+                        recall = torcheval_recall(
+                            input=pred_ids,
+                            target=label_ids,
+                            device=device
+                        )
+                        recall = recall.item()
+                        print(f"{recall = }")
+                    if config["use_precision"]:
+                        precision = torcheval_precision(
+                            input=pred_ids,
+                            target=label_ids,
+                            device=device
+                        )
+                        precision = precision.item()
+                        print(f"{precision = }")
 
-                    precision = torcheval_precision(
-                        input=pred_ids,
-                        target=label_ids,
-                        device=device
-                    )
-
-                recall = recall.item()
-                precision = precision.item()
-                print(f"{recall = }")
-                print(f"{precision = }")
             
         labels = torch.cat(labels, dim=0)
         preds = torch.cat(preds, dim=0)
 
-        recall, precision = None, None
+        recall, precision, rouges = None, None, None
 
         if not config["use_pytorch_metric"]:
-            recall = torchmetrics_recall(
-                preds=preds,
-                target=labels,
-                tgt_vocab_size=vocab_size,
-                pad_index=pad_token_id,
-                device=device
+            if config["use_recall"]:
+                recall = torchmetrics_recall(
+                    preds=preds,
+                    target=labels,
+                    tgt_vocab_size=vocab_size,
+                    pad_index=pad_token_id,
+                    device=device
                 )
-            precision = torchmetrics_precision(
-                preds=preds,
-                target=labels,
-                tgt_vocab_size=vocab_size,
-                pad_index=pad_token_id,
-                device=device
+            if config["use_precision"]:
+                precision = torchmetrics_precision(
+                    preds=preds,
+                    target=labels,
+                    tgt_vocab_size=vocab_size,
+                    pad_index=pad_token_id,
+                    device=device
                 )
-            rouges = torchmetrics_rouge(
-                preds=rouge_preds,
-                target=rouge_targets,
-                device=device
-            )
+            if config["use_rouge"]:
+                rouges = torchmetrics_rouge(
+                    preds=rouge_preds,
+                    target=rouge_targets,
+                    device=device
+                )
         else:
-            recall = torcheval_recall(
-                input=preds,
-                target=labels,
-                device=device
-            )
+            if config["use_recall"]:
+                recall = torcheval_recall(
+                    input=preds,
+                    target=labels,
+                    device=device
+                )
+            if config["use_precision"]:
+                precision = torcheval_precision(
+                    input=preds,
+                    target=labels,
+                    device=device
+                )
 
-            precision = torcheval_precision(
-                input=preds,
-                target=labels,
-                device=device
-            )
-
-        bleus = torchtext_bleu_score(refs=expected,
-                                    cands=predicted)
+        if config["use_bleu"]:
+            bleus = torchtext_bleu_score(refs=expected,
+                                        cands=predicted)
         
         res = {}
         for i in range(0, len(bleus)):

@@ -151,6 +151,7 @@ def train(config):
         torch.cuda.empty_cache()
         # train
         sum_loss_train = 0
+        cnt_update_loss_train = 0
         model.train()
         # shuffle dataloader
         train_dataloader, val_dataloader, test_dataloader = get_dataloader(
@@ -186,6 +187,7 @@ def train(config):
             )
             loss.backward()
             sum_loss_train += loss.item()
+            cnt_update_loss_train += 1
 
             if i % step_accumulation == 0:
                 global_step += 1
@@ -210,6 +212,7 @@ def train(config):
                     # val
                     with torch.no_grad():
                         sum_loss_val = 0
+                        cnt_update_loss_val = 0
                         model.eval()
                         # batch_iterator = tqdm(val_dataloader, desc="Validating")
 
@@ -232,13 +235,16 @@ def train(config):
                             
                             # loss = loss_fn(logits.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
                             sum_loss_val += loss.item()
+                            cnt_update_loss_val += 1
                             losses_val_step.append(loss.item())
                             timestep_val.append(global_val_step)
                             
-                    losses_train.append(sum_loss_train / (config["val_steps"] * step_accumulation))
-                    losses_val.append(sum_loss_val / len(val_dataloader))
+                    losses_train.append(sum_loss_train / cnt_update_loss_train)
+                    losses_val.append(sum_loss_val / cnt_update_loss_val)
                     sum_loss_train = 0
                     sum_loss_val = 0
+                    cnt_update_loss_train = 0
+                    cnt_update_loss_val = 0
 
                     timestep_train_and_val.append(global_step)
 
