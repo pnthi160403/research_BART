@@ -22,8 +22,8 @@ def read_ds(
         train_ds_path,
         val_ds_path,
         test_ds_path,
-        max_num_val=30000,
-        max_num_test=6000,
+        max_num_val=10000,
+        max_num_test=2000,
 ):
 
     train_ds, val_ds, test_ds = None, None, None
@@ -167,11 +167,15 @@ def get_dataloader(
         train_ds_path=None,
         val_ds_path=None,
         test_ds_path=None,
+        max_num_val=10000,
+        max_num_test=2000,
 ):
     train_ds, val_ds, test_ds = read_ds(
         train_ds_path=train_ds_path,
         val_ds_path=val_ds_path,
         test_ds_path=test_ds_path,
+        max_num_val=max_num_val,
+        max_num_test=max_num_test,
     )
 
     train_dataset, val_dataset, test_dataset = None, None, None

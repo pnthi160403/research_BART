@@ -1,9 +1,17 @@
 from .seq2seq import (
     BartSeq2seqConfig,
     BartSeq2seq,
+    BartEmbeds,
+    BartEncoder,
+    BartDecoder,
+    BartEncoderOut,
+    BartDecoderOut,
+    _init_weights,
 )
 from .utils import load_model
 from transformers import BartConfig
+import torch.nn as nn
+import torch
 
 class FineTuneBartSeq2seqConfig:
     def __init__(
@@ -22,53 +30,135 @@ class FineTuneBartSeq2seqConfig:
         self.tgt_vocab_size = tgt_vocab_size
         self.init_type = init_type
 
-class FineTuneBartSeq2seq(BartSeq2seq):
+class FineTuneBartSeq2seq(nn.Module):
     def __init__(
         self,
         config: FineTuneBartSeq2seqConfig,
+        inputs_embeds: torch.Tensor=None,
     ):
-        super(FineTuneBartSeq2seq, self).__init__(
-            config=config.bart_seq2seq_config
+        super().__init__()
+        # pad_idx
+        self.pad_idx = config.pad_idx
+
+        # src_vocab_size, tgt_vocab_size
+        self.tgt_vocab_size = config.tgt_vocab_size
+        self.src_vocab_size = config.src_vocab_size
+
+        # encoder_embeds
+        self.inputs_embeds = BartEmbeds(
+            num_embeddings=self.src_vocab_size,
+            embedding_dim=config.bart_config.d_model,
+            padding_idx=config.pad_idx,
+            max_position_embeddings=config.bart_config.max_position_embeddings,
+            init_std=config.bart_config.init_std,
+        )
+        if inputs_embeds is not None:
+            self.inputs_embeds = inputs_embeds
+        # decoder_embeds
+        self.decoder_inputs_embeds = BartEmbeds(
+            num_embeddings=self.tgt_vocab_size,
+            embedding_dim=config.bart_config.d_model,
+            padding_idx=config.pad_idx,
+            max_position_embeddings=config.bart_config.max_position_embeddings,
+        )
+        # encoder, decoder
+        self.encoder = BartEncoder(config.bart_config)
+        self.decoder = BartDecoder(config.bart_config)
+        # out
+        self.out = nn.Linear(config.bart_config.d_model, self.tgt_vocab_size)
+        _init_weights(
+            module=self.out,
+            std=config.bart_config.init_std,
         )
 
     def forward(
         self,
-        input_ids,
-        attention_mask,
-        decoder_input_ids,
-        decoder_attention_mask,
-        label=None,
+        attention_mask: torch.Tensor,
+        decoder_input_ids: torch.Tensor,
+        decoder_attention_mask: torch.Tensor,
+        label: torch.Tensor=None,
+        input_ids: torch.Tensor=None,
+        inputs_embeds: torch.Tensor=None,
     ):
-        return super().forward(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            decoder_input_ids=decoder_input_ids,
-            decoder_attention_mask=decoder_attention_mask,
-            label=label,
+        # encoder
+        if inputs_embeds is not None:
+            encoder_hidden_states = self.encoder(
+                inputs_embeds=self.inputs_embeds(
+                    inputs_embeds=inputs_embeds,
+                ),
+                attention_mask=attention_mask,
+            )
+        else:
+            encoder_hidden_states = self.encoder(
+                inputs_embeds=self.inputs_embeds(
+                    input_ids=input_ids,
+                ),
+                attention_mask=attention_mask,
+            )
+        # decoder
+        decoder_hidden_states = self.decoder(
+            inputs_embeds=self.decoder_inputs_embeds(decoder_input_ids),
+            attention_mask=decoder_attention_mask,
+            encoder_hidden_states=encoder_hidden_states,
+            encoder_attention_mask=attention_mask,
         )
+        # out
+        logits = self.out(decoder_hidden_states)
+
+        if label is not None:
+            if self.pad_idx is not None:
+                loss_fn = nn.CrossEntropyLoss(
+                    ignore_index=self.pad_idx,
+                    label_smoothing=0.01,
+                )
+            else:
+                loss_fn = nn.CrossEntropyLoss(label_smoothing=0.01)
+            loss = loss_fn(logits.view(-1, self.tgt_vocab_size), label.view(-1))
+            return logits, loss
+        else:
+            return logits
                     
     def get_encoder_out(
         self,
-        input_ids,
-        attention_mask
+        attention_mask: torch.Tensor,
+        input_ids: torch.Tensor=None,
+        inputs_embeds: torch.Tensor=None,
     ):
-        return super().get_encoder_out(
-            input_ids=input_ids,
-            attention_mask=attention_mask
+        if inputs_embeds is not None:
+            encoder_out = self.encoder(
+                inputs_embeds=self.inputs_embeds(
+                    inputs_embeds=inputs_embeds,
+                ),
+                attention_mask=attention_mask,
+            )
+        else:
+            encoder_out = self.encoder(
+                inputs_embeds=self.inputs_embeds(
+                    input_ids=input_ids,
+                ),
+                attention_mask=attention_mask,
+            )
+
+        return BartEncoderOut(
+            logits=encoder_out,
         )
     
     def get_decoder_out(
         self,
-        input_ids,
-        attention_mask,
-        encoder_hidden_states,
-        encoder_attention_mask
+        input_ids: torch.Tensor,
+        attention_mask: torch.Tensor,
+        encoder_hidden_states: torch.Tensor,
+        encoder_attention_mask: torch.Tensor,
     ):
-        return super().get_decoder_out(
-            input_ids=input_ids,
+        decoder_out = self.decoder(
+            inputs_embeds=self.decoder_inputs_embeds(input_ids),
             attention_mask=attention_mask,
             encoder_hidden_states=encoder_hidden_states,
-            encoder_attention_mask=encoder_attention_mask
+            encoder_attention_mask=encoder_attention_mask,
+        )
+
+        return BartDecoderOut(
+            logits=decoder_out,
         )
 
 def get_model(
