@@ -109,7 +109,7 @@ class FineTuneBartWithRandomEncoder(nn.Module):
 
         del self.inputs_embeds.embed_tokens
         _config = config.bart_config
-        _config.encoder_layers = 3
+        _config.encoder_layers = 4
         _config.vocab_size = self.src_vocab_size
         self.random_encoder = RandomEncoder(
             config=_config
