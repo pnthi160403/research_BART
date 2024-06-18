@@ -1,5 +1,8 @@
 from .act_fn import (
     ACT_FN,
+    GELU,
+    RELU,
+    TANH,
 )
 
 from .mask import (

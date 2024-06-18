@@ -1,4 +1,3 @@
-import torch
 from .utils.act_fn import (
     GELU,
     RELU,
@@ -10,25 +9,26 @@ class BartConfig:
         self,
         src_vocab_size: int,
         tgt_vocab_size: int,
-        d_model: int = 768,
-        encoder_layers: int = 6,
-        decoder_layers: int = 6,
-        encoder_attention_heads: int = 12,
-        decoder_attention_heads: int = 12,
-        decoder_ffn_dim: int = 3072,
-        encoder_ffn_dim: int = 3072,
-        encoder_layerdrop: float = 0.0,
-        decoder_layerdrop: float = 0.0,
-        activation_function: str = GELU,
-        dropout: float = 0.1,
-        attention_dropout: float = 0.1,
-        activation_dropout: float = 0.1,
-        max_position_embeddings: int = 2048,
-        init_type: str = None,
-        init_std: float = 0.02,
-        init_mean: float = 0.0,
-        label_smoothing: float = 0.01,
-        pad_idx: int = 2,
+        d_model: int=768,
+        encoder_layers: int=6,
+        decoder_layers: int=6,
+        encoder_attention_heads: int=12,
+        decoder_attention_heads: int=12,
+        decoder_ffn_dim: int=3072,
+        encoder_ffn_dim: int=3072,
+        activation_function: str=GELU,
+        dropout: int=0.1,
+        attention_dropout: int=0.1,
+        activation_dropout: int=0.1,
+        classifier_dropout: int=0.0,
+        max_position_embeddings: int=2048,
+        init_std: int=0.02,
+        encoder_layerdrop: int=0.0,
+        decoder_layerdrop: int=0.0,
+        scale_embedding: bool=False,
+        init_type: int=None,
+        label_smoothing: float=0.01,
+        pad_idx: int=1,
         **kwargs,
     ):
         self.src_vocab_size = src_vocab_size
@@ -49,9 +49,10 @@ class BartConfig:
         self.max_position_embeddings = max_position_embeddings
         self.init_type = init_type
         self.init_std = init_std
-        self.init_mean = init_mean
         self.label_smoothing = label_smoothing
         self.pad_idx = pad_idx
+        self.scale_embedding = scale_embedding
+        self.classifier_dropout = classifier_dropout
 
 __all__ = [
     "BartConfig",

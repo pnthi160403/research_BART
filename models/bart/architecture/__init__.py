@@ -1,8 +1,8 @@
 from .config import (
     BartConfig,
 )
-from .multihead_attn import (
-    BartAttention,
+from .attns import (
+    MultiheadScaledDotProductAttention,
 )
 from .embeds import (
     BartEmbeds,

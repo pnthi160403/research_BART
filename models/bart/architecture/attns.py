@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 import math
-
-class BartAttention(nn.Module):
+    
+class MutilheadAttention(nn.Module):
     def __init__(
         self,
         embed_dim: int,
@@ -30,16 +30,29 @@ class BartAttention(nn.Module):
     ):
         return tensor.view(bsz, seq_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
     
-    @staticmethod
-    def _sdpa(query, key, value, mask, dropout: nn.Dropout):
+    def scaled_dot_product_attention(
+        self,
+        query: torch.Tensor,
+        key: torch.Tensor,
+        value: torch.Tensor,
+        mask: torch.Tensor,
+        dropout: nn.Dropout
+    ) -> torch.Tensor:
         d_k = query.shape[-1]
         attention_scores = (query @ key.transpose(-2, -1)) / math.sqrt(d_k)
         if mask is not None:
-            attention_scores = attention_scores.masked_fill(mask == 0, float("-inf"))
+            attention_scores = attention_scores.masked_fill_(mask == 0, float("-inf"))
         attention_scores = attention_scores.softmax(dim=-1)
         if dropout is not None:
             attention_scores = dropout(attention_scores)
         return (attention_scores @ value)
+
+class MultiheadScaledDotProductAttention(MutilheadAttention):
+    def __init__(
+        self,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
     
     def forward(
         self,
@@ -63,7 +76,13 @@ class BartAttention(nn.Module):
         key_states = self._shape(key_states, -1, bsz)
         value_states = self._shape(value_states, -1, bsz)
 
-        attn_weights = BartAttention._sdpa(query_states, key_states, value_states, attention_mask, self.dropout)
+        attn_weights = self.scaled_dot_product_attention(
+            query=query_states,
+            key=key_states,
+            value=value_states,
+            mask=attention_mask,
+            dropout=self.dropout,
+        )
         
         if layer_head_mask is not None:
             attn_weights = layer_head_mask.view(1, -1, 1, 1) * attn_weights.view(bsz, self.num_heads, tgt_len, tgt_len)
@@ -75,4 +94,6 @@ class BartAttention(nn.Module):
 
         return attn_output
     
-__all__ = ["BartAttention"]
+__all__ = [
+    "MultiheadScaledDotProductAttention",
+]

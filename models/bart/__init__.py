@@ -1,10 +1,13 @@
 from .architecture import (
     BartEncoder,
     BartDecoder,
-    BartAttention,
     BartDecoderLayer,
     BartEncoderLayer,
     BartEmbeds,
+)
+
+from .architecture.attns import (
+    MultiheadScaledDotProductAttention,
 )
 
 from .seq2seq import (

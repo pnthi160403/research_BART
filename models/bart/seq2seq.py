@@ -49,10 +49,11 @@ class BartSeq2seq(nn.Module):
         self.decoder = BartDecoder(config.bart_config)
         # out
         self.out = nn.Linear(config.d_model, config.tgt_vocab_size)
-        _init_weights(
-            module=self.out,
+        # Initialize weights
+        self.apply(lambda module: _init_weights(
+            module=module,
             std=config.init_std,
-        )
+        ))
 
     def forward(
         self,

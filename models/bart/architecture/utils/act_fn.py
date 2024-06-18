@@ -10,4 +10,9 @@ ACT_FN = {
     TANH: nn.Tanh,
 }
 
-__all__ = ["ACT_FN"]
+__all__ = [
+    "RELU",
+    "GELU",
+    "TANH",
+    "ACT_FN",
+]
