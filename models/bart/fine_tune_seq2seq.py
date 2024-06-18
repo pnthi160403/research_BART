@@ -102,10 +102,12 @@ class FineTuneBartSeq2seq(nn.Module):
             if self.config.pad_idx is not None:
                 loss_fn = nn.CrossEntropyLoss(
                     ignore_index=self.config.pad_idx,
-                    label_smoothing=0.01,
+                    label_smoothing=self.config.label_smoothing,
                 )
             else:
-                loss_fn = nn.CrossEntropyLoss(label_smoothing=0.01)
+                loss_fn = nn.CrossEntropyLoss(
+                    label_smoothing=self.config.label_smoothing
+                )
             loss = loss_fn(logits.view(-1, self.config.tgt_vocab_size), label.view(-1))
             return logits, loss
         else:
