@@ -171,7 +171,6 @@ def train(config):
         for batch in batch_iterator:
             if global_step >= config["num_steps"]:
                 break
-            i += 1
             src = batch["src"].to(device)
             tgt = batch["tgt"].to(device)
             src_attention_mask = (src != tokenizer_src.token_to_id("<pad>")).type(torch.int64)
@@ -188,6 +187,7 @@ def train(config):
             loss.backward()
             sum_loss_train += loss.item()
             cnt_update_loss_train += 1
+            i += 1
 
             if i % step_accumulation == 0:
                 global_step += 1
@@ -207,6 +207,7 @@ def train(config):
                 optimizer.step()
                 lr_scheduler.step()
                 optimizer.zero_grad(set_to_none=True)
+                model.zero_grad(set_to_none=True)
 
                 if global_step % config["val_steps"] == 0:
                     # val
