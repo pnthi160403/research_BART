@@ -57,7 +57,7 @@ def get_config(base_dir: str=None):
     config["max_num_test"] = 2000
     config["max_num_val"] = 10000
     config["corpus"] = None
-    config["max_len"] = 100
+    config["max_len"] = 200
     config["src_vocab_size_bart_encoder"] = 30000
     config["seed"] = 42
 
@@ -89,7 +89,7 @@ def get_config(base_dir: str=None):
     config["attention_dropout"] = 0.1
     config["activation_dropout"] = 0.1
     config["classifier_dropout"] = 0.0
-    config["max_position_embeddings"] = config["max_len"] # The maximum sequence length
+    config["max_position_embeddings"] = 2048 # The maximum sequence length
     config["init_std"] = 0.02 # Std for initializing all weight matrices
     config["encoder_layerdrop"] = 0.0 # Dropout encoder layer
     config["decoder_layerdrop"] = 0.0 # Dropout decoder layer
@@ -101,12 +101,9 @@ def get_config(base_dir: str=None):
     config["num_labels"] = None
 
     # Random Encoder config
-    config["random_encoder_layers"] = 2
-    config["random_decoder_layers"] = 2
-    config["random_encoder_attention_heads"] = 4
-    config["random_decoder_attention_heads"] = 4
-    config["random_decoder_ffn_dim"] = 512
-    config["random_encoder_ffn_dim"] = 512
+    config["random_encoder_layers"] = 4
+    config["random_encoder_attention_heads"] = 12
+    config["random_encoder_ffn_dim"] = 768
     config["random_activation_function"] = "gelu"
     config["random_dropout"] = 0.1
     config["random_attention_dropout"] = 0.1
