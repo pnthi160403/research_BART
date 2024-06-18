@@ -7,8 +7,8 @@ from .utils.act_fn import (
 class BartConfig:
     def __init__(
         self,
-        src_vocab_size: int,
-        tgt_vocab_size: int,
+        src_vocab_size: int=50265,
+        tgt_vocab_size: int=50265,
         d_model: int=768,
         encoder_layers: int=6,
         decoder_layers: int=6,
