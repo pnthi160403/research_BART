@@ -52,6 +52,7 @@ class FineTuneBartWithRandomEncoderConfig(BartSeq2seqConfig):
             share_tgt_emb_and_out=share_tgt_emb_and_out,
             **kwargs,
         )
+        self.bart_seq2seq_config.src_vocab_size = src_vocab_size_bart_encoder
 
 class RandomEncoder(nn.Module):
     def __init__(
