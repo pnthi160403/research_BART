@@ -36,16 +36,16 @@ class MutilheadAttention(nn.Module):
         key: torch.Tensor,
         value: torch.Tensor,
         mask: torch.Tensor,
-        dropout: nn.Dropout
+        dropout: nn.Dropout=None,
     ) -> torch.Tensor:
-        d_k = query.shape[-1]
-        attention_scores = (query @ key.transpose(-2, -1)) / math.sqrt(d_k)
+        d_k = query.size(-1)
+        scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
         if mask is not None:
-            attention_scores = attention_scores.masked_fill_(mask == 0, float("-inf"))
-        attention_scores = attention_scores.softmax(dim=-1)
+            scores = scores.masked_fill(mask == 0, -1e9)
+        p_attn = nn.functional.softmax(scores, dim=-1)
         if dropout is not None:
-            attention_scores = dropout(attention_scores)
-        return (attention_scores @ value)
+            p_attn = dropout(p_attn)
+        return torch.matmul(p_attn, value)
 
 class MultiheadScaledDotProductAttention(MutilheadAttention):
     def __init__(

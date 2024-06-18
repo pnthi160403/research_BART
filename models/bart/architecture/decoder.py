@@ -15,14 +15,20 @@ class BartDecoder(nn.Module):
     def __init__(
         self,
         config: BartConfig,
+        custom_decoder_layer: nn.Module=None,
     ):
         super().__init__()
         
         self.dropout = nn.Dropout(config.dropout)
         self.layerdrop = config.decoder_layerdrop
-        self.layers = nn.ModuleList([
-            BartDecoderLayer(config) for _ in range(config.encoder_layers)
-        ])
+        if custom_decoder_layer is None:
+            self.layers = nn.ModuleList([
+                BartDecoderLayer(config) for _ in range(config.encoder_layers)
+            ])
+        else:
+            self.layers = nn.ModuleList([
+                custom_decoder_layer(config) for _ in range(config.encoder_layers)
+            ])
         self.layernorm_embedding = nn.LayerNorm(config.d_model)
 
         self.apply(lambda module: _init_weights(
