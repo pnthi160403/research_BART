@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from .config import BartConfig
-from .attns import MultiheadScaledDotProductAttention as BartAttention
+from .attns import MultiheadAdditiveAttention as BartAttention
 from .utils import (
     ACT_FN,
 )
