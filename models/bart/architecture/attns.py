@@ -204,6 +204,7 @@ class RelativePosition(nn.Module):
         else:
             final_mat = torch.LongTensor(distance_clip + self.max_relative_positions)
             embeds = self.embed_positions[final_mat]
+            
         return embeds
 
 class MutiheadRelativeAttention(nn.Module):
