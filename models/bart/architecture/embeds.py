@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
 from .utils.init_weights import _init_weights
+from .attns import (
+    RELATIVE_POSITION,
+)
 
 class BartEmbeds(nn.Module):
     def __init__(
@@ -8,6 +11,7 @@ class BartEmbeds(nn.Module):
         num_embeddings: int,
         embedding_dim: int,
         padding_idx: int,
+        type_attn: str,
         max_position_embeddings: int=1024,
         shared: bool = False,
         embed_scale: float=1.0,
@@ -16,6 +20,7 @@ class BartEmbeds(nn.Module):
     ):
         super().__init__()
 
+        self.type_attn = type_attn
         self.embed_scale = embed_scale
         if embed_tokens is not None:
             self.embed_tokens = embed_tokens
@@ -25,17 +30,19 @@ class BartEmbeds(nn.Module):
                 embedding_dim,
                 padding_idx=padding_idx,
             )
-        self.embed_positions = nn.Embedding(
-            max_position_embeddings,
-            embedding_dim,
-            padding_idx=padding_idx,
-        )
-        self.register_buffer(
-            "pos_ids",
-            torch.arange(0, max_position_embeddings)
-        )
-        if shared:
-            self.embed_positions.weight = self.embed_tokens.weight
+            
+        if type_attn != RELATIVE_POSITION:
+            self.embed_positions = nn.Embedding(
+                max_position_embeddings,
+                embedding_dim,
+                padding_idx=padding_idx,
+            )
+            self.register_buffer(
+                "pos_ids",
+                torch.arange(0, max_position_embeddings)
+            )
+            if shared:
+                self.embed_positions.weight = self.embed_tokens.weight
 
         self.apply(lambda module: _init_weights(
             module=module,
@@ -51,12 +58,17 @@ class BartEmbeds(nn.Module):
             inputs_embeds: torch.Tensor=None,
         ):
         if input_ids is not None:
-            bsz, seq_len = input_ids.size()
-        else:
-            bsz, seq_len, d_model = inputs_embeds.size()
-        pos_ids = self.pos_ids[:seq_len]
-        if input_ids is not None:
             inputs_embeds = self.embed_tokens(input_ids)
-        return inputs_embeds * self.embed_scale + self.embed_positions(pos_ids)
-    
-__all__ = ["BartEmbeds"]
+        inputs_embeds = inputs_embeds * self.embed_scale
+        if self.type_attn != RELATIVE_POSITION:
+            if input_ids is not None:
+                bsz, seq_len = input_ids.size()
+            else:
+                bsz, seq_len, d_model = inputs_embeds.size()
+            pos_ids = self.pos_ids[:seq_len]
+            inputs_embeds = inputs_embeds + self.embed_positions(pos_ids)
+        return inputs_embeds
+        
+__all__ = [
+    "BartEmbeds",
+]

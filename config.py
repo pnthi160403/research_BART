@@ -100,6 +100,7 @@ def get_config(base_dir: str=None):
     config["checkpoint"] = None
     config["num_labels"] = None
     config["type_attn"] = "scaled_dot_product"
+    config["max_relative_positions"] = 200
 
     # Random Encoder config
     config["random_encoder_layers"] = 4

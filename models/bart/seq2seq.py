@@ -36,6 +36,7 @@ class BartSeq2seq(nn.Module):
             padding_idx=config.pad_idx,
             max_position_embeddings=config.max_position_embeddings,
             init_std=config.init_std,
+            type_attn=config.type_attn,
         )
         # decoder_embeds
         self.decoder_inputs_embeds = BartEmbeds(
@@ -43,6 +44,7 @@ class BartSeq2seq(nn.Module):
             embedding_dim=config.d_model,
             padding_idx=config.pad_idx,
             max_position_embeddings=config.max_position_embeddings,
+            type_attn=config.type_attn,
         )
         # encoder, decoder
         self.encoder = BartEncoder(config.bart_config)
