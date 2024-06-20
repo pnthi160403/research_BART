@@ -303,12 +303,12 @@ class MutiheadRelativeAttention(nn.Module):
             score_edges = score_edges.masked_fill_(
                 mask=attention_mask == 0,
                 value=float("-inf"),
-            )
+            ).to(self.device)
         
         score_edges = self.dropout(nn.functional.softmax(
             input=score_edges,
             dim=-1,
-        ))
+        )).to(self.device)
         # print(f"{ score_edges.shape = }")
 
         # Caculate weight
