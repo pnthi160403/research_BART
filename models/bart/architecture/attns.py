@@ -39,13 +39,13 @@ class MultiheadScaledDotProductAttention(nn.Module):
         mask: torch.Tensor=None,
         dropout: nn.Dropout=None,
     ) -> torch.Tensor:
-        scores = torch.matmul(query, key.transpose(-2, -1)) / self.scaling
+        scores = (query @ key.transpose(-2, -1)) / self.scaling
         if mask is not None:
-            scores = scores.masked_fill_(mask == 0, float("-inf"))
+            scores = scores.masked_fill_(mask == 0, -1e9)
         p_attn = nn.functional.softmax(scores, dim=-1)
         if dropout is not None:
             p_attn = dropout(p_attn)
-        return torch.matmul(p_attn, value)
+        return p_attn @ value
     
     def forward(
         self,
@@ -82,7 +82,6 @@ class MultiheadScaledDotProductAttention(nn.Module):
             attn_weights = attn_weights.view(bsz * self.num_heads, tgt_len, tgt_len)
 
         attn_weights = attn_weights.transpose(1, 2).contiguous().view(bsz, tgt_len, self.num_heads * self.head_dim)
-
         attn_output = self.out_proj(attn_weights)
 
         return attn_output
