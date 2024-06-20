@@ -187,7 +187,11 @@ class RelativePosition(nn.Module):
         super().__init__()
         self.head_dim = head_dim
         self.max_relative_positions = max_relative_positions
-        self.embed_positions = nn.Parameter(torch.Tensor(max_relative_positions * 2 + 1, head_dim))
+        # self.embed_positions = nn.Parameter(torch.Tensor(max_relative_positions * 2 + 1, head_dim))
+        self.embed_positions = nn.Embedding(
+            num_embeddings=max_relative_positions * 2 + 1,
+            embedding_dim=head_dim,
+        )
 
     def forward(
         self,
@@ -200,7 +204,8 @@ class RelativePosition(nn.Module):
         distance = range_row[:, None] - range_col[None, :]
         distance_clip = torch.clamp(distance, -self.max_relative_positions, self.max_relative_positions)
         final_mat = torch.LongTensor(distance_clip + self.max_relative_positions).to(device)
-        embeds = self.embed_positions[final_mat].to(device)
+        # embeds = self.embed_positions[final_mat].to(device)
+        embeds = self.embed_positions(final_mat)
         return embeds
 
 class MutiheadRelativeAttention(nn.Module):
@@ -247,10 +252,6 @@ class MutiheadRelativeAttention(nn.Module):
         k_len = key.size(1)
         v_len = value.size(1)
 
-        # print(f"{ query_states.shape = }")
-        # print(f"{ key_states.shape = }")
-        # print(f"{ value_states.shape = }")
-
         # Caculate score_edges
         # q_head (batch, num_heads, q_len, head_dim)
         q_head = query.view(bsz, q_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
@@ -270,21 +271,16 @@ class MutiheadRelativeAttention(nn.Module):
             length_col=k_len,
         )
 
-        # print(f"{ q_head.transpose(0, 2).shape = }")
         # (batch, num_heads, q_len, head_dim) -> (q_len, batch * num_heads, head_dim)
         q_reshape = q_head.view(-1, q_len, self.head_dim).transpose(0, 1).contiguous()
-        # print(f"{ q_reshape.shape = }")
         
         # score_2 = q_reshape @ relative_pos_k ^ T 
         # (q_len, batch * num_heads, head_dim) @ (q_len, head_dim, k_len)
         # -> (q_len, batch * num_heads, k_len)
         score_2 = torch.matmul(q_reshape, relative_pos_k.transpose(-2, -1))
-        # print(f"{ score_2.shape = }")
         
         # (q_len, batch * num_heads, k_len) -> (batch, num_heads, q_len, k_len)
         score_2 = score_2.view(q_len, self.num_heads, -1, k_len).transpose(0, 2).contiguous()
-        # print(f"{ score_2.shape = }")
-        # print(f"{ score_1.shape = }")
 
         # (batch, num_heads, q_len, k_len)
         score_edges = ((score_1 + score_2) / self.scaling)
@@ -294,7 +290,6 @@ class MutiheadRelativeAttention(nn.Module):
             input=score_edges,
             dim=-1,
         ))
-        # print(f"{ score_edges.shape = }")
 
         # Caculate weight
         # attn_weights = weight_1 + weight_2
@@ -303,7 +298,6 @@ class MutiheadRelativeAttention(nn.Module):
         # (batch, num_heads, q_len, k_len) @ (batch, num_heads, k_len, head_dim)
         # -> (batch, num_heads, q_len, head_dim)
         weight_1 = torch.matmul(score_edges, v_head)
-        # print(f"{ weight_1.shape = }")
 
         # weight_2 = score_edges_reshape @ relative_pos_v
         # (q_len, k_len, head_dim)
@@ -314,8 +308,6 @@ class MutiheadRelativeAttention(nn.Module):
 
         # (batch, num_heads, q_len, k_len) -> (q_len, batch * num_heads, k_len)
         score_edges_reshape = score_edges.view(-1, q_len, k_len).transpose(0, 1).contiguous()
-        # print(f"{ score_edges_reshape.shape = }")
-        # print(f"{ relative_pos_v.shape = }")
 
         # (q_len, batch * num_heads, k_len) @ (q_len, k_len, head_dim)
         # -> (q_len, batch * num_heads, head_dim)
@@ -323,7 +315,6 @@ class MutiheadRelativeAttention(nn.Module):
 
         # (q_len, batch * num_heads, head_dim) -> (batch, num_heads, q_len, head_dim)
         weight_2 = weight_2.view(q_len, self.num_heads, -1, self.head_dim).transpose(0, 2).contiguous()
-        # print(f"{ weight_2.shape = }")
 
         # (batch, num_heads, q_len, head_dim) -> (batch, q_len, num_heads * head_dim)
         return (weight_1 + weight_2)
