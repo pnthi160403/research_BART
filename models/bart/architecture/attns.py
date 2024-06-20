@@ -185,26 +185,22 @@ class RelativePosition(nn.Module):
         **kwargs,
     ):
         super().__init__()
+        self.device = kwargs.get("device", "cpu")
         self.head_dim = head_dim
         self.max_relative_positions = max_relative_positions
-        self.embed_positions = nn.Parameter(torch.Tensor(max_relative_positions * 2 + 1, head_dim))
-        self.device = kwargs.get("device", "cpu")
+        self.embed_positions = nn.Parameter(torch.Tensor(max_relative_positions * 2 + 1, head_dim).to(self.device))
 
     def forward(
         self,
         length_row: int,
         length_col: int,
     ):
-        range_row = torch.arange(length_row)
-        range_col = torch.arange(length_col)
+        range_row = torch.arange(length_row).to(self.device)
+        range_col = torch.arange(length_col).to(self.device)
         distance = range_row[:, None] - range_col[None, :]
         distance_clip = torch.clamp(distance, -self.max_relative_positions, self.max_relative_positions)
-        if torch.cuda.is_available():
-            final_mat = torch.LongTensor(distance_clip + self.max_relative_positions).cuda()
-            embeds = self.embed_positions[final_mat].cuda()
-        else:
-            final_mat = torch.LongTensor(distance_clip + self.max_relative_positions)
-            embeds = self.embed_positions[final_mat]
+        final_mat = torch.LongTensor(distance_clip + self.max_relative_positions).to(self.device)
+        embeds = self.embed_positions[final_mat]
 
         return embeds
 
@@ -219,10 +215,11 @@ class MutiheadRelativeAttention(nn.Module):
         **kwargs,
     ):
         super().__init__()
+        self.device = kwargs.get("device", "cpu")
         self.embed_dim = embed_dim
         self.num_heads = num_heads
         self.head_dim = embed_dim // num_heads
-        self.scaling = torch.sqrt(torch.FloatTensor([self.head_dim])).to(kwargs.get("device", "cpu"))
+        self.scaling = torch.sqrt(torch.FloatTensor([self.head_dim]).to(self.device))
 
         self.dropout = nn.Dropout(dropout)
         self.k_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
