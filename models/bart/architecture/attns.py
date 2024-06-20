@@ -187,11 +187,11 @@ class RelativePosition(nn.Module):
         super().__init__()
         self.head_dim = head_dim
         self.max_relative_positions = max_relative_positions
-        # self.embed_positions = nn.Parameter(torch.Tensor(max_relative_positions * 2 + 1, head_dim))
-        self.embed_positions = nn.Embedding(
-            num_embeddings=max_relative_positions * 2 + 1,
-            embedding_dim=head_dim,
-        )
+        self.embed_positions = nn.Parameter(torch.Tensor(max_relative_positions * 2 + 1, head_dim))
+        # self.embed_positions = nn.Embedding(
+        #     num_embeddings=max_relative_positions * 2 + 1,
+        #     embedding_dim=head_dim,
+        # )
 
     def forward(
         self,
@@ -204,8 +204,8 @@ class RelativePosition(nn.Module):
         distance = range_row[:, None] - range_col[None, :]
         distance_clip = torch.clamp(distance, -self.max_relative_positions, self.max_relative_positions)
         final_mat = torch.LongTensor(distance_clip + self.max_relative_positions).to(device)
-        # embeds = self.embed_positions[final_mat].to(device)
-        embeds = self.embed_positions(final_mat)
+        embeds = self.embed_positions[final_mat].to(device)
+        # embeds = self.embed_positions(final_mat)
         return embeds
 
 class MutiheadRelativeAttention(nn.Module):
