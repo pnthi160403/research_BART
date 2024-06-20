@@ -216,6 +216,7 @@ class MutiheadRelativeAttention(nn.Module):
     ):
         super().__init__()
         self.device = kwargs.get("device", "cpu")
+        self.to(self.device)
         self.embed_dim = embed_dim
         self.num_heads = num_heads
         self.head_dim = embed_dim // num_heads
@@ -236,27 +237,17 @@ class MutiheadRelativeAttention(nn.Module):
             head_dim=self.head_dim,
         )
 
-    def forward(
+    def relative_attention(
         self,
-        hidden_states: torch.Tensor,
-        key_value_states: torch.Tensor=None,
-        attention_mask: torch.Tensor=None,
-        layer_head_mask: torch.Tensor=None,
+        query: torch.Tensor,
+        key: torch.Tensor,
+        value: torch.Tensor,
+        mask: torch.Tensor=None,
     ):
-        bsz, tgt_len, embed_dim = hidden_states.size()
-        assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
-
-        query_states = self.q_proj(hidden_states)
-        if key_value_states is None:
-            key_states = self.k_proj(hidden_states)
-            value_states = self.v_proj(hidden_states)
-        else: # is cross-attention
-            key_states = self.k_proj(key_value_states)
-            value_states = self.v_proj(key_value_states)
-
-        q_len = query_states.size(1)
-        k_len = key_states.size(1)
-        v_len = value_states.size(1)
+        bsz = query.size(0)
+        q_len = query.size(1)
+        k_len = key.size(1)
+        v_len = value.size(1)
 
         # print(f"{ query_states.shape = }")
         # print(f"{ key_states.shape = }")
@@ -264,11 +255,11 @@ class MutiheadRelativeAttention(nn.Module):
 
         # Caculate score_edges
         # q_head (batch, num_heads, q_len, head_dim)
-        q_head = query_states.view(bsz, q_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
+        q_head = query.view(bsz, q_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
         # k_head (batch, num_heads, k_len, head_dim)
-        k_head = key_states.view(bsz, k_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
+        k_head = key.view(bsz, k_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
         # v_head (batch, num_heads, k_len, head_dim) with k_len == v_len
-        v_head = value_states.view(bsz, v_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
+        v_head = value.view(bsz, v_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
         
         # score_1 = q_head @ k_head^T
         # (batch, num_heads, q_len, head_dim) @ (batch, num_heads, head_dim, k_len)
@@ -298,17 +289,17 @@ class MutiheadRelativeAttention(nn.Module):
         # print(f"{ score_1.shape = }")
 
         # (batch, num_heads, q_len, k_len)
-        score_edges = ((score_1 + score_2).to(self.device) / self.scaling).to(self.device)
-        if attention_mask is not None:
+        score_edges = ((score_1 + score_2).to(self.device) / self.scaling)
+        if mask is not None:
             score_edges = score_edges.masked_fill_(
-                mask=attention_mask == 0,
+                mask=mask == 0,
                 value=float("-inf"),
-            ).to(self.device)
+            )
         
         score_edges = self.dropout(nn.functional.softmax(
             input=score_edges,
             dim=-1,
-        )).to(self.device)
+        ))
         # print(f"{ score_edges.shape = }")
 
         # Caculate weight
@@ -341,7 +332,33 @@ class MutiheadRelativeAttention(nn.Module):
         # print(f"{ weight_2.shape = }")
 
         # (batch, num_heads, q_len, head_dim) -> (batch, q_len, num_heads * head_dim)
-        attn_weights = (weight_1 + weight_2).to(self.device)
+        return (weight_1 + weight_2)
+
+    def forward(
+        self,
+        hidden_states: torch.Tensor,
+        key_value_states: torch.Tensor=None,
+        attention_mask: torch.Tensor=None,
+        layer_head_mask: torch.Tensor=None,
+    ):
+        bsz, tgt_len, embed_dim = hidden_states.size()
+        assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
+
+        query_states = self.q_proj(hidden_states)
+        if key_value_states is None:
+            key_states = self.k_proj(hidden_states)
+            value_states = self.v_proj(hidden_states)
+        else: # is cross-attention
+            key_states = self.k_proj(key_value_states)
+            value_states = self.v_proj(key_value_states)
+
+        attn_weights = self.relative_attention(
+            query=query_states,
+            key=key_states,
+            value=value_states,
+            mask=attention_mask,
+        )
+
         attn_weights = attn_weights.transpose(1, 2).contiguous().view(bsz, -1, self.num_heads * self.head_dim).contiguous()
 
         attn_out = self.out_proj(attn_weights)
