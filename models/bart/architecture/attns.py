@@ -185,7 +185,6 @@ class RelativePosition(nn.Module):
         **kwargs,
     ):
         super().__init__()
-        self.device = kwargs.get("device", "cpu")
         self.head_dim = head_dim
         self.max_relative_positions = max_relative_positions
         self.embed_positions = nn.Parameter(torch.Tensor(max_relative_positions * 2 + 1, head_dim))
@@ -201,7 +200,6 @@ class RelativePosition(nn.Module):
         distance_clip = torch.clamp(distance, -self.max_relative_positions, self.max_relative_positions)
         final_mat = torch.LongTensor(distance_clip + self.max_relative_positions)
         embeds = self.embed_positions[final_mat]
-
         return embeds
 
 class MutiheadRelativeAttention(nn.Module):
@@ -289,7 +287,7 @@ class MutiheadRelativeAttention(nn.Module):
         # print(f"{ score_1.shape = }")
 
         # (batch, num_heads, q_len, k_len)
-        score_edges = ((score_1 + score_2).to(self.device) / self.scaling)
+        score_edges = ((score_1 + score_2) / self.scaling)
         if mask is not None:
             score_edges = score_edges.masked_fill_(
                 mask=mask == 0,
