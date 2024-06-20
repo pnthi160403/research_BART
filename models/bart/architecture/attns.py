@@ -298,7 +298,7 @@ class MutiheadRelativeAttention(nn.Module):
         # print(f"{ score_1.shape = }")
 
         # (batch, num_heads, q_len, k_len)
-        score_edges = ((score_1 + score_2) / self.scaling).to(self.device)
+        score_edges = ((score_1 + score_2).to(self.device) / self.scaling).to(self.device)
         if attention_mask is not None:
             score_edges = score_edges.masked_fill_(
                 mask=attention_mask == 0,
