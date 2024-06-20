@@ -199,8 +199,12 @@ class RelativePosition(nn.Module):
         range_col = torch.arange(length_col)
         distance = range_row[:, None] - range_col[None, :]
         distance_clip = torch.clamp(distance, -self.max_relative_positions, self.max_relative_positions)
-        final_mat = torch.LongTensor(distance_clip + self.max_relative_positions).to(self.device)
-        embeds = self.embed_positions[final_mat].to(self.device)
+        if torch.cuda.is_available():
+            final_mat = torch.LongTensor(distance_clip + self.max_relative_positions).cuda()
+            embeds = self.embed_positions[final_mat].cuda()
+        else:
+            final_mat = torch.LongTensor(distance_clip + self.max_relative_positions)
+            embeds = self.embed_positions[final_mat]
 
         return embeds
 
