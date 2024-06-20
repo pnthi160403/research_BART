@@ -298,7 +298,7 @@ class MutiheadRelativeAttention(nn.Module):
         # print(f"{ score_1.shape = }")
 
         # (batch, num_heads, q_len, k_len)
-        score_edges = (score_1 + score_2) / self.scaling
+        score_edges = ((torch.add(score_1, score_2).to(self.device)) / self.scaling).to(self.device)
         if attention_mask is not None:
             score_edges = score_edges.masked_fill_(
                 mask=attention_mask == 0,
@@ -341,7 +341,7 @@ class MutiheadRelativeAttention(nn.Module):
         # print(f"{ weight_2.shape = }")
 
         # (batch, num_heads, q_len, head_dim) -> (batch, q_len, num_heads * head_dim)
-        attn_weights = (weight_1 + weight_2)
+        attn_weights = torch.add(weight_1, weight_2).to(self.device)
         attn_weights = attn_weights.transpose(1, 2).contiguous().view(bsz, -1, self.num_heads * self.head_dim).contiguous()
 
         attn_out = self.out_proj(attn_weights)
