@@ -213,8 +213,6 @@ class MutiheadRelativeAttention(nn.Module):
         **kwargs,
     ):
         super().__init__()
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.to(self.device)
         self.embed_dim = embed_dim
         self.num_heads = num_heads
         self.head_dim = embed_dim // num_heads
@@ -289,11 +287,7 @@ class MutiheadRelativeAttention(nn.Module):
         # (batch, num_heads, q_len, k_len)
         score_edges = ((score_1 + score_2) / self.scaling)
         if mask is not None:
-            score_edges = score_edges.masked_fill_(
-                mask=mask == 0,
-                value=float("-inf"),
-            )
-        
+            score_edges = score_edges.masked_fill_(mask == 0, float("-inf"))
         score_edges = self.dropout(nn.functional.softmax(
             input=score_edges,
             dim=-1,
