@@ -201,7 +201,7 @@ class RelativePosition(nn.Module):
         range_col = torch.arange(length_col)
         distance = range_row[:, None] - range_col[None, :]
         distance_clip = torch.clamp(distance, -self.max_relative_positions, self.max_relative_positions)
-        distance_clip = distance_clip + self.max_relative_positions
+        distance_clip = (distance_clip + self.max_relative_positions).to(distance_clip.device)
         return self.embed_positions(distance_clip)
 
 class MutiheadRelativeAttention(nn.Module):
@@ -229,11 +229,11 @@ class MutiheadRelativeAttention(nn.Module):
         self.relative_position_k = RelativePosition(
             max_relative_positions=max_relative_positions,
             head_dim=self.head_dim,
-        )
+        ).to(self.k_proj.weight.device)
         self.relative_position_v = RelativePosition(
             max_relative_positions=max_relative_positions,
             head_dim=self.head_dim,
-        )
+        ).to(self.k_proj.weight.device)
 
     def forward(
         self,
