@@ -99,6 +99,7 @@ def get_config(base_dir: str=None):
     config["share_tgt_emb_and_out"] = False
     config["checkpoint"] = None
     config["num_labels"] = None
+    config["type_attn"] = "scaled_dot_product"
 
     # Random Encoder config
     config["random_encoder_layers"] = 4

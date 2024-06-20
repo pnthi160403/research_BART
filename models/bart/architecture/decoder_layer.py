@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from .config import BartConfig
-from .attns import MultiheadAdditiveAttention as BartAttention
+from .attns import TYPE_ATTN
 from .utils import (
     ACT_FN,
 )
@@ -14,6 +14,7 @@ class BartDecoderLayer(nn.Module):
         super().__init__()
         self.embed_dim = config.d_model
 
+        BartAttention = TYPE_ATTN[config.type_attn]
         self.self_attn = BartAttention(
             embed_dim=self.embed_dim,
             num_heads=config.encoder_attention_heads,

@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import math
     
 class MultiheadScaledDotProductAttention(nn.Module):
     def __init__(
@@ -165,12 +164,18 @@ class MultiheadAdditiveAttention(nn.Module):
             attn_weights = attn_weights.view(bsz * self.num_heads, tgt_len, tgt_len)
 
         attn_weights = attn_weights.transpose(1, 2).contiguous().view(bsz, tgt_len, self.num_heads * self.head_dim)
-
         attn_output = self.out_proj(attn_weights)
 
         return attn_output
 
+# cosnt variable
+TYPE_ATTN = {
+    "scaled_dot_product": MultiheadScaledDotProductAttention,
+    "additive": MultiheadAdditiveAttention,
+}
+
 __all__ = [
     "MultiheadScaledDotProductAttention",
     "MultiheadAdditiveAttention",
+    "TYPE_ATTN",
 ]

@@ -29,6 +29,7 @@ class BartConfig:
         init_type: int=None,
         label_smoothing: float=0.01,
         pad_idx: int=1,
+        type_attn: str="scaled_dot_product",
         **kwargs,
     ):
         self.src_vocab_size = src_vocab_size
@@ -53,6 +54,7 @@ class BartConfig:
         self.pad_idx = pad_idx
         self.scale_embedding = scale_embedding
         self.classifier_dropout = classifier_dropout
+        self.type_attn = type_attn
 
 __all__ = [
     "BartConfig",
