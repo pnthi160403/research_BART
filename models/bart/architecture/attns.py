@@ -55,6 +55,7 @@ class MultiheadScaledDotProductAttention(nn.Module):
         bsz, tgt_len, embed_dim = hidden_states.size()
         assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
 
+        query_states = self.q_proj(hidden_states)
         if key_value_states is None:
             key_states = self.k_proj(hidden_states)
             value_states = self.v_proj(hidden_states)
@@ -139,6 +140,8 @@ class MultiheadAdditiveAttention(nn.Module):
     )-> torch.Tensor:
         bsz, tgt_len, embed_dim = hidden_states.size()
         assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
+
+        query_states = self.q_proj(hidden_states)
         if key_value_states is None:
             key_states = self.k_proj(hidden_states)
             value_states = self.v_proj(hidden_states)
@@ -169,6 +172,8 @@ class MultiheadAdditiveAttention(nn.Module):
         return attn_output
 
 # cosnt variable
+SCALED_DOT_PRODUCT = "scaled_dot_product"
+ADDITIVE = "additive"
 TYPE_ATTN = {
     "scaled_dot_product": MultiheadScaledDotProductAttention,
     "additive": MultiheadAdditiveAttention,
