@@ -16,7 +16,7 @@ class MultiheadScaledDotProductAttention(nn.Module):
         self.embed_dim = embed_dim
         self.num_heads = num_heads
         self.head_dim = embed_dim // num_heads
-        self.scaling = self.head_dim ** -0.5
+        self.scaling = math.sqrt(self.head_dim)
 
         self.dropout = nn.Dropout(dropout)
         self.k_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
@@ -40,14 +40,13 @@ class MultiheadScaledDotProductAttention(nn.Module):
         mask: torch.Tensor=None,
         dropout: nn.Dropout=None,
     ) -> torch.Tensor:
-        d_k = query.shape[-1]
-        attention_scores = (query @ key.transpose(-2, -1)) / math.sqrt(d_k)
+        attention_scores = torch.matmul(query, key.transpose(-2, -1)) / self.scaling
         if mask is not None:
             attention_scores.masked_fill_(mask == 0, float("-inf"))
         attention_scores = attention_scores.softmax(dim=-1)
         if dropout is not None:
             attention_scores = dropout(attention_scores)
-        return attention_scores @ value
+        return torch.matmul(attention_scores, value)
     
     def forward(
         self,
