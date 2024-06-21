@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-    
+import math
+
 # Self-attention with scaled dot product
 class MultiheadScaledDotProductAttention(nn.Module):
     def __init__(
@@ -39,13 +40,14 @@ class MultiheadScaledDotProductAttention(nn.Module):
         mask: torch.Tensor=None,
         dropout: nn.Dropout=None,
     ) -> torch.Tensor:
-        scores = (query @ key.transpose(-2, -1)) / self.scaling
+        d_k = query.shape[-1]
+        attention_scores = (query @ key.transpose(-2, -1)) / math.sqrt(d_k)
         if mask is not None:
-            scores = scores.masked_fill_(mask == 0, -1e9)
-        p_attn = nn.functional.softmax(scores, dim=-1)
+            attention_scores.masked_fill_(mask == 0, float("-inf"))
+        attention_scores = attention_scores.softmax(dim=-1)
         if dropout is not None:
-            p_attn = dropout(p_attn)
-        return p_attn @ value
+            attention_scores = dropout(attention_scores)
+        return attention_scores @ value
     
     def forward(
         self,
