@@ -20,6 +20,7 @@ class BartEncoderLayer(nn.Module):
             num_heads=config.encoder_attention_heads,
             dropout=config.attention_dropout,
             max_relative_positions=config.max_relative_positions,
+            window_size=config.window_size,
         )
         self.self_attn_layer_norm = nn.LayerNorm(self.embed_dim)
         self.dropout = nn.Dropout(config.dropout)

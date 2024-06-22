@@ -16,7 +16,8 @@ class MultiheadScaledDotProductAttention(nn.Module):
         self.embed_dim = embed_dim
         self.num_heads = num_heads
         self.head_dim = embed_dim // num_heads
-        self.scaling = math.sqrt(self.head_dim)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.scaling = torch.sqrt(torch.FloatTensor([self.head_dim])).to(device)
 
         self.dropout = nn.Dropout(dropout)
         self.k_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
@@ -43,7 +44,7 @@ class MultiheadScaledDotProductAttention(nn.Module):
         attention_scores = torch.matmul(query, key.transpose(-2, -1)) / self.scaling
         # print(f"{ attention_scores.shape = }")
         if mask is not None:
-            attention_scores.masked_fill_(mask == 0, float("-inf"))
+            attention_scores.masked_fill_(mask == 0, -1e9)
         attention_scores = attention_scores.softmax(dim=-1)
         if dropout is not None:
             attention_scores = dropout(attention_scores)
@@ -130,7 +131,7 @@ class MultiheadAdditiveAttention(nn.Module):
         k_expand = key.unsqueeze(2)
         score = self.score_proj(torch.tanh(q_expand + k_expand)).squeeze(-1)
         if mask is not None:
-            score = score.masked_fill_(mask == 0, float("-inf"))
+            score = score.masked_fill_(mask == 0, -1e9)
         p_attn = nn.functional.softmax(score, dim=-1)
         if dropout is not None:
             p_attn = dropout(p_attn)
@@ -220,10 +221,10 @@ class MutiheadRelativeAttention(nn.Module):
         **kwargs,
     ):
         super().__init__()
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.embed_dim = embed_dim
         self.num_heads = num_heads
         self.head_dim = embed_dim // num_heads
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.scaling = torch.sqrt(torch.FloatTensor([self.head_dim])).to(device)
 
         self.dropout = nn.Dropout(dropout)
@@ -286,7 +287,7 @@ class MutiheadRelativeAttention(nn.Module):
         # (batch, num_heads, q_len, k_len)
         score_edges = ((score_1 + score_2) / self.scaling)
         if mask is not None:
-            score_edges = score_edges.masked_fill_(mask == 0, float("-inf"))
+            score_edges = score_edges.masked_fill_(mask == 0, -1e9)
         score_edges = self.dropout(nn.functional.softmax(
             input=score_edges,
             dim=-1,
@@ -349,17 +350,86 @@ class MutiheadRelativeAttention(nn.Module):
 
         attn_out = self.out_proj(attn_weights)
         return attn_out
+    
+class MultiheadSlidingWindowSelfAttention(nn.Module):
+    def __init__(
+        self,
+        embed_dim: int,
+        num_heads: int,
+        window_size: int,
+        **kwargs,
+    ):
+        super().__init__()
+        self.embed_dim = embed_dim
+        self.num_heads = num_heads
+        self.head_dim = embed_dim // num_heads
+        self.window_size = window_size
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.scaling = torch.sqrt(torch.FloatTensor([self.head_dim])).to(device)
+
+        self.k_proj = nn.Linear(embed_dim, embed_dim)
+        self.v_proj = nn.Linear(embed_dim, embed_dim)
+        self.q_proj = nn.Linear(embed_dim, embed_dim)
+        self.out_proj = nn.Linear(embed_dim, embed_dim)
+
+    def forward(
+        self,
+        hidden_states: torch.Tensor,
+        key_value_states: torch.Tensor=None,
+        attention_mask: torch.Tensor=None,
+        layer_head_mask: torch.Tensor=None,
+    ):
+        bsz, tgt_len, embed_dim = hidden_states.size()
+        assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
+
+        query_states = self.q_proj(hidden_states)
+        if key_value_states is None:
+            key_states = self.k_proj(hidden_states)
+            value_states = self.v_proj(hidden_states)
+        else:
+            key_states = self.k_proj(key_value_states)
+            value_states = self.v_proj(key_value_states)
+
+        src_len = key_states.size(1)
+
+        query_states = query_states.view(bsz, tgt_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
+        key_states = key_states.view(bsz, -1, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
+        value_states = value_states.view(bsz, -1, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
+
+        attn_weights = torch.zeros(bsz, self.num_heads, tgt_len, self.head_dim).to(query_states.device)
+
+        for i in range(tgt_len):
+            start = max(0, i - self.window_size)
+            end = min(src_len, i + self.window_size + 1)
+
+            q_slice = query_states[:, :, i, :].unsqueeze(2)
+            k_slice = key_states[:, :, start:end, :]
+            v_slice = value_states[:, :, start:end, :]
+
+            score = torch.matmul(q_slice, k_slice.transpose(-2, -1)) / self.scaling
+            if attention_mask is not None:
+                attn_mask_slice = attention_mask[:, :, i, start:end].unsqueeze(2)
+                score.masked_fill_(attn_mask_slice == 0, -1e9)
+            score = nn.functional.softmax(score, dim=-1)
+
+            attn_weights[:, :, i, :] = torch.matmul(score, v_slice).squeeze(2)
+
+        attn_weights = attn_weights.transpose(1, 2).contiguous().view(bsz, tgt_len, self.num_heads * self.head_dim)
+        attn_output = self.out_proj(attn_weights)
+
+        return attn_output
 
 # cosnt variable
 SCALED_DOT_PRODUCT = "scaled_dot_product"
 ADDITIVE = "additive"
 RELATIVE_POSITION = "relative_position"
+SLIDING_WINDOW = "sliding_window"
 
 TYPE_ATTN = {
     SCALED_DOT_PRODUCT: MultiheadScaledDotProductAttention,
     ADDITIVE: MultiheadAdditiveAttention,
     RELATIVE_POSITION: MutiheadRelativeAttention,
-
+    SLIDING_WINDOW: MultiheadSlidingWindowSelfAttention,
 }
 
 __all__ = [
@@ -369,5 +439,6 @@ __all__ = [
     "SCALED_DOT_PRODUCT",
     "ADDITIVE",
     "RELATIVE_POSITION",
+    "SLIDING_WINDOW",
     "TYPE_ATTN",
 ]

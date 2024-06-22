@@ -19,14 +19,12 @@ def expand_encoder_mask(
     tgt_len: int,
 ):
     return mask.repeat(1, 1, tgt_len, 1).repeat(1, num_heads, 1, 1).type(mask.dtype)
-    # return mask.expand(-1, -1, tgt_len, -1).expand(-1, num_heads, -1, -1).type(mask.dtype)
 
 def expand_decoder_mask(
     mask: torch.Tensor,
     num_heads: int,
 ):
     return mask.repeat(1, num_heads, 1, 1).type(mask.dtype)
-    # return mask.expand(-1, num_heads, -1, -1).type(mask.dtype)
 
 def create_encoder_atn_mask(
     attention_mask: torch.Tensor,

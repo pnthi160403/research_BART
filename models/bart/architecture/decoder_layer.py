@@ -20,6 +20,7 @@ class BartDecoderLayer(nn.Module):
             num_heads=config.encoder_attention_heads,
             dropout=config.attention_dropout,
             max_relative_positions=config.max_relative_positions,
+            window_size=config.window_size,
         )
 
         self.dropout = nn.Dropout(config.dropout)
@@ -32,6 +33,7 @@ class BartDecoderLayer(nn.Module):
             num_heads=config.decoder_attention_heads,
             dropout=config.attention_dropout,
             max_relative_positions=config.max_relative_positions,
+            window_size=config.window_size,
         )
         self.encoder_attn_layer_norm = nn.LayerNorm(self.embed_dim)
         self.fc1 = nn.Linear(self.embed_dim, config.decoder_ffn_dim)

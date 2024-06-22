@@ -31,6 +31,7 @@ class BartConfig:
         pad_idx: int=1,
         type_attn: str="scaled_dot_product",
         max_relative_positions: int=200,
+        window_size: int=32,
         **kwargs,
     ):
         self.src_vocab_size = src_vocab_size
@@ -57,6 +58,7 @@ class BartConfig:
         self.classifier_dropout = classifier_dropout
         self.type_attn = type_attn
         self.max_relative_positions = max_relative_positions
+        self.window_size = window_size
 
 __all__ = [
     "BartConfig",
