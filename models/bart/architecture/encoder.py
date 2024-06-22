@@ -18,6 +18,7 @@ class BartEncoder(nn.Module):
     ):
         super().__init__()
         
+        self.num_heads = config.encoder_attention_heads
         self.dropout = nn.Dropout(config.dropout)
         self.layerdrop = config.encoder_layerdrop
         if custom_encoder_layer is None:
@@ -52,7 +53,7 @@ class BartEncoder(nn.Module):
             # print(f"{ attention_mask.shape = }")
             attention_mask=expand_encoder_mask(
                 mask=attention_mask,
-                num_heads=self.layers[0].self_attn.num_heads,
+                num_heads=self.num_heads,
                 tgt_len=inputs_embeds.size(1),
             )
             # print(f"{ attention_mask.shape = }")
