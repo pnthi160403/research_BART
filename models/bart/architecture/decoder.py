@@ -55,7 +55,7 @@ class BartDecoder(nn.Module):
         if attention_mask is not None:
             attention_mask = create_decoder_atn_mask(
                 attention_mask=attention_mask,
-                tgt_len=inputs_embeds.shape[1],
+                tgt_len=inputs_embeds.size(1),
             )
             attention_mask = expand_decoder_mask(
                 mask=attention_mask,
