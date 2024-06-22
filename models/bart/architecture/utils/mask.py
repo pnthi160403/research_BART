@@ -13,6 +13,19 @@ def causal_mask(
     mask = torch.triu(torch.ones((1, tgt_len, tgt_len)), diagonal=1).type(torch.int64).to(device)
     return mask == 0
 
+def expand_encoder_mask(
+    mask: torch.Tensor,
+    num_heads: int,
+    tgt_len: int,
+):
+    return mask.expand(-1, -1, tgt_len, -1).expand(-1, num_heads, -1, -1).type(mask.dtype)
+
+def expand_decoder_mask(
+    mask: torch.Tensor,
+    num_heads: int,
+):
+    return mask.expand(-1, num_heads, -1, -1).type(mask.dtype)
+
 def create_encoder_atn_mask(
     attention_mask: torch.Tensor,
 ):

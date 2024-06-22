@@ -41,6 +41,7 @@ class MultiheadScaledDotProductAttention(nn.Module):
         dropout: nn.Dropout=None,
     ) -> torch.Tensor:
         attention_scores = torch.matmul(query, key.transpose(-2, -1)) / self.scaling
+        # print(f"{ attention_scores.shape = }")
         if mask is not None:
             attention_scores.masked_fill_(mask == 0, float("-inf"))
         attention_scores = attention_scores.softmax(dim=-1)

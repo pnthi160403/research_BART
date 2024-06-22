@@ -4,6 +4,7 @@ from .encoder_layer import BartEncoderLayer
 from .config import BartConfig
 from .utils import (
     create_encoder_atn_mask,
+    expand_encoder_mask,
 )
 from .utils.init_weights import (
     _init_weights,
@@ -48,6 +49,13 @@ class BartEncoder(nn.Module):
             attention_mask = create_encoder_atn_mask(
                 attention_mask=attention_mask,
             )
+            # print(f"{ attention_mask.shape = }")
+            attention_mask=expand_encoder_mask(
+                mask=attention_mask,
+                num_heads=self.layers[0].self_attn.num_heads,
+                tgt_len=inputs_embeds.size(1),
+            )
+            # print(f"{ attention_mask.shape = }")
 
         for idx, encoder_layer in enumerate(self.layers):
             if self.training:

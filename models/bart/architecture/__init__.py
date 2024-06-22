@@ -36,6 +36,8 @@ from .utils.mask import (
     create_decoder_atn_mask,
     causal_mask,
     expand_mask,
+    expand_decoder_mask,
+    expand_encoder_mask,
 )
 from .utils.init_weights import (
     _init_weights,
