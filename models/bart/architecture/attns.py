@@ -357,6 +357,7 @@ class MultiheadSlidingWindowSelfAttention(nn.Module):
         embed_dim: int,
         num_heads: int,
         window_size: int,
+        dropout: float=0.0,
         **kwargs,
     ):
         super().__init__()
@@ -367,6 +368,7 @@ class MultiheadSlidingWindowSelfAttention(nn.Module):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.scaling = torch.sqrt(torch.FloatTensor([self.head_dim])).to(device)
 
+        self.dropout = nn.Dropout(dropout)
         self.k_proj = nn.Linear(embed_dim, embed_dim)
         self.v_proj = nn.Linear(embed_dim, embed_dim)
         self.q_proj = nn.Linear(embed_dim, embed_dim)
@@ -411,6 +413,7 @@ class MultiheadSlidingWindowSelfAttention(nn.Module):
             if attention_mask is not None:
                 attn_mask_slice = attention_mask[:, :, i, start:end].unsqueeze(2)
                 score.masked_fill_(attn_mask_slice == 0, -1e9)
+            score = self.dropout(score)
             score = nn.functional.softmax(score, dim=-1)
 
             attn_weights[:, :, i, :] = torch.matmul(score, v_slice).squeeze(2)
