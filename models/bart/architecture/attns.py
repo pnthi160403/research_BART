@@ -357,6 +357,75 @@ class MultiheadSlidingWindowSelfAttention(nn.Module):
         embed_dim: int,
         num_heads: int,
         window_size: int,
+        **kwargs,
+    ):
+        super().__init__()
+        self.embed_dim = embed_dim
+        self.num_heads = num_heads
+        self.head_dim = embed_dim // num_heads
+        self.window_size = window_size
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.scaling = torch.sqrt(torch.FloatTensor([self.head_dim])).to(device)
+
+        self.k_proj = nn.Linear(embed_dim, embed_dim)
+        self.v_proj = nn.Linear(embed_dim, embed_dim)
+        self.q_proj = nn.Linear(embed_dim, embed_dim)
+        self.out_proj = nn.Linear(embed_dim, embed_dim)
+
+    def forward(
+        self,
+        hidden_states: torch.Tensor,
+        key_value_states: torch.Tensor=None,
+        attention_mask: torch.Tensor=None,
+        layer_head_mask: torch.Tensor=None,
+    ):
+        bsz, tgt_len, embed_dim = hidden_states.size()
+        assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
+
+        query_states = self.q_proj(hidden_states)
+        if key_value_states is None:
+            key_states = self.k_proj(hidden_states)
+            value_states = self.v_proj(hidden_states)
+        else:
+            key_states = self.k_proj(key_value_states)
+            value_states = self.v_proj(key_value_states)
+
+        src_len = key_states.size(1)
+
+        query_states = query_states.view(bsz, tgt_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
+        key_states = key_states.view(bsz, -1, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
+        value_states = value_states.view(bsz, -1, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
+
+        attn_weights = torch.zeros(bsz, self.num_heads, tgt_len, self.head_dim).to(query_states.device)
+
+        full_window = 2 * self.window_size + 1
+        for i in range(tgt_len):
+            start = max(0, i - full_window + 1)
+            end = min(src_len, i + full_window)
+
+            q_slice = query_states[:, :, i, :].unsqueeze(2)
+            k_slice = key_states[:, :, start:end, :]
+            v_slice = value_states[:, :, start:end, :]
+
+            score = torch.matmul(q_slice, k_slice.transpose(-2, -1)) / self.scaling
+            if attention_mask is not None:
+                attn_mask_slice = attention_mask[:, :, i, start:end].unsqueeze(2)
+                score.masked_fill_(attn_mask_slice == 0, -1e9)
+            score = nn.functional.softmax(score, dim=-1)
+
+            attn_weights[:, :, i, :] = torch.matmul(score, v_slice).squeeze(2)
+
+        attn_weights = attn_weights.transpose(1, 2).contiguous().view(bsz, tgt_len, self.num_heads * self.head_dim)
+        attn_output = self.out_proj(attn_weights)
+
+        return attn_output
+
+class Tmp(nn.Module):
+    def __init__(
+        self,
+        embed_dim: int,
+        num_heads: int,
+        window_size: int,
         dropout: float=0.0,
         **kwargs,
     ):
