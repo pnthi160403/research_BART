@@ -357,6 +357,7 @@ class MultiheadSlidingWindowSelfAttention(nn.Module):
         embed_dim: int,
         num_heads: int,
         window_size: int,
+        dropout: float=0.0,
         **kwargs,
     ):
         super().__init__()
@@ -365,12 +366,77 @@ class MultiheadSlidingWindowSelfAttention(nn.Module):
         self.head_dim = embed_dim // num_heads
         self.window_size = window_size
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.scaling = torch.sqrt(torch.FloatTensor([self.head_dim])).to(device)
+        self.scaling = math.sqrt(self.head_dim)
 
+        self.dropout = nn.Dropout(dropout)
         self.k_proj = nn.Linear(embed_dim, embed_dim)
         self.v_proj = nn.Linear(embed_dim, embed_dim)
         self.q_proj = nn.Linear(embed_dim, embed_dim)
         self.out_proj = nn.Linear(embed_dim, embed_dim)
+
+    def get_window_matrix(
+        self,
+        tensor: torch.Tensor,
+        window_size: int,
+        unfold_dim: int=2,
+    ):
+        pad_tensor = nn.functional.pad(
+            input=tensor,
+            pad=(0, 0, window_size, window_size),
+            mode='constant',
+            value=0,
+        )
+        slice_tensor = pad_tensor.unfold(
+            dimension=unfold_dim,
+            size=window_size * 2 + 1,
+            step=1,
+        ).transpose(-1, -2).contiguous()
+        return slice_tensor
+    
+    def split_tensor(
+        self,
+        tensor: torch.Tensor,
+        expand_len: int,
+    ):
+        tensor_len = tensor.size(2)
+        if tensor_len > expand_len:
+            if len(tensor.size()) == 5:
+                tensor = tensor[:, :, :expand_len, :, :]
+            elif len(tensor.size()) == 4:
+                tensor = tensor[:, :, :expand_len, :]
+        elif expand_len > tensor_len:
+            if len(tensor.size()) == 5:
+                last_element = tensor[:, :, tensor_len - 1:tensor_len, :, :]
+            elif len(tensor.size()) == 4:
+                last_element = tensor[:, :, tensor_len - 1:tensor_len, :]
+            repeat_times = expand_len - tensor_len
+            tensors_to_concat = [tensor] + [last_element] * repeat_times
+            tensor = torch.cat(tensors_to_concat, dim=2)
+        return tensor
+    
+    def split_mask(
+        self,
+        mask: torch.Tensor,
+        window_size: int,
+        expand_len: int,
+    ):
+        mask_expand = nn.functional.pad(
+            input=mask,
+            pad=(window_size, window_size),
+            mode='constant',
+            value=0,
+        )
+        mask_expand = mask_expand[:, :, :1, :].squeeze(2)
+        mask_expand = mask_expand.unfold(
+            dimension=2,
+            size=window_size * 2 + 1,
+            step=1,
+        )
+        mask_slice = self.split_tensor(
+            tensor=mask_expand,
+            expand_len=expand_len,
+        )
+        return mask_slice
 
     def forward(
         self,
@@ -390,33 +456,49 @@ class MultiheadSlidingWindowSelfAttention(nn.Module):
             key_states = self.k_proj(key_value_states)
             value_states = self.v_proj(key_value_states)
 
-        src_len = key_states.size(1)
-
         query_states = query_states.view(bsz, tgt_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
         key_states = key_states.view(bsz, -1, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
         value_states = value_states.view(bsz, -1, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
 
-        attn_weights = torch.zeros(bsz, self.num_heads, tgt_len, self.head_dim).to(query_states.device)
+        key_slice = self.get_window_matrix(
+            tensor=key_states,
+            window_size=self.window_size,
+        )
+        key_slice = self.split_tensor(
+            tensor=key_slice,
+            expand_len=tgt_len,
+        )
+        value_slice = self.get_window_matrix(
+            tensor=value_states,
+            window_size=self.window_size,
+        )
+        value_slice = self.split_tensor(
+            tensor=value_slice,
+            expand_len=tgt_len,
+        )
+        q_expand = query_states.unsqueeze(-2)
 
-        for i in range(tgt_len):
-            start = max(0, i - self.window_size)
-            end = min(src_len, i + self.window_size + 1)
+        score = torch.matmul(q_expand, key_slice.transpose(-2, -1)).contiguous() / self.scaling
+        score = score.squeeze(3)
 
-            q_slice = query_states[:, :, i, :].unsqueeze(2)
-            k_slice = key_states[:, :, start:end, :]
-            v_slice = value_states[:, :, start:end, :]
+        if attention_mask is not None:
+            mask_slice = self.split_mask(
+                mask=attention_mask,
+                window_size=self.window_size,
+                expand_len=tgt_len,
+            )
+            score = score.masked_fill(mask_slice == 0, -1e9)
+        score = self.dropout(score)
+        score = nn.functional.softmax(
+            input=score,
+            dim=-1,
+        )
+        score = score.unsqueeze(3)
 
-            score = torch.matmul(q_slice, k_slice.transpose(-2, -1)) / self.scaling
-            if attention_mask is not None:
-                attn_mask_slice = attention_mask[:, :, i, start:end].unsqueeze(2)
-                score.masked_fill_(attn_mask_slice == 0, -1e9)
-            score = nn.functional.softmax(score, dim=-1)
-
-            attn_weights[:, :, i, :] = torch.matmul(score, v_slice).squeeze(2)
-
+        attn_weights = torch.matmul(score, value_slice).squeeze(3)
         attn_weights = attn_weights.transpose(1, 2).contiguous().view(bsz, tgt_len, self.num_heads * self.head_dim)
+        
         attn_output = self.out_proj(attn_weights)
-
         return attn_output
 
 # cosnt variable
