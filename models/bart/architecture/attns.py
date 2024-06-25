@@ -455,6 +455,8 @@ class MultiheadSlidingWindowSelfAttention(nn.Module):
         else:
             key_states = self.k_proj(key_value_states)
             value_states = self.v_proj(key_value_states)
+        
+        self.window_size = min(self.window_size, key_states.size(1))
 
         query_states = query_states.view(bsz, tgt_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
         key_states = key_states.view(bsz, -1, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
