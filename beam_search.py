@@ -40,24 +40,27 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
     ).last_hidden_state
 
     decoder_initial_input = torch.empty(1, 1).fill_(sos_token_id).type_as(src).to(device)
-    if config["type_attn"] == "scaled_dot_product":
-        last_token = decoder_initial_input
+    last_token = torch.empty(1, 1).fill_(sos_token_id).type_as(src).to(device)
+    if config["type_attn"] != "scaled_dot_product":
         score_initial = 0
         past_key_values = None
 
         candidates = [(decoder_initial_input, last_token, past_key_values, score_initial)]
         
         while True:
-            if all([(cand[0][-1].item() == eos_token_id or cand.size(1) == max_len) for cand, _, _, _ in candidates]):
+            if all([(last_token.squeeze().item() == eos_token_id or candidate.size(-1) == max_len) for candidate, last_token, past_key_values, score in candidates]):
                 break
             new_candidates = []
 
             for candidate, last_token, past_key_values, score in candidates:
-                if candidate[0][-1].item() == eos_token_id or candidate.size(-1) == max_len:
+                if last_token.squeeze().item() == eos_token_id or candidate.size(-1) == max_len:
                     new_candidates.append((candidate, last_token, past_key_values, score))
                     continue
                 
                 candidate_attention_mask = (candidate != pad_token_id).type_as(src_attention_mask).to(device)
+                # if past_key_values is not None:
+                    # print(f"{ candidate.shape = }")
+                    # print(f"{ past_key_values[-1][0].shape = }")
                 decoder_out_obj = model.get_decoder_out(
                     input_ids=last_token,
                     attention_mask=candidate_attention_mask,
