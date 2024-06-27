@@ -55,8 +55,9 @@ class BartDecoderLayer(nn.Module):
     ):
         residual = hidden_states
 
+        present_key_value = None
         # Self Attention
-        self_attn_past_key_value = past_key_value[:2] if past_key_value is not None else None
+        self_attn_past_key_value = past_key_value[0] if past_key_value is not None else None
         attn_obj = self.self_attn(
             hidden_states=hidden_states,
             attention_mask=attention_mask,
@@ -64,7 +65,8 @@ class BartDecoderLayer(nn.Module):
             past_key_value=self_attn_past_key_value,
         )
         hidden_states = attn_obj.attn_output
-        present_key_value = attn_obj.past_key_value
+        present_key_value = []
+        present_key_value.append(attn_obj.past_key_value)
         hidden_states = self.dropout(hidden_states)
         hidden_states = hidden_states + residual
         hidden_states = self.self_attn_layer_norm(hidden_states)
@@ -72,7 +74,7 @@ class BartDecoderLayer(nn.Module):
         residual = hidden_states
         # Cross Attention
         if encoder_hidden_states is not None:
-            cross_attn_past_key_value = past_key_value[-2:] if past_key_value is not None else None
+            cross_attn_past_key_value = past_key_value[1] if past_key_value is not None else None
             attn_obj = self.encoder_attn(
                 hidden_states=hidden_states,
                 key_value_states=encoder_hidden_states,
@@ -81,14 +83,10 @@ class BartDecoderLayer(nn.Module):
                 past_key_value=cross_attn_past_key_value,
             )
             hidden_states = attn_obj.attn_output
-            cross_attn_present_key_value = attn_obj.past_key_value
+            present_key_value.append(attn_obj.past_key_value)
             hidden_states = self.dropout(hidden_states)
             hidden_states = hidden_states + residual
             hidden_states = self.encoder_attn_layer_norm(hidden_states)
-
-            # add cross attention to positions 3, 4 of present_key_value tuple
-            if cross_attn_past_key_value is not None:
-                present_key_value = present_key_value + cross_attn_present_key_value
 
         # Fully connected layer
         residual = hidden_states

@@ -136,7 +136,7 @@ class BartSeq2seq(nn.Module):
         attention_mask: torch.Tensor,
         encoder_hidden_states: torch.Tensor,
         encoder_attention_mask: torch.Tensor,
-        past_key_values: tuple=None,
+        past_key_values: list=None,
     ):
         decoder_block_out_obj = self.decoder(
             inputs_embeds=self.decoder_inputs_embeds(input_ids),

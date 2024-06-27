@@ -80,7 +80,7 @@ class BartDecoder(nn.Module):
             )
             # print(f"{ encoder_attention_mask.shape = }")
 
-        next_decoder_cache = () if use_cache else None
+        next_decoder_cache = [] if use_cache else None
         for idx, decoder_layer in enumerate(self.layers):
             if self.training:
                 dropout_probability = torch.rand([])
@@ -101,7 +101,7 @@ class BartDecoder(nn.Module):
             hidden_states = decoder_layer_output_obj.decoder_layer_out
             
             if use_cache:
-                next_decoder_cache += (decoder_layer_output_obj.present_key_value,)
+                next_decoder_cache.append(decoder_layer_output_obj.present_key_value)
 
         return BartDecoderBlockOut(
             decoder_block_out=hidden_states,

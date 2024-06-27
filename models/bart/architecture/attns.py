@@ -68,41 +68,34 @@ class MultiheadScaledDotProductAttention(nn.Module):
         assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
 
         query_states = self.q_proj(hidden_states)
-        query_states = self._shape(query_states, tgt_len, bsz)
-        if key_value_states is not None and past_key_value is not None and past_key_value[0].shape[2] == key_value_states.shape[1]:
-            # reuse key and value in cross attention
-            key_states = past_key_value[0]
-            value_states = past_key_value[1]
-        elif key_value_states is not None:
-            # cross attention
-            key_states = self.k_proj(key_value_states)
-            key_states = self._shape(key_states, -1, bsz)
-            
-            value_states = self.v_proj(key_value_states)     
-            value_states = self._shape(value_states, -1, bsz)
-        elif past_key_value is not None:
-            # reuse key and value in masked self attention
-            key_states = self.k_proj(hidden_states)
-            key_states = self._shape(key_states, -1, bsz)
-            key_states = torch.cat([past_key_value[0], key_states], dim=2).contiguous()
-            # print(f"{ key_states.shape = }")
-            # print()
-            
-            value_states = self.v_proj(hidden_states)     
-            value_states = self._shape(value_states, -1, bsz)
-            value_states = torch.cat([past_key_value[1], value_states], dim=2).contiguous()
+        is_cross_attn = (key_value_states is not None)
+        if is_cross_attn:
+            if past_key_value is not None:
+                # reuse key and value in cross attention
+                key_states = past_key_value[0]
+                value_states = past_key_value[1]
+            else:
+                # cross attention
+                key_states = self.k_proj(key_value_states)
+                value_states = self.v_proj(key_value_states)
         else:
-            # self attention
-            key_states = self.k_proj(hidden_states)
-            key_states = self._shape(key_states, -1, bsz)
-            # print(f"{ key_states.shape = }")
-            # print()
-            
-            value_states = self.v_proj(hidden_states)
-            value_states = self._shape(value_states, -1, bsz)
+            if past_key_value is not None:
+                # reuse key and value in masked self attention
+                past_key_states = past_key_value[0]
+                key_states = torch.cat([past_key_states, self.k_proj(hidden_states)], dim=1)
+                past_value_states = past_key_value[1]
+                value_states = torch.cat([past_value_states, self.v_proj(hidden_states)], dim=1)
+            else:
+                # self attention
+                key_states = self.k_proj(hidden_states)
+                value_states = self.v_proj(hidden_states)
 
         if self.is_decoder:
-            past_key_value = (key_states, value_states)
+            past_key_value = [key_states, value_states]
+
+        query_states = self._shape(query_states, tgt_len, bsz)
+        key_states = self._shape(key_states, -1, bsz)
+        value_states = self._shape(value_states, -1, bsz)
 
         attn_weights = self.scaled_dot_product_attention(
             query=query_states,
@@ -111,6 +104,9 @@ class MultiheadScaledDotProductAttention(nn.Module):
             mask=attention_mask,
             dropout=self.dropout,
         )
+
+        attn_weights_reshaped = attn_weights.view(bsz, self.num_heads, tgt_len, -1).contiguous()
+        attn_weights = attn_weights_reshaped.view(bsz * self.num_heads, tgt_len, -1).contiguous()
         
         if layer_head_mask is not None:
             attn_weights = layer_head_mask.view(1, -1, 1, 1) * attn_weights.view(bsz, self.num_heads, tgt_len, tgt_len)
