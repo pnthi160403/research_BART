@@ -40,42 +40,85 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
     ).last_hidden_state
 
     decoder_initial_input = torch.empty(1, 1).fill_(sos_token_id).type_as(src).to(device)
+    if config["type_attn"] == "scaled_dot_product":
+        last_token = decoder_initial_input
+        score_initial = 0
+        past_key_values = None
+
+        candidates = [(decoder_initial_input, last_token, past_key_values, score_initial)]
+        
+        while True:
+            if all([(cand[0][-1].item() == eos_token_id or cand.size(1) == max_len) for cand, _, _, _ in candidates]):
+                break
+            new_candidates = []
+
+            for candidate, last_token, past_key_values, score in candidates:
+                if candidate[0][-1].item() == eos_token_id or candidate.size(-1) == max_len:
+                    new_candidates.append((candidate, last_token, past_key_values, score))
+                    continue
+                
+                candidate_attention_mask = (candidate != pad_token_id).type_as(src_attention_mask).to(device)
+                decoder_out_obj = model.get_decoder_out(
+                    input_ids=last_token,
+                    attention_mask=candidate_attention_mask,
+                    encoder_hidden_states=encoder_output,
+                    encoder_attention_mask=src_attention_mask,
+                    past_key_values=past_key_values,
+                )
+                decoder_out = decoder_out_obj.last_hidden_state
+                past_key_values = decoder_out_obj.past_key_values
+                
+                out = model.out(decoder_out)
+                prob = torch.nn.functional.log_softmax(out[:, -1], dim=1)
+                prob = prob / sequence_length_penalty(candidate.size(-1), alpha=0.6)
+                topk_prob, topk_idx = torch.topk(prob, beam_size, dim=1)
+                for i in range(beam_size):
+                    token = topk_idx[0][i].unsqueeze(0).unsqueeze(0)
+                    token_prob = topk_prob[0][i].item()
+                    last_token = token
+                    new_candidate = torch.cat([candidate, last_token], dim=-1)
+                    new_candidates.append((new_candidate, last_token, past_key_values, score + token_prob))
+
+            candidates = sorted(new_candidates, key=lambda x: x[-1], reverse=True)
+            candidates = candidates[:beam_size]
+
+        pred_ids = candidates[0][0].squeeze()
+        # print("Pred tokens:", tokenizer_tgt.decode(pred_ids.detach().cpu().numpy()))
+    else:
+        candidates = [(decoder_initial_input, 0)]
     
-    candidates = [(decoder_initial_input, 0)]
-    
-    while True:
-        if all([(cand[0][-1].item() == eos_token_id or cand.size(1) == max_len) for cand, _ in candidates]):
-            break
+        while True:
+            if all([(cand[0][-1].item() == eos_token_id or cand.size(1) == max_len) for cand, _ in candidates]):
+                break
 
-        new_candidates = []
+            new_candidates = []
 
-        for candidate, score in candidates:
-            if candidate[0][-1].item() == eos_token_id or candidate.size(-1) == max_len:
-                new_candidates.append((candidate, score))
-                continue
-            
-            candidate_attention_mask = (candidate != pad_token_id).type_as(src_attention_mask).to(device)
-            decoder_out = model.get_decoder_out(
-                input_ids=candidate,
-                attention_mask=candidate_attention_mask,
-                encoder_hidden_states=encoder_output,
-                encoder_attention_mask=src_attention_mask
-            ).last_hidden_state
-            
-            out = model.out(decoder_out)
-            prob = torch.nn.functional.log_softmax(out[:, -1], dim=1)
-            prob = prob / sequence_length_penalty(candidate.size(-1), alpha=0.6)
-            topk_prob, topk_idx = torch.topk(prob, beam_size, dim=1)
-            for i in range(beam_size):
-                token = topk_idx[0][i].unsqueeze(0).unsqueeze(0)
-                token_prob = topk_prob[0][i].item()
-                new_candidate = torch.cat([candidate, token], dim=1)
-                new_candidates.append((new_candidate, score + token_prob))
+            for candidate, score in candidates:
+                if candidate[0][-1].item() == eos_token_id or candidate.size(-1) == max_len:
+                    new_candidates.append((candidate, score))
+                    continue
+                
+                candidate_attention_mask = (candidate != pad_token_id).type_as(src_attention_mask).to(device)
+                decoder_out = model.get_decoder_out(
+                    input_ids=candidate,
+                    attention_mask=candidate_attention_mask,
+                    encoder_hidden_states=encoder_output,
+                    encoder_attention_mask=src_attention_mask
+                ).last_hidden_state
+                
+                out = model.out(decoder_out)
+                prob = torch.nn.functional.log_softmax(out[:, -1], dim=1)
+                prob = prob / sequence_length_penalty(candidate.size(-1), alpha=0.6)
+                topk_prob, topk_idx = torch.topk(prob, beam_size, dim=1)
+                for i in range(beam_size):
+                    token = topk_idx[0][i].unsqueeze(0).unsqueeze(0)
+                    token_prob = topk_prob[0][i].item()
+                    new_candidate = torch.cat([candidate, token], dim=1)
+                    new_candidates.append((new_candidate, score + token_prob))
 
-        candidates = sorted(new_candidates, key=lambda x: x[1], reverse=True)
-        candidates = candidates[:beam_size]
+            candidates = sorted(new_candidates, key=lambda x: x[-1], reverse=True)
+            candidates = candidates[:beam_size]
 
-    pred_ids = candidates[0][0].squeeze()
-    # print("Pred tokens:", tokenizer_tgt.decode(pred_ids.detach().cpu().numpy()))
+        pred_ids = candidates[0][0].squeeze()
     
     return pred_ids

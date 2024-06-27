@@ -82,12 +82,13 @@ class BartSeq2seq(nn.Module):
                 attention_mask=attention_mask,
             )
         # decoder
-        decoder_hidden_states = self.decoder(
+        decoder_block_out_obj = self.decoder(
             inputs_embeds=self.decoder_inputs_embeds(decoder_input_ids),
             attention_mask=decoder_attention_mask,
             encoder_hidden_states=encoder_hidden_states,
             encoder_attention_mask=attention_mask,
         )
+        decoder_hidden_states = decoder_block_out_obj.decoder_block_out
         # out
         logits = self.out(decoder_hidden_states)
 
@@ -135,16 +136,22 @@ class BartSeq2seq(nn.Module):
         attention_mask: torch.Tensor,
         encoder_hidden_states: torch.Tensor,
         encoder_attention_mask: torch.Tensor,
+        past_key_values: tuple=None,
     ):
-        decoder_out = self.decoder(
+        decoder_block_out_obj = self.decoder(
             inputs_embeds=self.decoder_inputs_embeds(input_ids),
             attention_mask=attention_mask,
             encoder_hidden_states=encoder_hidden_states,
             encoder_attention_mask=encoder_attention_mask,
+            past_key_values=past_key_values,
+            use_cache=True,
         )
+        decoder_block_out = decoder_block_out_obj.decoder_block_out
+        past_key_values = decoder_block_out_obj.past_key_values
 
         return BartDecoderOut(
-            logits=decoder_out,
+            logits=decoder_block_out,
+            past_key_values=past_key_values,
         )
     
 def get_model(

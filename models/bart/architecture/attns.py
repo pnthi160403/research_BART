@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
 import math
+from .utils import (
+    BartAttentionOut,
+)
 
 # Self-attention with scaled dot product
 class MultiheadScaledDotProductAttention(nn.Module):
@@ -10,6 +13,7 @@ class MultiheadScaledDotProductAttention(nn.Module):
         num_heads: int,
         dropout: float=0.0,
         bias: bool=True,
+        is_decoder: bool=False,
         **kwargs,
     ):
         super().__init__()
@@ -18,6 +22,7 @@ class MultiheadScaledDotProductAttention(nn.Module):
         self.head_dim = embed_dim // num_heads
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.scaling = torch.sqrt(torch.FloatTensor([self.head_dim])).to(device)
+        self.is_decoder = is_decoder
 
         self.dropout = nn.Dropout(dropout)
         self.k_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
@@ -48,29 +53,53 @@ class MultiheadScaledDotProductAttention(nn.Module):
         attention_scores = attention_scores.softmax(dim=-1)
         if dropout is not None:
             attention_scores = dropout(attention_scores)
-        return torch.matmul(attention_scores, value)
+        return torch.matmul(attention_scores, value) # (batch, num_heads, tgt_len, head_dim)
     
     def forward(
         self,
         hidden_states: torch.Tensor,
         key_value_states: torch.Tensor=None,
+        past_key_value: tuple[torch.Tensor]=None,
         attention_mask: torch.Tensor=None,
         layer_head_mask: torch.Tensor=None,
+        **kwargs,
     ):
         bsz, tgt_len, embed_dim = hidden_states.size()
         assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
 
         query_states = self.q_proj(hidden_states)
-        if key_value_states is None:
-            key_states = self.k_proj(hidden_states)
-            value_states = self.v_proj(hidden_states)
-        else: # is cross-attention
-            key_states = self.k_proj(key_value_states)
-            value_states = self.v_proj(key_value_states)
-
         query_states = self._shape(query_states, tgt_len, bsz)
-        key_states = self._shape(key_states, -1, bsz)
-        value_states = self._shape(value_states, -1, bsz)
+        is_cross_attn = key_value_states is not None
+        if is_cross_attn and past_key_value is not None and past_key_value[0].shape[2] == key_value_states.shape[1]:
+            # reuse key and value in cross attention
+            key_states = past_key_value[0]
+            value_states = past_key_value[1]
+        elif is_cross_attn:
+            # cross attention
+            key_states = self.k_proj(key_value_states)
+            key_states = self._shape(key_states, -1, bsz)
+            
+            value_states = self.v_proj(key_value_states)     
+            value_states = self._shape(value_states, -1, bsz)
+        elif past_key_value is not None:
+            # reuse key and value in masked self attention
+            key_states = self.k_proj(hidden_states)
+            key_states = self._shape(key_states, -1, bsz)
+            key_states = torch.cat([past_key_value[0], key_states], dim=2)
+            
+            value_states = self.v_proj(hidden_states)     
+            value_states = self._shape(value_states, -1, bsz)
+            value_states = torch.cat([past_key_value[1], value_states], dim=2)
+        else:
+            # self attention
+            key_states = self.k_proj(hidden_states)
+            key_states = self._shape(key_states, -1, bsz)
+            
+            value_states = self.v_proj(hidden_states)
+            value_states = self._shape(value_states, -1, bsz)
+
+        if self.is_decoder:
+            past_key_value = (key_states, value_states)
 
         attn_weights = self.scaled_dot_product_attention(
             query=query_states,
@@ -87,7 +116,10 @@ class MultiheadScaledDotProductAttention(nn.Module):
         attn_weights = attn_weights.transpose(1, 2).contiguous().view(bsz, tgt_len, self.num_heads * self.head_dim)
         attn_output = self.out_proj(attn_weights)
 
-        return attn_output
+        return BartAttentionOut(
+            attn_output=attn_output,
+            past_key_value=past_key_value,
+        )
 
 # Self-attention with additive attention
 class MultiheadAdditiveAttention(nn.Module):
@@ -143,6 +175,7 @@ class MultiheadAdditiveAttention(nn.Module):
         key_value_states: torch.Tensor=None,
         attention_mask: torch.Tensor=None,
         layer_head_mask: torch.Tensor=None,
+        **kwargs,
     )-> torch.Tensor:
         bsz, tgt_len, embed_dim = hidden_states.size()
         assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
@@ -175,7 +208,9 @@ class MultiheadAdditiveAttention(nn.Module):
         attn_weights = attn_weights.transpose(1, 2).contiguous().view(bsz, tgt_len, self.num_heads * self.head_dim)
         attn_output = self.out_proj(attn_weights)
 
-        return attn_output
+        return BartAttentionOut(
+            attn_output=attn_output,
+        )
     
 # Self-attention with relative position
 # Reference: https://arxiv.org/abs/1803.02155
@@ -199,6 +234,7 @@ class RelativePosition(nn.Module):
         self,
         length_row: int,
         length_col: int,
+        **kwargs,
     ):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         range_row = torch.arange(length_row)
@@ -248,6 +284,7 @@ class MutiheadRelativeAttention(nn.Module):
         key: torch.Tensor,
         value: torch.Tensor,
         mask: torch.Tensor=None,
+        **kwargs,
     ):
         bsz = query.size(0)
         q_len = query.size(1)
@@ -327,6 +364,7 @@ class MutiheadRelativeAttention(nn.Module):
         key_value_states: torch.Tensor=None,
         attention_mask: torch.Tensor=None,
         layer_head_mask: torch.Tensor=None,
+        **kwargs,
     ):
         bsz, tgt_len, embed_dim = hidden_states.size()
         assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
@@ -348,8 +386,11 @@ class MutiheadRelativeAttention(nn.Module):
 
         attn_weights = attn_weights.transpose(1, 2).contiguous().view(bsz, -1, self.num_heads * self.head_dim).contiguous()
 
-        attn_out = self.out_proj(attn_weights)
-        return attn_out
+        attn_output = self.out_proj(attn_weights)
+
+        return BartAttentionOut(
+            attn_output=attn_output,
+        )
     
 class MultiheadSlidingWindowSelfAttention(nn.Module):
     def __init__(
@@ -380,6 +421,7 @@ class MultiheadSlidingWindowSelfAttention(nn.Module):
         key_value_states: torch.Tensor=None,
         attention_mask: torch.Tensor=None,
         layer_head_mask: torch.Tensor=None,
+        **kwargs,
     ):
         bsz, tgt_len, embed_dim = hidden_states.size()
         assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
@@ -421,7 +463,9 @@ class MultiheadSlidingWindowSelfAttention(nn.Module):
         attn_weights = attn_weights.transpose(1, 2).contiguous().view(bsz, tgt_len, self.num_heads * self.head_dim)
         attn_output = self.out_proj(attn_weights)
 
-        return attn_output
+        return BartAttentionOut(
+            attn_output=attn_output,
+        )
 
 class Tmp(nn.Module):
     def __init__(
@@ -516,7 +560,8 @@ class Tmp(nn.Module):
         key_value_states: torch.Tensor=None,
         attention_mask: torch.Tensor=None,
         layer_head_mask: torch.Tensor=None,
-    ):
+        **kwargs,
+    ) -> BartAttentionOut:
         bsz, tgt_len, embed_dim = hidden_states.size()
         assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
 
@@ -573,7 +618,10 @@ class Tmp(nn.Module):
         attn_weights = attn_weights.transpose(1, 2).contiguous().view(bsz, tgt_len, self.num_heads * self.head_dim)
         
         attn_output = self.out_proj(attn_weights)
-        return attn_output
+
+        return BartAttentionOut(
+            attn_output=attn_output,
+        )
 
 # cosnt variable
 SCALED_DOT_PRODUCT = "scaled_dot_product"

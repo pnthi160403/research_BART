@@ -15,4 +15,7 @@ from .mask import (
 from .out_form import (
     BartEncoderOut,
     BartDecoderOut,
+    BartAttentionOut,
+    BartDecoderLayerOut,
+    BartDecoderBlockOut,
 )

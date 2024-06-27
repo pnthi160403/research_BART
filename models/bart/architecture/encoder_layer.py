@@ -37,11 +37,12 @@ class BartEncoderLayer(nn.Module):
         layer_head_mask: torch.FloatTensor=None,
     ):
         residual = hidden_states
-        hidden_states = self.self_attn(
+        attn_obj = self.self_attn(
             hidden_states=hidden_states,
             attention_mask=attention_mask,
             layer_head_mask=layer_head_mask,
         )
+        hidden_states = attn_obj.attn_output
         hidden_states = self.dropout(hidden_states)
         hidden_states = hidden_states + residual
         hidden_states = self.self_attn_layer_norm(hidden_states)

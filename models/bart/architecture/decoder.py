@@ -2,6 +2,9 @@ import torch
 import torch.nn as nn
 from .config import BartConfig
 from .decoder_layer import BartDecoderLayer
+from .utils import (
+    BartDecoderBlockOut,
+)
 from .utils.mask import (
     create_decoder_atn_mask,
     create_encoder_atn_mask,
@@ -47,6 +50,8 @@ class BartDecoder(nn.Module):
         encoder_attention_mask: torch.Tensor=None,
         head_mask: torch.Tensor=None,
         cross_attn_head_mask: torch.Tensor=None,
+        past_key_values: tuple=None,
+        use_cache: bool=False,
     ):
         hidden_states = inputs_embeds
         hidden_states = self.layernorm_embedding(hidden_states)
@@ -75,12 +80,14 @@ class BartDecoder(nn.Module):
             )
             # print(f"{ encoder_attention_mask.shape = }")
 
+        next_decoder_cache = () if use_cache else None
         for idx, decoder_layer in enumerate(self.layers):
             if self.training:
                 dropout_probability = torch.rand([])
                 if dropout_probability < self.layerdrop:
                     continue
-            layer_outputs = decoder_layer(
+            past_key_value = past_key_values[idx] if past_key_values is not None else None
+            decoder_layer_output_obj = decoder_layer(
                 hidden_states=hidden_states,
                 attention_mask=attention_mask,
                 encoder_hidden_states=encoder_hidden_states,
@@ -89,10 +96,17 @@ class BartDecoder(nn.Module):
                 cross_attn_layer_head_mask=(
                     cross_attn_head_mask[idx] if cross_attn_head_mask is not None else None
                 ),
+                past_key_value=past_key_value,
             )
-            hidden_states = layer_outputs
+            hidden_states = decoder_layer_output_obj.decoder_layer_out
+            
+            if use_cache:
+                next_decoder_cache += (decoder_layer_output_obj.present_key_value,)
 
-        return hidden_states
+        return BartDecoderBlockOut(
+            decoder_block_out=hidden_states,
+            past_key_values=next_decoder_cache,
+        )
     
 __all__ = [
     "BartDecoder",
