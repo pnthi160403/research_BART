@@ -41,7 +41,7 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
 
     decoder_initial_input = torch.empty(1, 1).fill_(sos_token_id).type_as(src).to(device)
     last_token = torch.empty(1, 1).fill_(sos_token_id).type_as(src).to(device)
-    if config["type_attn"] != "scaled_dot_product":
+    if config["type_attn"] == "scaled_dot_product":
         score_initial = 0
         past_key_values = None
 
