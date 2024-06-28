@@ -138,6 +138,7 @@ class BartSeq2seq(nn.Module):
         encoder_attention_mask: torch.Tensor,
         past_key_values: list=None,
         past_attn_scores: list=None,
+        use_cache: bool=False,
     ):
         decoder_block_out_obj = self.decoder(
             inputs_embeds=self.decoder_inputs_embeds(input_ids),
@@ -146,7 +147,7 @@ class BartSeq2seq(nn.Module):
             encoder_attention_mask=encoder_attention_mask,
             past_key_values=past_key_values,
             past_attn_scores=past_attn_scores,
-            use_cache=True,
+            use_cache=use_cache,
         )
         decoder_block_out = decoder_block_out_obj.decoder_block_out
         past_key_values = decoder_block_out_obj.past_key_values

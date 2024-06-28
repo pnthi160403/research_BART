@@ -53,6 +53,7 @@ class BartDecoderLayer(nn.Module):
         cross_attn_layer_head_mask: torch.Tensor=None,
         past_key_value: list=None,
         past_attn_score: list=None,
+        use_cache: bool=False,
     ):
         residual = hidden_states
 
@@ -67,6 +68,7 @@ class BartDecoderLayer(nn.Module):
             layer_head_mask=layer_head_mask,
             past_key_value=self_attn_past_key_value,
             past_attn_score=self_attn_past_attn_score,
+            use_cache=use_cache,
         )
         hidden_states = attn_obj.attn_output
         present_key_value = []
@@ -93,6 +95,7 @@ class BartDecoderLayer(nn.Module):
                 layer_head_mask=cross_attn_layer_head_mask,
                 past_key_value=cross_attn_past_key_value,
                 past_attn_score=cross_attn_past_attn_score,
+                use_cache=use_cache,
             )
             hidden_states = attn_obj.attn_output
             present_key_value.append(attn_obj.past_key_value)

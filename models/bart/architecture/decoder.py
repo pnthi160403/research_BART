@@ -103,6 +103,7 @@ class BartDecoder(nn.Module):
                 ),
                 past_key_value=past_key_value,
                 past_attn_score=past_attn_score,
+                use_cache=use_cache,
             )
             hidden_states = decoder_layer_output_obj.decoder_layer_out
             

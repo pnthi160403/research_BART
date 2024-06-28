@@ -39,7 +39,7 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
 
     decoder_initial_input = torch.empty(1, 1).fill_(sos_token_id).type_as(src).to(device)
     last_token = torch.empty(1, 1).fill_(sos_token_id).type_as(src).to(device)
-    if config["type_attn"] != "scaled_dot_product":
+    if config["use_cache"]:
         score_initial = 0
         past_key_values = None
         past_attn_score = None
@@ -59,16 +59,19 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
                 candidate_attention_mask = (candidate != pad_token_id).type_as(src_attention_mask).to(device)
                 decoder_out_obj = model.get_decoder_out(
                     input_ids=candidate,
-                    # input_ids=last_token,
                     attention_mask=candidate_attention_mask,
                     encoder_hidden_states=encoder_output,
                     encoder_attention_mask=src_attention_mask,
                     past_key_values=past_key_values,
                     past_attn_scores=past_attn_scores,
+                    use_cache=True,
                 )
                 decoder_out = decoder_out_obj.last_hidden_state
                 past_key_values = decoder_out_obj.past_key_values
                 past_attn_scores = decoder_out_obj.past_attn_scores
+
+                past_key_values = past_key_values.to(device)
+                past_attn_scores = past_attn_scores.to(device)
                 
                 out = model.out(decoder_out)
                 prob = torch.nn.functional.log_softmax(out[:, -1], dim=1)
