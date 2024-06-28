@@ -24,7 +24,7 @@ class MultiheadScaledDotProductAttention(nn.Module):
         self.scaling = torch.sqrt(torch.FloatTensor([self.head_dim])).to(device)
         self.is_decoder = is_decoder
 
-        self.dropout = dropout
+        self.dropout = nn.Dropout(dropout)
         self.k_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
         self.v_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
         self.q_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
@@ -44,109 +44,70 @@ class MultiheadScaledDotProductAttention(nn.Module):
         key: torch.Tensor,
         value: torch.Tensor,
         mask: torch.Tensor=None,
-        dropout: float=0.0,
-        past_attn_score: torch.Tensor=None,
-        use_cache: bool=False,
+        dropout: nn.Dropout=None,
     ) -> torch.Tensor:
         attention_scores = torch.matmul(query, key.transpose(-2, -1)) / self.scaling
-        if use_cache:
-            if past_attn_score.size(-1) != attention_scores.size(-1):
-                past_attn_score = nn.functional.pad(
-                    input=past_attn_score,
-                    pad=(0, 1),
-                    mode='constant',
-                    value=-1e9,
-                )
-            attention_scores = torch.cat(
-                [
-                    past_attn_score,
-                    attention_scores,
-                ],
-                dim=-2,
-            )
         if mask is not None:
             attention_scores.masked_fill_(mask == 0, -1e9)
         attention_scores = attention_scores.softmax(dim=-1)
         if dropout is not None:
-            attention_scores = nn.functional.dropout(
-                input=attention_scores,
-                p=dropout,
-                training=self.training,
-            )
-        return torch.matmul(attention_scores, value), attention_scores # (batch, num_heads, tgt_len, head_dim)
+            attention_scores = dropout(attention_scores)
+        return torch.matmul(attention_scores, value) # (batch, num_heads, tgt_len, head_dim)
     
     def forward(
         self,
         hidden_states: torch.Tensor,
         key_value_states: torch.Tensor=None,
         past_key_value: list=None,
-        past_attn_score: torch.Tensor=None,
+        past_attn_score: list=None,
         attention_mask: torch.Tensor=None,
         layer_head_mask: torch.Tensor=None,
-        use_cache: bool=False,
         **kwargs,
     ):
         bsz, tgt_len, embed_dim = hidden_states.size()
         assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
 
-        is_cross_attn = (key_value_states is not None)
-        last_token_states = hidden_states[:, -1:, :]
-        use_cache = True if use_cache and past_key_value is not None else False
-        if is_cross_attn:
-            if use_cache:
-                # reuse key and value in cross attention
-                query_states = self.q_proj(last_token_states)
-                key_states = past_key_value[0]
-                value_states = past_key_value[1]
-            else:
-                # cross attention
-                query_states = self.q_proj(hidden_states)
-                key_states = self.k_proj(key_value_states)
-                value_states = self.v_proj(key_value_states)
-        elif not is_cross_attn:
-            if use_cache:
-                query_states = self.q_proj(last_token_states)
-                key_states = torch.cat(
-                    [
-                        past_key_value[0],
-                        self.k_proj(last_token_states)
-                    ],
-                    dim=1,
-                )
-                value_states = torch.cat(
-                    [
-                        past_key_value[1],
-                        self.v_proj(last_token_states)
-                    ], 
-                    dim=1,
-                )
-            else:
-                # self attention
-                query_states = self.q_proj(hidden_states)
-                key_states = self.k_proj(hidden_states)
-                value_states = self.v_proj(hidden_states)
+        query_states = self.q_proj(hidden_states)
+        query_states = self._shape(query_states, tgt_len, bsz)
+        is_cross_attn = key_value_states is not None
+        if is_cross_attn and past_key_value is not None and past_key_value[0].shape[2] == key_value_states.shape[1]:
+            # reuse key and value in cross attention
+            key_states = past_key_value[0]
+            value_states = past_key_value[1]
+        elif is_cross_attn:
+            # cross attention
+            key_states = self.k_proj(key_value_states)
+            key_states = self._shape(key_states, -1, bsz)
+            
+            value_states = self.v_proj(key_value_states)     
+            value_states = self._shape(value_states, -1, bsz)
+        elif past_key_value is not None:
+            # reuse key and value in masked self attention
+            key_states = self.k_proj(hidden_states[:, -1:, :])
+            key_states = self._shape(key_states, -1, bsz)
+            key_states = torch.cat([past_key_value[0], key_states], dim=2)
+            
+            value_states = self.v_proj(hidden_states[:, -1:, :])     
+            value_states = self._shape(value_states, -1, bsz)
+            value_states = torch.cat([past_key_value[1], value_states], dim=2)
+        else:
+            # self attention
+            key_states = self.k_proj(hidden_states)
+            key_states = self._shape(key_states, -1, bsz)
+            
+            value_states = self.v_proj(hidden_states)
+            value_states = self._shape(value_states, -1, bsz)
 
         if self.is_decoder:
             past_key_value = [key_states, value_states]
-        else:
-            past_key_value = None
 
-        query_states = self._shape(query_states, -1, bsz)
-        key_states = self._shape(key_states, -1, bsz)
-        value_states = self._shape(value_states, -1, bsz)
-
-        attn_weights, attn_score = self.scaled_dot_product_attention(
+        attn_weights = self.scaled_dot_product_attention(
             query=query_states,
             key=key_states,
             value=value_states,
             mask=attention_mask,
             dropout=self.dropout,
-            use_cache=use_cache,
-            past_attn_score=past_attn_score,
         )
-
-        attn_weights_reshaped = attn_weights.view(bsz, self.num_heads, tgt_len, -1).contiguous()
-        attn_weights = attn_weights_reshaped.view(bsz * self.num_heads, tgt_len, -1).contiguous()
         
         if layer_head_mask is not None:
             attn_weights = layer_head_mask.view(1, -1, 1, 1) * attn_weights.view(bsz, self.num_heads, tgt_len, tgt_len)
@@ -155,15 +116,9 @@ class MultiheadScaledDotProductAttention(nn.Module):
         attn_weights = attn_weights.transpose(1, 2).contiguous().view(bsz, tgt_len, self.num_heads * self.head_dim)
         attn_output = self.out_proj(attn_weights)
 
-        if self.is_decoder:
-            past_attn_score = attn_score
-        else:
-            past_attn_score = None
-
         return BartAttentionOut(
             attn_output=attn_output,
             past_key_value=past_key_value,
-            past_attn_score=past_attn_score,
         )
 
 # Self-attention with additive attention
