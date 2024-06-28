@@ -96,21 +96,24 @@ class MultiheadScaledDotProductAttention(nn.Module):
             if use_cache:
                 # reuse key and value in cross attention
                 query_states = self.q_proj(last_token_states)
+                key_states = past_key_value[0]
+                value_states = past_key_value[1]
             else:
                 # cross attention
                 query_states = self.q_proj(hidden_states)
-                past_key_value = [self.k_proj(key_value_states), self.v_proj(key_value_states)]
+                key_states = self.k_proj(key_value_states)
+                value_states = self.v_proj(key_value_states)
         elif not is_cross_attn:
             if use_cache:
                 query_states = self.q_proj(last_token_states)
-                past_key_value[0] = torch.cat(
+                key_states = torch.cat(
                     [
                         past_key_value[0],
                         self.k_proj(last_token_states)
                     ],
                     dim=1,
                 )
-                past_key_value[1] = torch.cat(
+                value_states = torch.cat(
                     [
                         past_key_value[1],
                         self.v_proj(last_token_states)
@@ -120,11 +123,12 @@ class MultiheadScaledDotProductAttention(nn.Module):
             else:
                 # self attention
                 query_states = self.q_proj(hidden_states)
-                past_key_value = [self.k_proj(hidden_states), self.v_proj(hidden_states)]
+                key_states = self.k_proj(hidden_states)
+                value_states = self.v_proj(hidden_states)
 
-        key_states = past_key_value[0]
-        value_states = past_key_value[1]
-        if self.is_decoder == False:
+        if self.is_decoder:
+            past_key_value = [key_states, value_states]
+        else:
             past_key_value = None
 
         query_states = self._shape(query_states, -1, bsz)
@@ -151,10 +155,15 @@ class MultiheadScaledDotProductAttention(nn.Module):
         attn_weights = attn_weights.transpose(1, 2).contiguous().view(bsz, tgt_len, self.num_heads * self.head_dim)
         attn_output = self.out_proj(attn_weights)
 
+        if self.is_decoder:
+            past_attn_score = attn_score
+        else:
+            past_attn_score = None
+
         return BartAttentionOut(
             attn_output=attn_output,
             past_key_value=past_key_value,
-            past_attn_score=attn_score,
+            past_attn_score=past_attn_score,
         )
 
 # Self-attention with additive attention

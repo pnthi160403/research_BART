@@ -69,9 +69,6 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
                 decoder_out = decoder_out_obj.last_hidden_state
                 past_key_values = decoder_out_obj.past_key_values
                 past_attn_scores = decoder_out_obj.past_attn_scores
-
-                past_key_values = past_key_values.to(device)
-                past_attn_scores = past_attn_scores.to(device)
                 
                 out = model.out(decoder_out)
                 prob = torch.nn.functional.log_softmax(out[:, -1], dim=1)
