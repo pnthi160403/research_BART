@@ -23,7 +23,7 @@ class BartEncoderLayer(nn.Module):
             window_size=config.window_size,
         )
         self.self_attn_layer_norm = nn.LayerNorm(self.embed_dim)
-        self.dropout = nn.Dropout(config.dropout)
+        self.dropout = config.dropout
         self.activation_fn = ACT_FN[config.activation_function]()
         self.activation_dropout = nn.Dropout((config.activation_dropout))
         self.fc1 = nn.Linear(self.embed_dim, config.encoder_ffn_dim)
@@ -43,7 +43,11 @@ class BartEncoderLayer(nn.Module):
             layer_head_mask=layer_head_mask,
         )
         hidden_states = attn_obj.attn_output
-        hidden_states = self.dropout(hidden_states)
+        hidden_states = nn.functional.dropout(
+            input=hidden_states,
+            p=self.dropout,
+            training=self.training,
+        )
         hidden_states = hidden_states + residual
         hidden_states = self.self_attn_layer_norm(hidden_states)
 
@@ -51,7 +55,11 @@ class BartEncoderLayer(nn.Module):
         hidden_states = self.activation_fn(self.fc1(hidden_states))
         hidden_states = self.activation_dropout(hidden_states)
         hidden_states = self.fc2(hidden_states)
-        hidden_states = self.dropout(hidden_states)
+        hidden_states = nn.functional.dropout(
+            input=hidden_states,
+            p=self.dropout,
+            training=self.training,
+        )
         hidden_states = hidden_states + residual
         hidden_states = self.final_layer_norm(hidden_states)
 

@@ -29,8 +29,6 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
         dim=0,
     ).to(device)
 
-    # print("Src tokens:", tokenizer_src.decode(src.detach().cpu().numpy()))
-
     src = torch.tensor(src, dtype=torch.int64).unsqueeze(0).to(device)
     src_attention_mask = (src != pad_token_id).type(torch.int64).to(device)
 
@@ -44,32 +42,33 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
     if config["type_attn"] == "scaled_dot_product":
         score_initial = 0
         past_key_values = None
+        past_attn_score = None
 
-        candidates = [(decoder_initial_input, last_token, past_key_values, score_initial)]
+        candidates = [(decoder_initial_input, last_token, past_key_values, past_attn_score, score_initial)]
         
         while True:
-            if all([(last_token.squeeze().item() == eos_token_id or candidate.size(-1) == max_len) for candidate, last_token, past_key_values, score in candidates]):
+            if all([(last_token.squeeze().item() == eos_token_id or candidate.size(-1) == max_len) for candidate, last_token, past_key_values, past_attn_scores, score in candidates]):
                 break
             new_candidates = []
 
-            for candidate, last_token, past_key_values, score in candidates:
+            for candidate, last_token, past_key_values, past_attn_scores, score in candidates:
                 if last_token.squeeze().item() == eos_token_id or candidate.size(-1) == max_len:
-                    new_candidates.append((candidate, last_token, past_key_values, score))
+                    new_candidates.append((candidate, last_token, past_key_values, past_attn_scores, score))
                     continue
                 
                 candidate_attention_mask = (candidate != pad_token_id).type_as(src_attention_mask).to(device)
-                # if past_key_values is not None:
-                    # print(f"{ candidate.shape = }")
-                    # print(f"{ past_key_values[-1][0].shape = }")
                 decoder_out_obj = model.get_decoder_out(
-                    input_ids=last_token,
+                    input_ids=candidate,
+                    # input_ids=last_token,
                     attention_mask=candidate_attention_mask,
                     encoder_hidden_states=encoder_output,
                     encoder_attention_mask=src_attention_mask,
                     past_key_values=past_key_values,
+                    past_attn_scores=past_attn_scores,
                 )
                 decoder_out = decoder_out_obj.last_hidden_state
                 past_key_values = decoder_out_obj.past_key_values
+                past_attn_scores = decoder_out_obj.past_attn_scores
                 
                 out = model.out(decoder_out)
                 prob = torch.nn.functional.log_softmax(out[:, -1], dim=1)
@@ -80,13 +79,12 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
                     token_prob = topk_prob[0][i].item()
                     last_token = token
                     new_candidate = torch.cat([candidate, last_token], dim=-1)
-                    new_candidates.append((new_candidate, last_token, past_key_values, score + token_prob))
+                    new_candidates.append((new_candidate, last_token, past_key_values, past_attn_scores, score + token_prob))
 
             candidates = sorted(new_candidates, key=lambda x: x[-1], reverse=True)
             candidates = candidates[:beam_size]
 
         pred_ids = candidates[0][0].squeeze()
-        # print("Pred tokens:", tokenizer_tgt.decode(pred_ids.detach().cpu().numpy()))
     else:
         candidates = [(decoder_initial_input, 0)]
     
@@ -115,6 +113,7 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
                 topk_prob, topk_idx = torch.topk(prob, beam_size, dim=1)
                 for i in range(beam_size):
                     token = topk_idx[0][i].unsqueeze(0).unsqueeze(0)
+                    # print(token)
                     token_prob = topk_prob[0][i].item()
                     new_candidate = torch.cat([candidate, token], dim=1)
                     new_candidates.append((new_candidate, score + token_prob))

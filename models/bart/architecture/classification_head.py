@@ -17,7 +17,7 @@ class BartClassificationHead(nn.Module):
             in_features=input_dim,
             out_features=inner_dim,
         )
-        self.dropout = nn.Dropout(dropout)
+        self.dropout = dropout
         self.out = nn.Linear(
             in_features=inner_dim,
             out_features=num_classes,
@@ -27,11 +27,19 @@ class BartClassificationHead(nn.Module):
         self,
         hidden_states: torch.Tensor
     ):
-        hidden_states = self.dropout(hidden_states)
+        hidden_states = nn.functional.dropout(
+            input=hidden_states,
+            p=self.dropout,
+            training=self.training,
+        )
         hidden_states = self.dense(hidden_states)
         if self.act_fn is not None:
             hidden_states = ACT_FN[self.act_fn](hidden_states)
-        hidden_states = self.dropout(hidden_states)
+        hidden_states = nn.functional.dropout(
+            input=hidden_states,
+            p=self.dropout,
+            training=self.training,
+        )
         hidden_states = self.out(hidden_states)
         return hidden_states
     

@@ -19,7 +19,7 @@ class BartEncoder(nn.Module):
         super().__init__()
         
         self.num_heads = config.encoder_attention_heads
-        self.dropout = nn.Dropout(config.dropout)
+        self.dropout = config.dropout
         self.layerdrop = config.encoder_layerdrop
         if custom_encoder_layer is None:
             self.layers = nn.ModuleList([
@@ -44,19 +44,21 @@ class BartEncoder(nn.Module):
     ):
         hidden_states = inputs_embeds
         hidden_states = self.layernorm_embedding(hidden_states)
-        hidden_states = self.dropout(hidden_states)
+        hidden_states = nn.functional.dropout(
+            input=hidden_states,
+            p=self.dropout,
+            training=self.training,
+        )
 
         if attention_mask is not None:
             attention_mask = create_encoder_atn_mask(
                 attention_mask=attention_mask,
             )
-            # print(f"{ attention_mask.shape = }")
             attention_mask=expand_encoder_mask(
                 mask=attention_mask,
                 num_heads=self.num_heads,
                 tgt_len=inputs_embeds.size(1),
             )
-            # print(f"{ attention_mask.shape = }")
 
         for idx, encoder_layer in enumerate(self.layers):
             if self.training:
