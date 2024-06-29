@@ -4,6 +4,7 @@ from .config import BartConfig
 from .attns import TYPE_ATTN
 from .utils import (
     ACT_FN,
+    BartEncoderLayerOut,
 )
 
 class BartEncoderLayer(nn.Module):
@@ -33,16 +34,30 @@ class BartEncoderLayer(nn.Module):
     def forward(
         self,
         hidden_states: torch.FloatTensor,
+        memory_key_value_states: list=None,
         attention_mask: torch.FloatTensor=None,
         layer_head_mask: torch.FloatTensor=None,
+        idx_layer: int=0,
     ):
         residual = hidden_states
+
+        present_key_value = None
+        present_attn_score = None
+        self_attn_key_states = memory_key_value_states[0] if memory_key_value_states is not None else None
+        self_attn_value_states = memory_key_value_states[1] if memory_key_value_states is not None else None
         attn_obj = self.self_attn(
             hidden_states=hidden_states,
+            key_states=self_attn_key_states,
+            value_states=self_attn_value_states,
             attention_mask=attention_mask,
             layer_head_mask=layer_head_mask,
+            idx_layer=idx_layer,
         )
         hidden_states = attn_obj.attn_output
+        present_key_value = []
+        present_key_value.append(attn_obj.past_key_value)
+        present_attn_score = []
+        present_attn_score.append(attn_obj.past_attn_score)
         hidden_states = nn.functional.dropout(
             input=hidden_states,
             p=self.dropout,
@@ -63,6 +78,12 @@ class BartEncoderLayer(nn.Module):
         hidden_states = hidden_states + residual
         hidden_states = self.final_layer_norm(hidden_states)
 
-        return hidden_states
+        return BartEncoderLayerOut(
+            out=hidden_states,
+            present_attn_score=present_attn_score,
+            present_key_value=present_key_value,
+        )
     
-__all__ = ["BartEncoderLayer"]
+__all__ = [
+    "BartEncoderLayer"
+]

@@ -3,11 +3,15 @@ import torch.nn as nn
 from .encoder_layer import BartEncoderLayer
 from .config import BartConfig
 from .utils import (
+    BartEncoderBlockOut,
     create_encoder_atn_mask,
     expand_encoder_mask,
 )
 from .utils.init_weights import (
     _init_weights,
+)
+from .attns import (
+    MULTIQUERY_SCALED_DOT_PRODUCT,
 )
 
 class BartEncoder(nn.Module):
@@ -18,6 +22,7 @@ class BartEncoder(nn.Module):
     ):
         super().__init__()
         
+        self.type_attn = config.type_attn
         self.num_heads = config.encoder_attention_heads
         self.dropout = config.dropout
         self.layerdrop = config.encoder_layerdrop
@@ -60,18 +65,27 @@ class BartEncoder(nn.Module):
                 tgt_len=inputs_embeds.size(1),
             )
 
-        for idx, encoder_layer in enumerate(self.layers):
+        memory_key_value_states = None
+        for idx in range(len(self.layers)):
+            encoder_layer = self.layers[idx]
             if self.training:
                 dropout_probability = torch.rand([])
                 if dropout_probability < self.layerdrop:
                     continue
-            layer_outputs = encoder_layer(
+            encoder_layer_out_obj = encoder_layer(
                 hidden_states=hidden_states,
                 attention_mask=attention_mask,
                 layer_head_mask=(head_mask[idx] if head_mask is not None else None),
+                memory_key_value_states=memory_key_value_states,
             )
-            hidden_states = layer_outputs
+            hidden_states = encoder_layer_out_obj.out
+            if self.type_attn == MULTIQUERY_SCALED_DOT_PRODUCT and idx == 0:
+                memory_key_value_states = encoder_layer_out_obj.present_key_value[0]
 
-        return hidden_states
+        return BartEncoderBlockOut(
+            out=hidden_states,
+        )
     
-__all__ = ["BartEncoder"]
+__all__ = [
+    "BartEncoder"
+]

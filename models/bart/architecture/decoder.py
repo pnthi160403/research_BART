@@ -5,6 +5,10 @@ from .decoder_layer import BartDecoderLayer
 from .utils import (
     BartDecoderBlockOut,
 )
+from .attns import (
+    MULTIQUERY_SCALED_DOT_PRODUCT,
+)
+
 from .utils.mask import (
     create_decoder_atn_mask,
     create_encoder_atn_mask,
@@ -24,6 +28,7 @@ class BartDecoder(nn.Module):
     ):
         super().__init__()
         
+        self.type_attn = config.type_attn
         self.num_heads = config.decoder_attention_heads
         self.dropout = config.dropout
         self.layerdrop = config.decoder_layerdrop
@@ -84,6 +89,8 @@ class BartDecoder(nn.Module):
 
         next_past_key_value = [] if use_cache else None
         next_past_attn_score = [] if use_cache else None
+        memory_key_value_states = None
+        memory_encoder_key_value_states = None
         for idx in range(len(self.layers)):
             decoder_layer = self.layers[idx]
             if self.training:
@@ -94,6 +101,8 @@ class BartDecoder(nn.Module):
             past_attn_score = past_attn_scores[idx] if past_attn_scores is not None else None
             decoder_layer_output_obj = decoder_layer(
                 hidden_states=hidden_states,
+                memory_key_value_states=memory_key_value_states,
+                memory_encoder_key_value_states=memory_encoder_key_value_states,
                 attention_mask=attention_mask,
                 encoder_hidden_states=encoder_hidden_states,
                 encoder_attention_mask=encoder_attention_mask,
@@ -104,15 +113,19 @@ class BartDecoder(nn.Module):
                 past_key_value=past_key_value,
                 past_attn_score=past_attn_score,
                 use_cache=use_cache,
+                idx_layer=idx,
             )
-            hidden_states = decoder_layer_output_obj.decoder_layer_out
+            hidden_states = decoder_layer_output_obj.out
+            if self.type_attn == MULTIQUERY_SCALED_DOT_PRODUCT and idx == 0:
+                memory_key_value_states = decoder_layer_output_obj.present_key_value[0]
+                memory_encoder_key_value_states = decoder_layer_output_obj.present_key_value[1]
             
             if use_cache:
                 next_past_key_value.append(decoder_layer_output_obj.present_key_value)
                 next_past_attn_score.append(decoder_layer_output_obj.present_attn_score)
 
         return BartDecoderBlockOut(
-            decoder_block_out=hidden_states,
+            out=hidden_states,
             past_key_values=next_past_key_value,
             past_attn_scores=next_past_attn_score,
         )

@@ -45,7 +45,6 @@ class MultiheadScaledDotProductAttention(nn.Module):
         value: torch.Tensor,
         mask: torch.Tensor=None,
         dropout: nn.Dropout=None,
-        past_attn_score: torch.Tensor=None,
         use_cache: bool=False,
     ) -> torch.Tensor:
         attention_scores = torch.matmul(query, key.transpose(-2, -1)) / self.scaling
@@ -66,12 +65,12 @@ class MultiheadScaledDotProductAttention(nn.Module):
         attention_mask: torch.Tensor=None,
         layer_head_mask: torch.Tensor=None,
         use_cache: bool=False,
+        is_cross_attn: bool=False,
         **kwargs,
     ):
         bsz, tgt_len, embed_dim = hidden_states.size()
         assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
 
-        is_cross_attn = key_value_states is not None
         if use_cache and is_cross_attn and past_key_value is not None:
             # reuse key and value in cross attention
             query_states = self.q_proj(hidden_states)
@@ -113,6 +112,148 @@ class MultiheadScaledDotProductAttention(nn.Module):
 
         if self.is_decoder and use_cache:
             past_key_value = [key_states, value_states]
+
+        attn_weights, attention_score = self.scaled_dot_product_attention(
+            query=query_states,
+            key=key_states,
+            value=value_states,
+            mask=attention_mask,
+            dropout=self.dropout,
+            past_attn_score=past_attn_score,
+            use_cache=use_cache,
+        )
+        
+        if layer_head_mask is not None:
+            attn_weights = layer_head_mask.view(1, -1, 1, 1) * attn_weights.view(bsz, self.num_heads, tgt_len, tgt_len)
+            attn_weights = attn_weights.view(bsz * self.num_heads, tgt_len, tgt_len)
+
+        attn_weights = attn_weights.transpose(1, 2).contiguous().view(bsz, -1, self.num_heads * self.head_dim)
+        attn_output = self.out_proj(attn_weights)
+
+        past_attn_score = None
+        if self.is_decoder and use_cache:
+            past_attn_score = attention_score
+
+        return BartAttentionOut(
+            attn_output=attn_output,
+            past_key_value=past_key_value,
+            past_attn_score=past_attn_score,
+        )
+    
+# Self-attention with MultiqueryScaledDotProductAttention
+class MultiqueryScaledDotProductAttention(nn.Module):
+    def __init__(
+        self,
+        embed_dim: int,
+        num_heads: int,
+        dropout: float=0.0,
+        bias: bool=True,
+        is_decoder: bool=False,
+        **kwargs,
+    ):
+        super().__init__()
+        self.embed_dim = embed_dim
+        self.num_heads = num_heads
+        self.head_dim = embed_dim // num_heads
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.scaling = torch.sqrt(torch.FloatTensor([self.head_dim])).to(device)
+        self.is_decoder = is_decoder
+
+        self.dropout = nn.Dropout(dropout)
+        self.k_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
+        self.v_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
+        self.q_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
+        self.out_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
+
+    def _shape(
+        self,
+        tensor: torch.Tensor,
+        seq_len: int,
+        bsz: int,
+    ):
+        return tensor.view(bsz, seq_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
+    
+    def scaled_dot_product_attention(
+        self,
+        query: torch.Tensor,
+        key: torch.Tensor,
+        value: torch.Tensor,
+        mask: torch.Tensor=None,
+        dropout: nn.Dropout=None,
+        use_cache: bool=False,
+    ) -> torch.Tensor:
+        attention_scores = torch.matmul(query, key.transpose(-2, -1)) / self.scaling
+        if mask is not None and not use_cache:
+            attention_scores.masked_fill_(mask == 0, -1e9)
+        attention_scores = attention_scores.softmax(dim=-1)
+        if dropout is not None:
+            attention_scores = dropout(attention_scores)
+        attn_weights = torch.matmul(attention_scores, value)
+        return attn_weights, attention_scores
+    
+    def forward(
+        self,
+        hidden_states: torch.Tensor,
+        key_value_states: torch.Tensor=None,
+        key_states: torch.Tensor=None,
+        value_states: torch.Tensor=None,
+        past_key_value: list=None,
+        past_attn_score: torch.Tensor=None,
+        attention_mask: torch.Tensor=None,
+        layer_head_mask: torch.Tensor=None,
+        use_cache: bool=False,
+        is_cross_attn: bool=False,
+        idx_layer: int=0,
+        **kwargs,
+    ):
+        bsz, tgt_len, embed_dim = hidden_states.size()
+        assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
+
+        if use_cache and is_cross_attn and past_key_value is not None:
+            # reuse key and value in cross attention
+            query_states = self.q_proj(hidden_states)
+            query_states = self._shape(query_states, -1, bsz)
+
+            key_states = past_key_value[0]
+            value_states = past_key_value[1] 
+        elif is_cross_attn:
+            # cross attention
+            query_states = self.q_proj(hidden_states)
+            query_states = self._shape(query_states, -1, bsz)
+            
+            if idx_layer == 0:
+                key_states = self.k_proj(key_value_states)
+                value_states = self.v_proj(key_value_states)
+
+            key_states = self._shape(key_states, -1, bsz)
+            value_states = self._shape(value_states, -1, bsz)
+        elif use_cache and past_key_value is not None:
+            # reuse key and value in masked self attention
+            query_states = self.q_proj(hidden_states)
+            query_states = self._shape(query_states, -1, bsz)
+
+            if idx_layer == 0:
+                key_states = self.k_proj(hidden_states)
+                value_states = self.v_proj(hidden_states)
+
+            key_states = self._shape(key_states, -1, bsz)
+            key_states = torch.cat([past_key_value[0], key_states], dim=2)
+            
+            value_states = self._shape(value_states, -1, bsz)
+            value_states = torch.cat([past_key_value[1], value_states], dim=2)
+        else:
+            # self attention
+            query_states = self.q_proj(hidden_states)
+            query_states = self._shape(query_states, -1, bsz)
+
+            if idx_layer == 0:
+                key_states = self.k_proj(hidden_states)
+                value_states = self.v_proj(hidden_states)
+
+            key_states = self._shape(key_states, -1, bsz)
+            value_states = self._shape(value_states, -1, bsz)
+
+        past_key_value = [key_states, value_states]
 
         attn_weights, attention_score = self.scaled_dot_product_attention(
             query=query_states,
@@ -195,13 +336,14 @@ class MultiheadAdditiveAttention(nn.Module):
         key_value_states: torch.Tensor=None,
         attention_mask: torch.Tensor=None,
         layer_head_mask: torch.Tensor=None,
+        is_cross_attn: bool=False,
         **kwargs,
     )-> torch.Tensor:
         bsz, tgt_len, embed_dim = hidden_states.size()
         assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
 
         query_states = self.q_proj(hidden_states)
-        if key_value_states is None:
+        if not is_cross_attn:
             key_states = self.k_proj(hidden_states)
             value_states = self.v_proj(hidden_states)
         else: # is cross-attention
@@ -384,13 +526,14 @@ class MutiheadRelativeAttention(nn.Module):
         key_value_states: torch.Tensor=None,
         attention_mask: torch.Tensor=None,
         layer_head_mask: torch.Tensor=None,
+        is_cross_attn: bool=False,
         **kwargs,
     ):
         bsz, tgt_len, embed_dim = hidden_states.size()
         assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
 
         query_states = self.q_proj(hidden_states)
-        if key_value_states is None:
+        if not is_cross_attn:
             key_states = self.k_proj(hidden_states)
             value_states = self.v_proj(hidden_states)
         else: # is cross-attention
@@ -441,13 +584,14 @@ class MultiheadSlidingWindowSelfAttention(nn.Module):
         key_value_states: torch.Tensor=None,
         attention_mask: torch.Tensor=None,
         layer_head_mask: torch.Tensor=None,
+        is_cross_attn: bool=False,
         **kwargs,
     ):
         bsz, tgt_len, embed_dim = hidden_states.size()
         assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
 
         query_states = self.q_proj(hidden_states)
-        if key_value_states is None:
+        if not is_cross_attn:
             key_states = self.k_proj(hidden_states)
             value_states = self.v_proj(hidden_states)
         else:
@@ -487,173 +631,175 @@ class MultiheadSlidingWindowSelfAttention(nn.Module):
             attn_output=attn_output,
         )
 
-class Tmp(nn.Module):
-    def __init__(
-        self,
-        embed_dim: int,
-        num_heads: int,
-        window_size: int,
-        dropout: float=0.0,
-        **kwargs,
-    ):
-        super().__init__()
-        self.embed_dim = embed_dim
-        self.num_heads = num_heads
-        self.head_dim = embed_dim // num_heads
-        self.window_size = window_size
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.scaling = math.sqrt(self.head_dim)
+# class Tmp(nn.Module):
+#     def __init__(
+#         self,
+#         embed_dim: int,
+#         num_heads: int,
+#         window_size: int,
+#         dropout: float=0.0,
+#         **kwargs,
+#     ):
+#         super().__init__()
+#         self.embed_dim = embed_dim
+#         self.num_heads = num_heads
+#         self.head_dim = embed_dim // num_heads
+#         self.window_size = window_size
+#         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#         self.scaling = math.sqrt(self.head_dim)
 
-        self.dropout = nn.Dropout(dropout)
-        self.k_proj = nn.Linear(embed_dim, embed_dim)
-        self.v_proj = nn.Linear(embed_dim, embed_dim)
-        self.q_proj = nn.Linear(embed_dim, embed_dim)
-        self.out_proj = nn.Linear(embed_dim, embed_dim)
+#         self.dropout = nn.Dropout(dropout)
+#         self.k_proj = nn.Linear(embed_dim, embed_dim)
+#         self.v_proj = nn.Linear(embed_dim, embed_dim)
+#         self.q_proj = nn.Linear(embed_dim, embed_dim)
+#         self.out_proj = nn.Linear(embed_dim, embed_dim)
 
-    def get_window_matrix(
-        self,
-        tensor: torch.Tensor,
-        window_size: int,
-        unfold_dim: int=2,
-    ):
-        pad_tensor = nn.functional.pad(
-            input=tensor,
-            pad=(0, 0, window_size, window_size),
-            mode='constant',
-            value=0,
-        )
-        slice_tensor = pad_tensor.unfold(
-            dimension=unfold_dim,
-            size=window_size * 2 + 1,
-            step=1,
-        ).transpose(-1, -2).contiguous()
-        return slice_tensor
+#     def get_window_matrix(
+#         self,
+#         tensor: torch.Tensor,
+#         window_size: int,
+#         unfold_dim: int=2,
+#     ):
+#         pad_tensor = nn.functional.pad(
+#             input=tensor,
+#             pad=(0, 0, window_size, window_size),
+#             mode='constant',
+#             value=0,
+#         )
+#         slice_tensor = pad_tensor.unfold(
+#             dimension=unfold_dim,
+#             size=window_size * 2 + 1,
+#             step=1,
+#         ).transpose(-1, -2).contiguous()
+#         return slice_tensor
     
-    def split_tensor(
-        self,
-        tensor: torch.Tensor,
-        expand_len: int,
-    ):
-        tensor_len = tensor.size(2)
-        if tensor_len > expand_len:
-            if len(tensor.size()) == 5:
-                tensor = tensor[:, :, :expand_len, :, :]
-            elif len(tensor.size()) == 4:
-                tensor = tensor[:, :, :expand_len, :]
-        elif expand_len > tensor_len:
-            if len(tensor.size()) == 5:
-                last_element = tensor[:, :, tensor_len - 1:tensor_len, :, :]
-            elif len(tensor.size()) == 4:
-                last_element = tensor[:, :, tensor_len - 1:tensor_len, :]
-            repeat_times = expand_len - tensor_len
-            tensors_to_concat = [tensor] + [last_element] * repeat_times
-            tensor = torch.cat(tensors_to_concat, dim=2)
-        return tensor
+#     def split_tensor(
+#         self,
+#         tensor: torch.Tensor,
+#         expand_len: int,
+#     ):
+#         tensor_len = tensor.size(2)
+#         if tensor_len > expand_len:
+#             if len(tensor.size()) == 5:
+#                 tensor = tensor[:, :, :expand_len, :, :]
+#             elif len(tensor.size()) == 4:
+#                 tensor = tensor[:, :, :expand_len, :]
+#         elif expand_len > tensor_len:
+#             if len(tensor.size()) == 5:
+#                 last_element = tensor[:, :, tensor_len - 1:tensor_len, :, :]
+#             elif len(tensor.size()) == 4:
+#                 last_element = tensor[:, :, tensor_len - 1:tensor_len, :]
+#             repeat_times = expand_len - tensor_len
+#             tensors_to_concat = [tensor] + [last_element] * repeat_times
+#             tensor = torch.cat(tensors_to_concat, dim=2)
+#         return tensor
     
-    def split_mask(
-        self,
-        mask: torch.Tensor,
-        window_size: int,
-        expand_len: int,
-    ):
-        mask_expand = nn.functional.pad(
-            input=mask,
-            pad=(window_size, window_size),
-            mode='constant',
-            value=0,
-        )
-        mask_expand = mask_expand[:, :, :1, :].squeeze(2)
-        mask_expand = mask_expand.unfold(
-            dimension=2,
-            size=window_size * 2 + 1,
-            step=1,
-        )
-        mask_slice = self.split_tensor(
-            tensor=mask_expand,
-            expand_len=expand_len,
-        )
-        return mask_slice
+#     def split_mask(
+#         self,
+#         mask: torch.Tensor,
+#         window_size: int,
+#         expand_len: int,
+#     ):
+#         mask_expand = nn.functional.pad(
+#             input=mask,
+#             pad=(window_size, window_size),
+#             mode='constant',
+#             value=0,
+#         )
+#         mask_expand = mask_expand[:, :, :1, :].squeeze(2)
+#         mask_expand = mask_expand.unfold(
+#             dimension=2,
+#             size=window_size * 2 + 1,
+#             step=1,
+#         )
+#         mask_slice = self.split_tensor(
+#             tensor=mask_expand,
+#             expand_len=expand_len,
+#         )
+#         return mask_slice
 
-    def forward(
-        self,
-        hidden_states: torch.Tensor,
-        key_value_states: torch.Tensor=None,
-        attention_mask: torch.Tensor=None,
-        layer_head_mask: torch.Tensor=None,
-        **kwargs,
-    ) -> BartAttentionOut:
-        bsz, tgt_len, embed_dim = hidden_states.size()
-        assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
+#     def forward(
+#         self,
+#         hidden_states: torch.Tensor,
+#         key_value_states: torch.Tensor=None,
+#         attention_mask: torch.Tensor=None,
+#         layer_head_mask: torch.Tensor=None,
+#         **kwargs,
+#     ) -> BartAttentionOut:
+#         bsz, tgt_len, embed_dim = hidden_states.size()
+#         assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
 
-        query_states = self.q_proj(hidden_states)
-        if key_value_states is None:
-            key_states = self.k_proj(hidden_states)
-            value_states = self.v_proj(hidden_states)
-        else:
-            key_states = self.k_proj(key_value_states)
-            value_states = self.v_proj(key_value_states)
+#         query_states = self.q_proj(hidden_states)
+#         if key_value_states is None:
+#             key_states = self.k_proj(hidden_states)
+#             value_states = self.v_proj(hidden_states)
+#         else:
+#             key_states = self.k_proj(key_value_states)
+#             value_states = self.v_proj(key_value_states)
         
-        self.window_size = min(self.window_size, key_states.size(1))
+#         self.window_size = min(self.window_size, key_states.size(1))
 
-        query_states = query_states.view(bsz, tgt_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
-        key_states = key_states.view(bsz, -1, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
-        value_states = value_states.view(bsz, -1, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
+#         query_states = query_states.view(bsz, tgt_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
+#         key_states = key_states.view(bsz, -1, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
+#         value_states = value_states.view(bsz, -1, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
 
-        key_slice = self.get_window_matrix(
-            tensor=key_states,
-            window_size=self.window_size,
-        )
-        key_slice = self.split_tensor(
-            tensor=key_slice,
-            expand_len=tgt_len,
-        )
-        value_slice = self.get_window_matrix(
-            tensor=value_states,
-            window_size=self.window_size,
-        )
-        value_slice = self.split_tensor(
-            tensor=value_slice,
-            expand_len=tgt_len,
-        )
-        q_expand = query_states.unsqueeze(-2)
+#         key_slice = self.get_window_matrix(
+#             tensor=key_states,
+#             window_size=self.window_size,
+#         )
+#         key_slice = self.split_tensor(
+#             tensor=key_slice,
+#             expand_len=tgt_len,
+#         )
+#         value_slice = self.get_window_matrix(
+#             tensor=value_states,
+#             window_size=self.window_size,
+#         )
+#         value_slice = self.split_tensor(
+#             tensor=value_slice,
+#             expand_len=tgt_len,
+#         )
+#         q_expand = query_states.unsqueeze(-2)
 
-        score = torch.matmul(q_expand, key_slice.transpose(-2, -1)).contiguous() / self.scaling
-        score = score.squeeze(3)
+#         score = torch.matmul(q_expand, key_slice.transpose(-2, -1)).contiguous() / self.scaling
+#         score = score.squeeze(3)
 
-        if attention_mask is not None:
-            mask_slice = self.split_mask(
-                mask=attention_mask,
-                window_size=self.window_size,
-                expand_len=tgt_len,
-            )
-            score = score.masked_fill(mask_slice == 0, -1e9)
-        score = self.dropout(score)
-        score = nn.functional.softmax(
-            input=score,
-            dim=-1,
-        )
-        score = score.unsqueeze(3)
+#         if attention_mask is not None:
+#             mask_slice = self.split_mask(
+#                 mask=attention_mask,
+#                 window_size=self.window_size,
+#                 expand_len=tgt_len,
+#             )
+#             score = score.masked_fill(mask_slice == 0, -1e9)
+#         score = self.dropout(score)
+#         score = nn.functional.softmax(
+#             input=score,
+#             dim=-1,
+#         )
+#         score = score.unsqueeze(3)
 
-        attn_weights = torch.matmul(score, value_slice).squeeze(3)
-        attn_weights = attn_weights.transpose(1, 2).contiguous().view(bsz, tgt_len, self.num_heads * self.head_dim)
+#         attn_weights = torch.matmul(score, value_slice).squeeze(3)
+#         attn_weights = attn_weights.transpose(1, 2).contiguous().view(bsz, tgt_len, self.num_heads * self.head_dim)
         
-        attn_output = self.out_proj(attn_weights)
+#         attn_output = self.out_proj(attn_weights)
 
-        return BartAttentionOut(
-            attn_output=attn_output,
-        )
+#         return BartAttentionOut(
+#             attn_output=attn_output,
+#         )
 
 # cosnt variable
 SCALED_DOT_PRODUCT = "scaled_dot_product"
 ADDITIVE = "additive"
 RELATIVE_POSITION = "relative_position"
 SLIDING_WINDOW = "sliding_window"
+MULTIQUERY_SCALED_DOT_PRODUCT = "multiquery_scaled_dot_product"
 
 TYPE_ATTN = {
     SCALED_DOT_PRODUCT: MultiheadScaledDotProductAttention,
     ADDITIVE: MultiheadAdditiveAttention,
     RELATIVE_POSITION: MutiheadRelativeAttention,
     SLIDING_WINDOW: MultiheadSlidingWindowSelfAttention,
+    MULTIQUERY_SCALED_DOT_PRODUCT: MultiqueryScaledDotProductAttention,
 }
 
 __all__ = [
@@ -665,4 +811,5 @@ __all__ = [
     "RELATIVE_POSITION",
     "SLIDING_WINDOW",
     "TYPE_ATTN",
+    "MULTIQUERY_SCALED_DOT_PRODUCT",
 ]
