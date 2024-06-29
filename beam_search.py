@@ -40,7 +40,6 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
     decoder_initial_input = torch.empty(1, 1).fill_(sos_token_id).type_as(src).to(device)
     last_token = torch.empty(1, 1).fill_(sos_token_id).type_as(src).to(device)
     if config["use_cache"]:
-        print("Use cache")
         score_initial = 0
         past_key_values = None
         past_attn_score = None

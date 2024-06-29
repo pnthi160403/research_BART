@@ -72,7 +72,8 @@ class MultiheadScaledDotProductAttention(nn.Module):
         assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
 
         is_cross_attn = key_value_states is not None
-        if use_cache and is_cross_attn and past_key_value is not None and past_key_value[0].shape[2] == key_value_states.shape[1]:
+        if use_cache and is_cross_attn and past_key_value is not None:
+            # reuse key and value in cross attention
             query_states = self.q_proj(hidden_states)
             query_states = self._shape(query_states, -1, bsz)
             key_states = past_key_value[0]
