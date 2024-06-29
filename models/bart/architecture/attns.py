@@ -119,7 +119,6 @@ class MultiheadScaledDotProductAttention(nn.Module):
             value=value_states,
             mask=attention_mask,
             dropout=self.dropout,
-            past_attn_score=past_attn_score,
             use_cache=use_cache,
         )
         
@@ -261,7 +260,6 @@ class MultiqueryScaledDotProductAttention(nn.Module):
             value=value_states,
             mask=attention_mask,
             dropout=self.dropout,
-            past_attn_score=past_attn_score,
             use_cache=use_cache,
         )
         
