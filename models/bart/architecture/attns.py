@@ -51,38 +51,10 @@ class MultiheadScaledDotProductAttention(nn.Module):
         attention_scores = torch.matmul(query, key.transpose(-2, -1)) / self.scaling
         if mask is not None and not use_cache:
             attention_scores.masked_fill_(mask == 0, -1e9)
-            # if use_cache:
-            #     # mask (batch, num_heads, q_len, k_len)
-            #     attention_scores.masked_fill_(mask[:, :, -1:, :] == 0, -1e9)
-            # else:
-            #     attention_scores.masked_fill_(mask == 0, -1e9)
         attention_scores = attention_scores.softmax(dim=-1)
-        # if use_cache and past_attn_score is not None and attention_scores.size(-1) != past_attn_score.size(-1):
-        #     past_attn_score = nn.functional.pad(
-        #         input=past_attn_score,
-        #         pad=(0, 1),
-        #         mode='constant',
-        #         value=0,
-        #     )
-        # if use_cache and past_attn_score is not None:
-        #     attention_scores = torch.cat(
-        #         [
-        #             past_attn_score,
-        #             attention_scores,
-        #         ],
-        #         dim=2,
-        #     )
         if dropout is not None:
             attention_scores = dropout(attention_scores)
-        # if use_cache:
-        #     attn_weights = torch.matmul(attention_scores[:,:,-1:,:], value)
-        # else:
-        #     attn_weights = torch.matmul(attention_scores, value)
-        # print(f"{ attention_scores.shape = }")
-        # print(f"{ value.shape = }")
         attn_weights = torch.matmul(attention_scores, value)
-        # print(f"{ attn_weights.shape = }")
-        # return attn_weights[:,:,-1:,:], attention_scores
         return attn_weights, attention_scores
     
     def forward(
@@ -101,8 +73,6 @@ class MultiheadScaledDotProductAttention(nn.Module):
 
         is_cross_attn = key_value_states is not None
         if use_cache and is_cross_attn and past_key_value is not None and past_key_value[0].shape[2] == key_value_states.shape[1]:
-            # reuse key and value in cross attention
-            # query_states = self.q_proj(hidden_states[:, -1:, :])
             query_states = self.q_proj(hidden_states)
             query_states = self._shape(query_states, -1, bsz)
             key_states = past_key_value[0]
@@ -119,16 +89,13 @@ class MultiheadScaledDotProductAttention(nn.Module):
             value_states = self._shape(value_states, -1, bsz)
         elif use_cache and past_key_value is not None:
             # reuse key and value in masked self attention
-            # query_states = self.q_proj(hidden_states[:, -1:, :])
             query_states = self.q_proj(hidden_states)
             query_states = self._shape(query_states, -1, bsz)
 
-            # key_states = self.k_proj(hidden_states[:, -1:, :])
             key_states = self.k_proj(hidden_states)
             key_states = self._shape(key_states, -1, bsz)
             key_states = torch.cat([past_key_value[0], key_states], dim=2)
             
-            # value_states = self.v_proj(hidden_states[:, -1:, :])     
             value_states = self.v_proj(hidden_states)
             value_states = self._shape(value_states, -1, bsz)
             value_states = torch.cat([past_key_value[1], value_states], dim=2)

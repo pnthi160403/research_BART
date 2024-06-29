@@ -144,6 +144,7 @@ class BartSeq2seq(nn.Module):
         decoder_block_out_obj = self.decoder(
             inputs_embeds=self.decoder_inputs_embeds(
                 input_ids=input_ids,
+                use_cache=use_cache,
                 pos_idx=pos_idx,
             ),
             attention_mask=attention_mask,

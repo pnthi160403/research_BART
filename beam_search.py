@@ -40,6 +40,7 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
     decoder_initial_input = torch.empty(1, 1).fill_(sos_token_id).type_as(src).to(device)
     last_token = torch.empty(1, 1).fill_(sos_token_id).type_as(src).to(device)
     if config["use_cache"]:
+        print("Use cache")
         score_initial = 0
         past_key_values = None
         past_attn_score = None
@@ -59,7 +60,6 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
                 candidate_attention_mask = (candidate != pad_token_id).type_as(src_attention_mask).to(device)
                 decoder_out_obj = model.get_decoder_out(
                     input_ids=last_token,
-                    # input_ids=candidate,
                     attention_mask=candidate_attention_mask,
                     encoder_hidden_states=encoder_output,
                     encoder_attention_mask=src_attention_mask,
@@ -115,7 +115,6 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
                 topk_prob, topk_idx = torch.topk(prob, beam_size, dim=1)
                 for i in range(beam_size):
                     token = topk_idx[0][i].unsqueeze(0).unsqueeze(0)
-                    # print(token)
                     token_prob = topk_prob[0][i].item()
                     new_candidate = torch.cat([candidate, token], dim=1)
                     new_candidates.append((new_candidate, score + token_prob))

@@ -56,6 +56,7 @@ class BartEmbeds(nn.Module):
             self, 
             input_ids: torch.Tensor=None,
             inputs_embeds: torch.Tensor=None,
+            use_cache: bool=False,
             pos_idx: int=None,
         ):
         if input_ids is not None:
@@ -66,8 +67,7 @@ class BartEmbeds(nn.Module):
                 bsz, seq_len = input_ids.size()
             else:
                 bsz, seq_len, d_model = inputs_embeds.size()
-            if pos_idx is not None:
-                # print(f"{ pos_idx= }")
+            if use_cache and pos_idx is not None:
                 pos_ids = self.pos_ids[pos_idx:pos_idx+1]
             else:
                 pos_ids = self.pos_ids[:seq_len]
