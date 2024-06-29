@@ -139,9 +139,13 @@ class BartSeq2seq(nn.Module):
         past_key_values: list=None,
         past_attn_scores: list=None,
         use_cache: bool=False,
+        pos_idx: int=None,
     ):
         decoder_block_out_obj = self.decoder(
-            inputs_embeds=self.decoder_inputs_embeds(input_ids),
+            inputs_embeds=self.decoder_inputs_embeds(
+                input_ids=input_ids,
+                pos_idx=pos_idx,
+            ),
             attention_mask=attention_mask,
             encoder_hidden_states=encoder_hidden_states,
             encoder_attention_mask=encoder_attention_mask,

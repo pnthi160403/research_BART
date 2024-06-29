@@ -58,13 +58,15 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
                 
                 candidate_attention_mask = (candidate != pad_token_id).type_as(src_attention_mask).to(device)
                 decoder_out_obj = model.get_decoder_out(
-                    input_ids=candidate,
+                    input_ids=last_token,
+                    # input_ids=candidate,
                     attention_mask=candidate_attention_mask,
                     encoder_hidden_states=encoder_output,
                     encoder_attention_mask=src_attention_mask,
                     past_key_values=past_key_values,
                     past_attn_scores=past_attn_scores,
                     use_cache=True,
+                    pos_idx=candidate.size(-1) - 1,
                 )
                 decoder_out = decoder_out_obj.last_hidden_state
                 past_key_values = decoder_out_obj.past_key_values
