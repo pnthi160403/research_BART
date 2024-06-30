@@ -77,10 +77,14 @@ class BartEncoder(nn.Module):
                 attention_mask=attention_mask,
                 layer_head_mask=(head_mask[idx] if head_mask is not None else None),
                 memory_key_value_states=memory_key_value_states,
+                idx_layer=idx,
             )
             hidden_states = encoder_layer_out_obj.out
-            if self.type_attn == MULTIQUERY_SCALED_DOT_PRODUCT and idx == 0:
-                memory_key_value_states = encoder_layer_out_obj.present_key_value[0]
+            if self.type_attn == MULTIQUERY_SCALED_DOT_PRODUCT:
+                if idx == 0:
+                    memory_key_value_states = encoder_layer_out_obj.present_key_value[0]
+                elif idx == len(self.layers) - 1:
+                    memory_key_value_states = None
 
         return BartEncoderBlockOut(
             out=hidden_states,

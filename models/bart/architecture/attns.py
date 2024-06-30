@@ -220,7 +220,7 @@ class MultiqueryScaledDotProductAttention(nn.Module):
             query_states = self.q_proj(hidden_states)
             query_states = self._shape(query_states, -1, bsz)
             
-            if idx_layer == 0:
+            if key_states is None and value_states is None:
                 key_states = self.k_proj(key_value_states)
                 value_states = self.v_proj(key_value_states)
 
@@ -231,7 +231,7 @@ class MultiqueryScaledDotProductAttention(nn.Module):
             query_states = self.q_proj(hidden_states)
             query_states = self._shape(query_states, -1, bsz)
 
-            if idx_layer == 0:
+            if key_states is None and value_states is None:
                 key_states = self.k_proj(hidden_states)
                 value_states = self.v_proj(hidden_states)
 
@@ -245,7 +245,7 @@ class MultiqueryScaledDotProductAttention(nn.Module):
             query_states = self.q_proj(hidden_states)
             query_states = self._shape(query_states, -1, bsz)
 
-            if idx_layer == 0:
+            if key_states is None and value_states is None:
                 key_states = self.k_proj(hidden_states)
                 value_states = self.v_proj(hidden_states)
 

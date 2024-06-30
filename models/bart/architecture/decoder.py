@@ -116,9 +116,12 @@ class BartDecoder(nn.Module):
                 idx_layer=idx,
             )
             hidden_states = decoder_layer_output_obj.out
-            if self.type_attn == MULTIQUERY_SCALED_DOT_PRODUCT and idx == 0:
-                memory_key_value_states = decoder_layer_output_obj.present_key_value[0]
-                memory_encoder_key_value_states = decoder_layer_output_obj.present_key_value[1]
+            if self.type_attn == MULTIQUERY_SCALED_DOT_PRODUCT:
+                if idx == 0:
+                    memory_key_value_states = decoder_layer_output_obj.present_key_value[0]
+                    memory_encoder_key_value_states = decoder_layer_output_obj.present_key_value[1]
+                elif idx == len(self.layers) - 1:
+                    memory_key_value_states = None
             
             if use_cache:
                 next_past_key_value.append(decoder_layer_output_obj.present_key_value)
