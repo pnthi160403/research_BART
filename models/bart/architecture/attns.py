@@ -296,14 +296,12 @@ class MultiheadAdditiveAttention(nn.Module):
         num_heads: int,
         dropout: float=0.0,
         bias: bool=True,
-        is_decoder: bool=False,
         **kwargs,
     ):
         super().__init__()
         self.embed_dim = embed_dim
         self.num_heads = num_heads
         self.head_dim = embed_dim // num_heads
-        self.is_decoder = is_decoder
 
         self.dropout = nn.Dropout(dropout)
         self.k_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
@@ -325,14 +323,13 @@ class MultiheadAdditiveAttention(nn.Module):
         query: torch.Tensor,
         key: torch.Tensor,
         value: torch.Tensor,
-        mask: torch.Tensor,
-        dropout: nn.Dropout,
-        use_cache: bool=False,
+        mask: torch.Tensor=None,
+        dropout: nn.Dropout=None,
     ) -> torch.Tensor:
         q_expand = query.unsqueeze(3).repeat_interleave(key.size(2), dim=3).contiguous()
         k_expand = key.unsqueeze(2)
         score = self.score_proj(torch.tanh(q_expand + k_expand)).squeeze(-1)
-        if mask is not None and use_cache is False:
+        if mask is not None:
             score = score.masked_fill_(mask == 0, -1e9)
         p_attn = nn.functional.softmax(score, dim=-1)
         if dropout is not None:
@@ -343,58 +340,26 @@ class MultiheadAdditiveAttention(nn.Module):
         self,
         hidden_states: torch.Tensor,
         key_value_states: torch.Tensor=None,
-        past_key_value: list=None,
-        past_attn_score: torch.Tensor=None,
         attention_mask: torch.Tensor=None,
         layer_head_mask: torch.Tensor=None,
-        use_cache: bool=False,
         is_cross_attn: bool=False,
         **kwargs,
     )-> torch.Tensor:
         bsz, tgt_len, embed_dim = hidden_states.size()
         assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
 
-        if use_cache and is_cross_attn and past_key_value is not None:
-            # reuse key and value in cross attention
-            query_states = self.q_proj(hidden_states)
-            query_states = self._shape(query_states, -1, bsz)
-            key_states = past_key_value[0]
-            value_states = past_key_value[1]
-        elif is_cross_attn:
-            # cross attention
-            query_states = self.q_proj(hidden_states)
-            query_states = self._shape(query_states, -1, bsz)
-            
+        query_states = self.q_proj(hidden_states)
+        if not is_cross_attn:
+            key_states = self.k_proj(hidden_states)
+            value_states = self.v_proj(hidden_states)
+        else: # is cross-attention
             key_states = self.k_proj(key_value_states)
-            key_states = self._shape(key_states, -1, bsz)
-            
-            value_states = self.v_proj(key_value_states)     
-            value_states = self._shape(value_states, -1, bsz)
-        elif use_cache and past_key_value is not None:
-            # reuse key and value in masked self attention
-            query_states = self.q_proj(hidden_states)
-            query_states = self._shape(query_states, -1, bsz)
+            value_states = self.v_proj(key_value_states)
 
-            key_states = self.k_proj(hidden_states)
-            key_states = self._shape(key_states, -1, bsz)
-            key_states = torch.cat([past_key_value[0], key_states], dim=2)
-            
-            value_states = self.v_proj(hidden_states)
-            value_states = self._shape(value_states, -1, bsz)
-            value_states = torch.cat([past_key_value[1], value_states], dim=2)
-        else:
-            # self attention
-            query_states = self.q_proj(hidden_states)
-            query_states = self._shape(query_states, -1, bsz)
 
-            key_states = self.k_proj(hidden_states)
-            key_states = self._shape(key_states, -1, bsz)
-            
-            value_states = self.v_proj(hidden_states)
-            value_states = self._shape(value_states, -1, bsz)
-
-        if self.is_decoder and use_cache:
-            past_key_value = [key_states, value_states]
+        query_states = self._shape(query_states, tgt_len, bsz)
+        key_states = self._shape(key_states, -1, bsz)
+        value_states = self._shape(value_states, -1, bsz)
 
         attn_weights = self.additve_attention(
             query=query_states,
@@ -402,7 +367,6 @@ class MultiheadAdditiveAttention(nn.Module):
             value=value_states,
             mask=attention_mask,
             dropout=self.dropout,
-            use_cache=use_cache,
         )
 
         if layer_head_mask is not None:
@@ -414,8 +378,6 @@ class MultiheadAdditiveAttention(nn.Module):
 
         return BartAttentionOut(
             attn_output=attn_output,
-            past_key_value=past_key_value,
-            past_attn_score=past_attn_score,
         )
     
 # Self-attention with relative position
