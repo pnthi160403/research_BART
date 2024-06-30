@@ -43,17 +43,18 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
         score_initial = 0
         past_key_values = None
         past_attn_score = None
+        past_layer_key_values = None
 
-        candidates = [(decoder_initial_input, last_token, past_key_values, past_attn_score, score_initial)]
+        candidates = [(decoder_initial_input, last_token, past_key_values, past_attn_score, past_layer_key_values, score_initial)]
         
         while True:
-            if all([(last_token.squeeze().item() == eos_token_id or candidate.size(-1) == max_len) for candidate, last_token, past_key_values, past_attn_scores, score in candidates]):
+            if all([(last_token.squeeze().item() == eos_token_id or candidate.size(-1) == max_len) for candidate, last_token, _, _, _, _ in candidates]):
                 break
             new_candidates = []
 
-            for candidate, last_token, past_key_values, past_attn_scores, score in candidates:
+            for candidate, last_token, past_key_values, past_attn_scores, past_layer_key_values, score in candidates:
                 if last_token.squeeze().item() == eos_token_id or candidate.size(-1) == max_len:
-                    new_candidates.append((candidate, last_token, past_key_values, past_attn_scores, score))
+                    new_candidates.append((candidate, last_token, past_key_values, past_attn_scores, past_layer_key_values, score))
                     continue
                 
                 candidate_attention_mask = (candidate != pad_token_id).type_as(src_attention_mask).to(device)
@@ -70,6 +71,7 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
                 decoder_out = decoder_out_obj.last_hidden_state
                 past_key_values = decoder_out_obj.past_key_values
                 past_attn_scores = decoder_out_obj.past_attn_scores
+                past_layer_key_values = decoder_out_obj.past_layer_key_values
                 
                 out = model.out(decoder_out)
                 prob = torch.nn.functional.log_softmax(out[:, -1], dim=1)
@@ -80,7 +82,7 @@ def beam_search(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
                     token_prob = topk_prob[0][i].item()
                     last_token = token
                     new_candidate = torch.cat([candidate, last_token], dim=-1)
-                    new_candidates.append((new_candidate, last_token, past_key_values, past_attn_scores, score + token_prob))
+                    new_candidates.append((new_candidate, last_token, past_key_values, past_attn_scores, past_layer_key_values, score + token_prob))
 
             candidates = sorted(new_candidates, key=lambda x: x[-1], reverse=True)
             candidates = candidates[:beam_size]

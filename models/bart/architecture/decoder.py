@@ -34,11 +34,17 @@ class BartDecoder(nn.Module):
         self.layerdrop = config.decoder_layerdrop
         if custom_decoder_layer is None:
             self.layers = nn.ModuleList([
-                BartDecoderLayer(config) for _ in range(config.encoder_layers)
+                BartDecoderLayer(
+                    config=config,
+                    idx_layer=idx_layer,
+                ) for idx_layer in range(config.encoder_layers)
             ])
         else:
             self.layers = nn.ModuleList([
-                custom_decoder_layer(config) for _ in range(config.encoder_layers)
+                custom_decoder_layer(
+                    config=config,
+                    idx_layer=idx_layer,
+                ) for idx_layer in range(config.encoder_layers)
             ])
         self.layernorm_embedding = nn.LayerNorm(config.d_model)
 
@@ -89,8 +95,7 @@ class BartDecoder(nn.Module):
 
         next_past_key_value = [] if use_cache else None
         next_past_attn_score = [] if use_cache else None
-        memory_key_value_states = None
-        memory_encoder_key_value_states = None
+        past_layer_key_value = None # [0] -> self attn, [1] -> cross attn            
         for idx in range(len(self.layers)):
             decoder_layer = self.layers[idx]
             if self.training:
@@ -101,8 +106,6 @@ class BartDecoder(nn.Module):
             past_attn_score = past_attn_scores[idx] if past_attn_scores is not None else None
             decoder_layer_output_obj = decoder_layer(
                 hidden_states=hidden_states,
-                memory_key_value_states=memory_key_value_states,
-                memory_encoder_key_value_states=memory_encoder_key_value_states,
                 attention_mask=attention_mask,
                 encoder_hidden_states=encoder_hidden_states,
                 encoder_attention_mask=encoder_attention_mask,
@@ -112,17 +115,16 @@ class BartDecoder(nn.Module):
                 ),
                 past_key_value=past_key_value,
                 past_attn_score=past_attn_score,
+                past_layer_key_value=past_layer_key_value,
                 use_cache=use_cache,
                 idx_layer=idx,
             )
             hidden_states = decoder_layer_output_obj.out
             if self.type_attn == MULTIQUERY_SCALED_DOT_PRODUCT:
                 if idx == 0:
-                    memory_key_value_states = decoder_layer_output_obj.present_key_value[0]
-                    memory_encoder_key_value_states = decoder_layer_output_obj.present_key_value[1]
+                    past_layer_key_value = decoder_layer_output_obj.present_key_value
                 elif idx == len(self.layers) - 1:
-                    memory_key_value_states = None
-            
+                    past_layer_key_value = None
             if use_cache:
                 next_past_key_value.append(decoder_layer_output_obj.present_key_value)
                 next_past_attn_score.append(decoder_layer_output_obj.present_attn_score)

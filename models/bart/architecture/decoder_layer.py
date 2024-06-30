@@ -14,10 +14,12 @@ class BartDecoderLayer(nn.Module):
     def __init__(
         self,
         config: BartConfig,
+        **kwargs,
     ):
         super().__init__()
         self.embed_dim = config.d_model
 
+        idx_layer = kwargs.get("idx_layer", 0)
         BartAttention = TYPE_ATTN[config.type_attn]
         self.self_attn = BartAttention(
             embed_dim=self.embed_dim,
@@ -26,6 +28,7 @@ class BartDecoderLayer(nn.Module):
             max_relative_positions=config.max_relative_positions,
             window_size=config.window_size,
             is_decoder=True,
+            idx_layer=idx_layer,
         )
 
         self.dropout = config.dropout
@@ -52,12 +55,11 @@ class BartDecoderLayer(nn.Module):
         attention_mask: torch.Tensor=None,
         encoder_hidden_states: torch.Tensor=None,
         encoder_attention_mask: torch.Tensor=None,
-        memory_key_value_states: list=None,
-        memory_encoder_key_value_states: list=None,
         layer_head_mask: torch.Tensor=None,
         cross_attn_layer_head_mask: torch.Tensor=None,
         past_key_value: list=None,
         past_attn_score: list=None,
+        past_layer_key_value: list=None,
         use_cache: bool=False,
         idx_layer: int=0,
     ):
@@ -68,16 +70,14 @@ class BartDecoderLayer(nn.Module):
         # Self Attention
         self_attn_past_key_value = past_key_value[0] if past_key_value is not None else None
         self_attn_past_attn_score = past_attn_score[0] if past_attn_score is not None else None
-        self_attn_key_states = memory_key_value_states[0] if memory_key_value_states is not None else None
-        self_attn_value_states = memory_key_value_states[1] if memory_key_value_states is not None else None
+        self_attn_past_layer_key_value = past_layer_key_value[0] if past_layer_key_value is not None else None
         attn_obj = self.self_attn(
             hidden_states=hidden_states,
-            key_states=self_attn_key_states,
-            value_states=self_attn_value_states,
             attention_mask=attention_mask,
             layer_head_mask=layer_head_mask,
             past_key_value=self_attn_past_key_value,
             past_attn_score=self_attn_past_attn_score,
+            past_layer_key_value=self_attn_past_layer_key_value,
             use_cache=use_cache,
             idx_layer=idx_layer,
         )
@@ -99,17 +99,15 @@ class BartDecoderLayer(nn.Module):
         if encoder_hidden_states is not None:
             cross_attn_past_key_value = past_key_value[1] if past_key_value is not None else None
             cross_attn_past_attn_score = past_attn_score[1] if past_attn_score is not None else None
-            cross_attn_key_states = memory_encoder_key_value_states[0] if memory_encoder_key_value_states is not None else None
-            cross_attn_value_states = memory_encoder_key_value_states[1] if memory_encoder_key_value_states is not None else None
+            cross_attn_past_layer_key_value = past_layer_key_value[1] if past_layer_key_value is not None else None
             attn_obj = self.encoder_attn(
                 hidden_states=hidden_states,
-                key_states=cross_attn_key_states,
-                value_states=cross_attn_value_states,
                 key_value_states=encoder_hidden_states,
                 attention_mask=encoder_attention_mask,
                 layer_head_mask=cross_attn_layer_head_mask,
                 past_key_value=cross_attn_past_key_value,
                 past_attn_score=cross_attn_past_attn_score,
+                past_layer_key_value=cross_attn_past_layer_key_value,
                 use_cache=use_cache,
                 is_cross_attn=True,
                 idx_layer=idx_layer,

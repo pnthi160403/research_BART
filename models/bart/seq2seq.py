@@ -22,10 +22,12 @@ class BartDecoderSeq2seqOut:
         logits: torch.Tensor,
         past_key_values: list=None,
         past_attn_scores: list=None,
+        past_layer_key_values: list=None,
     ):
         self.last_hidden_state = logits
         self.past_key_values = past_key_values
         self.past_attn_scores = past_attn_scores
+        self.past_layer_key_values = past_layer_key_values
 
 # Class config
 class BartSeq2seqConfig(BartConfig):

@@ -28,11 +28,17 @@ class BartEncoder(nn.Module):
         self.layerdrop = config.encoder_layerdrop
         if custom_encoder_layer is None:
             self.layers = nn.ModuleList([
-                BartEncoderLayer(config) for _ in range(config.encoder_layers)
+                BartEncoderLayer(
+                    config=config,
+                    idx_layer=idx_layer,
+                ) for idx_layer in range(config.encoder_layers)
             ])
         else:
             self.layers = nn.ModuleList([
-                custom_encoder_layer(config) for _ in range(config.encoder_layers)
+                custom_encoder_layer(
+                    config=config,
+                    idx_layer=idx_layer,
+                ) for idx_layer in range(config.encoder_layers)
             ])
         self.layernorm_embedding = nn.LayerNorm(config.d_model)
 
@@ -65,7 +71,7 @@ class BartEncoder(nn.Module):
                 tgt_len=inputs_embeds.size(1),
             )
 
-        memory_key_value_states = None
+        past_layer_key_value = None
         for idx in range(len(self.layers)):
             encoder_layer = self.layers[idx]
             if self.training:
@@ -76,15 +82,15 @@ class BartEncoder(nn.Module):
                 hidden_states=hidden_states,
                 attention_mask=attention_mask,
                 layer_head_mask=(head_mask[idx] if head_mask is not None else None),
-                memory_key_value_states=memory_key_value_states,
+                past_layer_key_value=past_layer_key_value,
                 idx_layer=idx,
             )
             hidden_states = encoder_layer_out_obj.out
             if self.type_attn == MULTIQUERY_SCALED_DOT_PRODUCT:
                 if idx == 0:
-                    memory_key_value_states = encoder_layer_out_obj.present_key_value[0]
+                    past_layer_key_value = encoder_layer_out_obj.present_key_value
                 elif idx == len(self.layers) - 1:
-                    memory_key_value_states = None
+                    past_layer_key_value = None
 
         return BartEncoderBlockOut(
             out=hidden_states,

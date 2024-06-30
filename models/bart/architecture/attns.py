@@ -157,10 +157,12 @@ class MultiqueryScaledDotProductAttention(nn.Module):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.scaling = torch.sqrt(torch.FloatTensor([self.head_dim])).to(device)
         self.is_decoder = is_decoder
+        idx_layer = kwargs.get("idx_layer", 0)
 
         self.dropout = nn.Dropout(dropout)
-        self.k_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
-        self.v_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
+        if idx_layer == 0:
+            self.k_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
+            self.v_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
         self.q_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
         self.out_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
 
@@ -194,10 +196,9 @@ class MultiqueryScaledDotProductAttention(nn.Module):
         self,
         hidden_states: torch.Tensor,
         key_value_states: torch.Tensor=None,
-        key_states: torch.Tensor=None,
-        value_states: torch.Tensor=None,
         past_key_value: list=None,
         past_attn_score: torch.Tensor=None,
+        past_layer_key_value: list=None,
         attention_mask: torch.Tensor=None,
         layer_head_mask: torch.Tensor=None,
         use_cache: bool=False,
@@ -220,9 +221,12 @@ class MultiqueryScaledDotProductAttention(nn.Module):
             query_states = self.q_proj(hidden_states)
             query_states = self._shape(query_states, -1, bsz)
             
-            if key_states is None and value_states is None:
+            if idx_layer == 0 and past_key_value is None:
                 key_states = self.k_proj(key_value_states)
                 value_states = self.v_proj(key_value_states)
+            else:
+                key_states = past_layer_key_value[0]
+                value_states = past_layer_key_value[1]
 
             key_states = self._shape(key_states, -1, bsz)
             value_states = self._shape(value_states, -1, bsz)
@@ -231,23 +235,32 @@ class MultiqueryScaledDotProductAttention(nn.Module):
             query_states = self.q_proj(hidden_states)
             query_states = self._shape(query_states, -1, bsz)
 
-            if key_states is None and value_states is None:
+            if idx_layer == 0:
                 key_states = self.k_proj(hidden_states)
+                key_states = self._shape(key_states, -1, bsz)
+                key_states = torch.cat([past_key_value[0], key_states], dim=2)
+                
                 value_states = self.v_proj(hidden_states)
+                value_states = self._shape(value_states, -1, bsz)
+                value_states = torch.cat([past_key_value[1], value_states], dim=2)
+            else:
+                key_states = past_layer_key_value[0]
+                value_states = past_layer_key_value[1]
 
-            key_states = self._shape(key_states, -1, bsz)
-            key_states = torch.cat([past_key_value[0], key_states], dim=2)
-            
-            value_states = self._shape(value_states, -1, bsz)
-            value_states = torch.cat([past_key_value[1], value_states], dim=2)
         else:
             # self attention
             query_states = self.q_proj(hidden_states)
             query_states = self._shape(query_states, -1, bsz)
 
-            if key_states is None and value_states is None:
+            if idx_layer == 0 and past_key_value is None:
                 key_states = self.k_proj(hidden_states)
                 value_states = self.v_proj(hidden_states)
+            else:
+                # print(f"{ idx_layer = }")
+                # print(f"{ past_key_value = }")
+                # print(f"{ len(past_layer_key_value) = }")
+                key_states = past_layer_key_value[0]
+                value_states = past_layer_key_value[1]
 
             key_states = self._shape(key_states, -1, bsz)
             value_states = self._shape(value_states, -1, bsz)
