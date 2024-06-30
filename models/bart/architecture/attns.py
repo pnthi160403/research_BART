@@ -224,12 +224,11 @@ class MultiqueryScaledDotProductAttention(nn.Module):
             if idx_layer == 0 and past_key_value is None:
                 key_states = self.k_proj(key_value_states)
                 value_states = self.v_proj(key_value_states)
+                key_states = self._shape(key_states, -1, bsz)
+                value_states = self._shape(value_states, -1, bsz)
             else:
                 key_states = past_layer_key_value[0]
                 value_states = past_layer_key_value[1]
-
-            key_states = self._shape(key_states, -1, bsz)
-            value_states = self._shape(value_states, -1, bsz)
         elif use_cache and past_key_value is not None:
             # reuse key and value in masked self attention
             query_states = self.q_proj(hidden_states)
@@ -255,15 +254,11 @@ class MultiqueryScaledDotProductAttention(nn.Module):
             if idx_layer == 0 and past_key_value is None:
                 key_states = self.k_proj(hidden_states)
                 value_states = self.v_proj(hidden_states)
+                key_states = self._shape(key_states, -1, bsz)
+                value_states = self._shape(value_states, -1, bsz)
             else:
-                # print(f"{ idx_layer = }")
-                # print(f"{ past_key_value = }")
-                # print(f"{ len(past_layer_key_value) = }")
                 key_states = past_layer_key_value[0]
                 value_states = past_layer_key_value[1]
-
-            key_states = self._shape(key_states, -1, bsz)
-            value_states = self._shape(value_states, -1, bsz)
 
         past_key_value = [key_states, value_states]
 

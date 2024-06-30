@@ -43,6 +43,7 @@ class BartDecoderLayer(nn.Module):
             max_relative_positions=config.max_relative_positions,
             window_size=config.window_size,
             is_decoder=True,
+            idx_layer=idx_layer,
         )
         self.encoder_attn_layer_norm = nn.LayerNorm(self.embed_dim)
         self.fc1 = nn.Linear(self.embed_dim, config.decoder_ffn_dim)
