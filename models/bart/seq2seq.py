@@ -133,7 +133,7 @@ class BartSeq2seq(nn.Module):
         inputs_embeds: torch.Tensor=None,
     ):
         if inputs_embeds is not None:
-            encoder_out = self.encoder(
+            encoder_block_out_obj = self.encoder(
                 inputs_embeds=self.inputs_embeds(
                     inputs_embeds=inputs_embeds,
                 ),
@@ -195,4 +195,7 @@ def get_model(
     )
     return model
     
-__all__ = ["BartSeq2seq", "get_model"]
+__all__ = [
+    "BartSeq2seq",
+    "get_model"
+]
