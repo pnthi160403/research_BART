@@ -296,6 +296,7 @@ class MultiheadAdditiveAttention(nn.Module):
         num_heads: int,
         dropout: float=0.0,
         bias: bool=True,
+        **kwargs,
     ):
         super().__init__()
         self.embed_dim = embed_dim
@@ -341,6 +342,7 @@ class MultiheadAdditiveAttention(nn.Module):
         key_value_states: torch.Tensor=None,
         attention_mask: torch.Tensor=None,
         layer_head_mask: torch.Tensor=None,
+        **kwargs,
     )-> torch.Tensor:
         bsz, tgt_len, embed_dim = hidden_states.size()
         assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"

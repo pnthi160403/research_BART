@@ -8,7 +8,7 @@ from .architecture import (
     _init_weights,
 )
 
-# Class out Form
+# Class out form
 class BartEncoderSeq2seqOut:
     def __init__(
         self,
