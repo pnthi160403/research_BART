@@ -7,6 +7,8 @@ from .utils.optimizers import (
 
 def get_config(base_dir: str=None):
     config = {}
+    # tmp
+    config["use_generate"] = True
 
     if not base_dir:
         config["base_dir"] = "./"
