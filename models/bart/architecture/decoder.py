@@ -56,7 +56,7 @@ class BartDecoder(nn.Module):
     def forward(
         self,
         inputs_embeds: torch.Tensor,
-        attention_mask: torch.Tensor,
+        attention_mask: torch.Tensor=None,
         encoder_hidden_states: torch.Tensor=None,
         encoder_attention_mask: torch.Tensor=None,
         head_mask: torch.Tensor=None,

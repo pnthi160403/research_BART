@@ -50,7 +50,7 @@ class BartEncoder(nn.Module):
     def forward(
         self,
         inputs_embeds: torch.Tensor,
-        attention_mask: torch.Tensor,
+        attention_mask: torch.Tensor=None,
         head_mask: torch.Tensor = None,
     ):
         hidden_states = inputs_embeds

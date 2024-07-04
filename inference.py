@@ -1,5 +1,5 @@
 import torch
-from .beam_search import beam_search
+from .generate import generate
 from .utils.tokenizers import read_tokenizer
 from .utils.folders import weights_file_path
 from .models.get_instance_bart import get_model
@@ -39,7 +39,7 @@ def inference(src, beam_size, prepare_inference):
     with torch.no_grad():
         model.eval()
     
-        model_out = beam_search(
+        model_out = generate(
             model=model,
             config=config,
             beam_size=beam_size,
@@ -62,4 +62,8 @@ def pipeline(config, src, beam_size):
         prepare_inference=prepare_inference(config),
     ))
 
-__all__ = ["prepare_inference", "inference", "pipeline"]
+__all__ = [
+    "prepare_inference",
+    "inference",
+    "pipeline"
+]

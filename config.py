@@ -104,6 +104,13 @@ def get_config(base_dir: str=None):
     config["window_size"] = 32
     config["use_cache"] = False
 
+    # Search module
+    config["type_search"] = "beam_search"
+    config["num_groups_search"] = 1
+    config["diversity_strength_search"] = 0.5
+    config["diversity_discount_search"] = 0.5
+    config["candidate_multiple_search"] = 1
+
     # Random Encoder config
     config["random_encoder_layers"] = 4
     config["random_encoder_attention_heads"] = 12
@@ -131,7 +138,7 @@ def get_config(base_dir: str=None):
 
     # Metric
     config["f_beta"] = 0.5
-    config["beams"] = [1]
+    config["beams"] = [2]
     config["use_pytorch_metric"] = False
     config["use_bleu"] = True
     config["use_recall"] = False

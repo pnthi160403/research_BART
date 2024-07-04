@@ -128,7 +128,7 @@ class BartSeq2seq(nn.Module):
     
     def get_encoder_out(
         self,
-        attention_mask: torch.Tensor,
+        attention_mask: torch.Tensor=None,
         input_ids: torch.Tensor=None,
         inputs_embeds: torch.Tensor=None,
     ):
@@ -155,9 +155,9 @@ class BartSeq2seq(nn.Module):
     def get_decoder_out(
         self,
         input_ids: torch.Tensor,
-        attention_mask: torch.Tensor,
         encoder_hidden_states: torch.Tensor,
-        encoder_attention_mask: torch.Tensor,
+        attention_mask: torch.Tensor=None,
+        encoder_attention_mask: torch.Tensor=None,
         past_key_values: list=None,
         past_attn_scores: list=None,
         use_cache: bool=False,

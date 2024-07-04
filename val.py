@@ -1,5 +1,6 @@
 import torch
 from tqdm import tqdm
+from .generate import generate
 from .beam_search import beam_search
 from torch.nn.utils.rnn import pad_sequence
 # import evaluate
@@ -47,7 +48,7 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
             src_text = batch["src_text"][0]
             tgt_text = batch["tgt_text"][0]
 
-            pred_ids = beam_search(
+            pred_ids = generate(
                 model=model,
                 config=config,
                 beam_size=beam_size,
