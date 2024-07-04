@@ -61,7 +61,7 @@ class BeamSearch(Search):
         # expand mask
         if mask is not None:
             mask = mask.unsqueeze(-1).repeat(1, 1, vocab_size)
-            lprobs.masked_fill(
+            lprobs = lprobs.masked_fill_(
                 mask=mask == 0,
                 value=0.0,
             )
@@ -209,7 +209,13 @@ class DiverseBeamSearch(Search):
             mask = mask.view(bsz, -1, self.num_groups)
             # overlap_mask (batch_size, mini_beam_size, num_groups, num_groups)
             overlap_mask = mask.unsqueeze(2) & mask.unsqueeze(3)
-            overlap = overlap * overlap_mask
+            # print(f"{ overlap.shape = }")
+            # print(f"{ overlap_mask.shape = }")
+            # overlap = overlap * overlap_mask
+            overlap = overlap.masked_fill_(
+                mask=overlap_mask == 0,
+                value=0,
+            )
         overlap =  torch.sum(overlap, dim=1)
     
         # self.group_overlap: (batch_size, num_groups, num_groups)

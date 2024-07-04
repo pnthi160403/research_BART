@@ -33,6 +33,7 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
         diversity_discount=config["diversity_discount_search"],
         candidate_multiple=config["candidate_multiple_search"],
     )
+    # print(f"{ search_module = }")
 
     sos_token = torch.tensor([tokenizer_tgt.token_to_id("<s>")], dtype=torch.int64)
     eos_token = torch.tensor([tokenizer_tgt.token_to_id("</s>")], dtype=torch.int64)
