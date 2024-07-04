@@ -108,6 +108,7 @@ def get_config(base_dir: str=None):
 
     # Search module
     config["type_search"] = "beam_search"
+    config["beams"] = [2]
     config["num_groups_search"] = 1
     config["diversity_strength_search"] = 0.5
     config["diversity_discount_search"] = 0.5
@@ -140,7 +141,6 @@ def get_config(base_dir: str=None):
 
     # Metric
     config["f_beta"] = 0.5
-    config["beams"] = [2]
     config["use_pytorch_metric"] = False
     config["use_bleu"] = True
     config["use_recall"] = False

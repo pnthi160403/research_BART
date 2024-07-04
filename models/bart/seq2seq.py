@@ -146,7 +146,7 @@ class BartSeq2seq(nn.Module):
                 ),
                 attention_mask=attention_mask,
             )
-            encoder_block_out = encoder_block_out_obj.out
+        encoder_block_out = encoder_block_out_obj.out
 
         return BartEncoderSeq2seqOut(
             logits=encoder_block_out,

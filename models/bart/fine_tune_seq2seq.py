@@ -14,6 +14,28 @@ from .utils import load_model
 import torch.nn as nn
 import torch
 
+# Class out form
+class FineTuneEncoderBartSeq2seqOut:
+    def __init__(
+        self,
+        logits: torch.Tensor,
+    ):
+        self.last_hidden_state = logits
+
+class FineTuneDecoderBartSeq2seqOut:
+    def __init__(
+        self,
+        logits: torch.Tensor,
+        past_key_values: list=None,
+        past_attn_scores: list=None,
+        past_layer_key_values: list=None,
+    ):
+        self.last_hidden_state = logits
+        self.past_key_values = past_key_values
+        self.past_attn_scores = past_attn_scores
+        self.past_layer_key_values = past_layer_key_values
+
+# Class config
 class FineTuneBartSeq2seqConfig(BartSeq2seqConfig):
     def __init__(
         self,
@@ -29,7 +51,7 @@ class FineTuneBartSeq2seqConfig(BartSeq2seqConfig):
             **kwargs,
         )
 
-
+# Class model
 class FineTuneBartSeq2seq(nn.Module):
     def __init__(
         self,
@@ -46,6 +68,7 @@ class FineTuneBartSeq2seq(nn.Module):
             padding_idx=config.pad_idx,
             max_position_embeddings=config.max_position_embeddings,
             init_std=config.init_std,
+            type_attn=config.type_attn,
         )
         # decoder_embeds
         self.decoder_inputs_embeds = BartEmbeds(
@@ -53,16 +76,18 @@ class FineTuneBartSeq2seq(nn.Module):
             embedding_dim=config.d_model,
             padding_idx=config.pad_idx,
             max_position_embeddings=config.max_position_embeddings,
+            init_std=config.init_std,
+            type_attn=config.type_attn,
         )
         # encoder, decoder
         self.encoder = BartEncoder(config.bart_config)
         self.decoder = BartDecoder(config.bart_config)
         # out
         self.out = nn.Linear(config.bart_config.d_model, self.config.tgt_vocab_size)
-        _init_weights(
-            module=self.out,
+        self.apply(lambda module: _init_weights(
+            module=module,
             std=config.init_std,
-        )
+        ))
 
     def forward(
         self,
@@ -89,12 +114,13 @@ class FineTuneBartSeq2seq(nn.Module):
                 attention_mask=attention_mask,
             )
         # decoder
-        decoder_hidden_states = self.decoder(
+        decoder_block_out_obj = self.decoder(
             inputs_embeds=self.decoder_inputs_embeds(decoder_input_ids),
             attention_mask=decoder_attention_mask,
             encoder_hidden_states=encoder_hidden_states,
             encoder_attention_mask=attention_mask,
         )
+        decoder_hidden_states = decoder_block_out_obj.out
         # out
         logits = self.out(decoder_hidden_states)
 
@@ -115,45 +141,62 @@ class FineTuneBartSeq2seq(nn.Module):
                     
     def get_encoder_out(
         self,
-        attention_mask: torch.Tensor,
+        attention_mask: torch.Tensor=None,
         input_ids: torch.Tensor=None,
         inputs_embeds: torch.Tensor=None,
     ):
         if inputs_embeds is not None:
-            encoder_out = self.encoder(
+            encoder_block_out_obj = self.encoder(
                 inputs_embeds=self.inputs_embeds(
                     inputs_embeds=inputs_embeds,
                 ),
                 attention_mask=attention_mask,
             )
         else:
-            encoder_out = self.encoder(
+            encoder_block_out_obj = self.encoder(
                 inputs_embeds=self.inputs_embeds(
                     input_ids=input_ids,
                 ),
                 attention_mask=attention_mask,
             )
+        encoder_block_out = encoder_block_out_obj.out
 
-        return BartEncoderOut(
-            logits=encoder_out,
+        return FineTuneEncoderBartSeq2seqOut(
+            logits=encoder_block_out,
         )
     
     def get_decoder_out(
         self,
         input_ids: torch.Tensor,
-        attention_mask: torch.Tensor,
         encoder_hidden_states: torch.Tensor,
-        encoder_attention_mask: torch.Tensor,
+        attention_mask: torch.Tensor=None,
+        encoder_attention_mask: torch.Tensor=None,
+        past_key_values: list=None,
+        past_attn_scores: list=None,
+        use_cache: bool=False,
+        pos_idx: int=None,
     ):
-        decoder_out = self.decoder(
-            inputs_embeds=self.decoder_inputs_embeds(input_ids),
+        decoder_block_out_obj = self.decoder(
+            inputs_embeds=self.decoder_inputs_embeds(
+                input_ids=input_ids,
+                use_cache=use_cache,
+                pos_idx=pos_idx,
+            ),
             attention_mask=attention_mask,
             encoder_hidden_states=encoder_hidden_states,
             encoder_attention_mask=encoder_attention_mask,
+            past_key_values=past_key_values,
+            past_attn_scores=past_attn_scores,
+            use_cache=use_cache,
         )
+        decoder_block_out = decoder_block_out_obj.out
+        past_key_values = decoder_block_out_obj.past_key_values
+        past_attn_scores = decoder_block_out_obj.past_attn_scores
 
-        return BartDecoderOut(
-            logits=decoder_out,
+        return FineTuneDecoderBartSeq2seqOut(
+            logits=decoder_block_out,
+            past_key_values=past_key_values,
+            past_attn_scores=past_attn_scores,
         )
 
 def get_model(
