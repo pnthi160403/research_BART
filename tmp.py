@@ -11,7 +11,7 @@ def sequence_length_penalty(length: int, alpha: float=0.6) -> float:
     return ((5 + length) / (5 + 1)) ** alpha
 
 # beam search
-def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
+def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src_texts):
     model.eval()
     # print(f"{ beam_size = }")
     # Search Module
@@ -42,35 +42,38 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
     device = config["device"]
     max_len = config["max_len"]
 
-    enc_input_tokens = tokenizer_src.encode(src).ids
-    src = torch.cat(
-        [
-            sos_token,
-            torch.tensor(enc_input_tokens, dtype=torch.int64),
-            eos_token,
-        ],
-        dim=0,
-    ).to(device)
+    candidates = []
+    for i in range(len(src_texts)):
+        src = src_texts[i]
+        enc_input_tokens = tokenizer_src.encode(src).ids
+        src = torch.cat(
+            [
+                sos_token,
+                torch.tensor(enc_input_tokens, dtype=torch.int64),
+                eos_token,
+            ],
+            dim=0,
+        ).to(device)
 
-    encoder_output = model.get_encoder_out(
-        input_ids=torch.tensor(src, dtype=torch.int64).unsqueeze(0).to(device),
-    ).last_hidden_state
-    encoder_output_mask = (src != pad_token_id).type(torch.int64).to(device)
+        encoder_output = model.get_encoder_out(
+            input_ids=torch.tensor(src, dtype=torch.int64).unsqueeze(0).to(device),
+        ).last_hidden_state
+        encoder_output_mask = (src != pad_token_id).type(torch.int64).to(device)
 
-    candidates = [SearchItem(
-        eos_token_id=eos_token_id,
-        pad_token_id=pad_token_id,
-        sos_token_id=sos_token_id,
-        tokenizer_src=tokenizer_src,
-        tokenizer_tgt=tokenizer_tgt,
-        encoder_output=encoder_output,
-        encoder_output_mask=encoder_output_mask,
-        device=device,
-        max_len=max_len,
-    )] * beam_size
+        candidates.append([SearchItem(
+            eos_token_id=eos_token_id,
+            pad_token_id=pad_token_id,
+            sos_token_id=sos_token_id,
+            tokenizer_src=tokenizer_src,
+            tokenizer_tgt=tokenizer_tgt,
+            encoder_output=encoder_output,
+            encoder_output_mask=encoder_output_mask,
+            device=device,
+            max_len=max_len,
+        )] * beam_size)
 
     for step in range(max_len):
-        if all([candidate.stop_search() for candidate in candidates]):
+        if all([candidate.stop_search() for batch in range(len(candidates)) for candidate in candidates[batch]]):
             break
         new_candidates = []
         lprobs = []
@@ -181,4 +184,4 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
             candidates = sorted(new_candidates, key=lambda x: x.scores[-1], reverse=True)
             candidates = candidates[:beam_size]
             
-    return sorted(new_candidates, key=lambda x: x.scores[-1], reverse=True)[:beam_size]
+    return candidates

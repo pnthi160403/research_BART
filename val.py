@@ -91,11 +91,10 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
                 print()
                 print(f"{f'SOURCE: ':>12}{src_text}")
                 print(f"{f'TARGET: ':>12}{tgt_text}")
-                print(f"{f'PREDICTED: ':>12}{pred_text}")
-                print(f"{f'TOKENS TARGET: ':>12}{[tokenizer_tgt.encode(tgt_text).tokens]}")
+                # print(f"{f'PREDICTED: ':>12}{pred_text}")
+                # print(f"{f'TOKENS TARGET: ':>12}{[tokenizer_tgt.encode(tgt_text).tokens]}")
                 for i in range(len(preds_ids)):
-                    print(f"Predict {i}: {tokenizer_tgt.decode(preds_ids[i].tgt.squeeze().detach().cpu().numpy())}")
-                    print()
+                    print(f"{f'PREDICTED {i}: ':>12}{tokenizer_tgt.decode(preds_ids[i].tgt.squeeze().detach().cpu().numpy())}")
                 if config["use_bleu"]:
                     scores = torchtext_bleu_score(refs=[[tgt_text.split()]],
                                             cands=[pred_text.split()])
