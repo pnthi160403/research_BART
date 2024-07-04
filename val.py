@@ -59,10 +59,8 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
                 tokenizer_tgt=tokenizer_tgt,
                 src=src_text
             )
-            if config["type_search"] in [BEAM_SEARCH]:
+            if config["type_search"] in [BEAM_SEARCH, DIVERSE_BEAM_SEARCH]:
                 pred_ids = preds_ids[0].tgt.squeeze()
-            elif config["type_search"] in [DIVERSE_BEAM_SEARCH]:
-                pred_ids = preds_ids[-1].tgt.squeeze()
             
             pred_text = tokenizer_tgt.decode(pred_ids.detach().cpu().numpy())
 
