@@ -60,26 +60,26 @@ class BeamSearch(Search):
 
         # expand mask
         if mask is not None:
-            mask = mask.unsqueeze(-1).expand_as(lprobs)
-            lprobs = lprobs * mask.float()
+            mask = mask.unsqueeze(-1).repeat(1, 1, vocab_size)
+            lprobs.masked_fill(
+                mask=mask == 0,
+                value=0.0,
+            )
 
         if step == 0:
             # at the first step all hypotheses are equally likely, so use
             # only the first beam
-            lprobs = lprobs[:, ::beam_size, :].contiguous()
+            lprobs = lprobs[:, 0:1, :].contiguous()
         else:
             # make probs contain cumulative scores for each hypothesis
             assert scores is not None
+            # print(f"{ scores[:, :, step - 1] = }")
             lprobs = lprobs + scores[:, :, step - 1].unsqueeze(-1)
 
+        # print(f"{ lprobs = }")
         top_prediction = torch.topk(
             lprobs.view(bsz, -1),
-            k=min(
-                # Take the best `candidate_muliple`(default 2) x beam_size predictions. We'll choose the first
-                # beam_size of these which don't predict eos to continue with.
-                self.candidate_multiple * beam_size,
-                lprobs.view(bsz, -1).size(1) - 1,  # -1 so we never select pad
-            ),
+            k=self.candidate_multiple * beam_size
         )
         scores_buf = top_prediction[0]
         indices_buf = top_prediction[1]
@@ -157,8 +157,9 @@ class DiverseBeamSearch(Search):
             lprobs_g = lprobs[:, g :: self.num_groups, :]
             # scores_g: (batch_size, mini_beam, step)
             scores_g = scores[:, g :: self.num_groups, :] if step > 0 else None
-            # mask_g: (batch_size, mini_beam)
-            mask_g = mask[:, g :: self.num_groups] if mask is not None else None
+            if mask is not None:
+                # mask_g: (batch_size, mini_beam)
+                mask_g = mask[:, g :: self.num_groups]
 
             diversity_buf.zero_()
             # apply diversity penalty
@@ -250,6 +251,27 @@ class SearchItem():
         self.scores = None
         self.past_key_values = None
         self.past_attn_scores = None
+
+    def copy(self):
+        new_item = SearchItem(
+            eos_token_id=self.eos_token_id,
+            pad_token_id=self.pad_token_id,
+            sos_token_id=self.sos_token_id,
+            tokenizer_tgt=self.tokenizer_tgt,
+            tokenizer_src=self.tokenizer_src,
+            max_len=self.max_len,
+            encoder_output=self.encoder_output,
+            device=self.device,
+            encoder_output_mask=self.src_attention_mask,
+        )
+        new_item.tgt = self.tgt
+        new_item.tgt_attention_mask = self.tgt_attention_mask
+        new_item.last_token = self.last_token
+        new_item.num_steps = self.num_steps
+        new_item.scores = self.scores
+        new_item.past_key_values = self.past_key_values
+        new_item.past_attn_scores = self.past_attn_scores
+        return new_item
 
     def stop_search(self):
         return len(self.tgt) >= self.max_len or self.last_token == self.eos_token_id

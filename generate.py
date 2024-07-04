@@ -76,19 +76,18 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
         candidates_past_key_values = []
         candidates_past_attn_scores = []
         # mask (batch_size, beam_size)
-        mask = torch.tensor([1] * beam_size).to(device)
-        mask = mask.unsqueeze(0)
+        mask = torch.ones((1, beam_size)).type(torch.int64).to(device)
         for input_beam in range(beam_size):
             # print(f"{ input_beam = }")
             candidate = candidates[input_beam]
             if candidate.stop_search():
-                mask[0,input_beam] = 0
+                mask[0][input_beam] = 0
                 # lprob (1, vocab_size)
-                lprob = torch.zeros((1, vocab_size)).to(device)
+                lprob = torch.zeros((1, vocab_size), dtype=torch.float32).to(device)
             else:
                 if config["use_cache"]:
                     decoder_out_obj = model.get_decoder_out(
-                        input_ids=(torch.tensor([candidate.last_token]).to(device)).unsqueeze(0),
+                        input_ids=candidate.tgt[-1:].unsqueeze(0),
                         encoder_hidden_states=candidate.encoder_output,
                         past_key_values=candidate.past_key_values,
                         past_attn_scores=candidate.past_attn_scores,
@@ -113,6 +112,9 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
                 # print(f"{ lprob.shape = }")
             lprobs.append(lprob)
             if step > 0:
+                # print(f"{ input_beam = }")
+                # print(f"{ candidate.scores = }")
+                # print()
                 if scores is None:
                     scores = [candidate.scores.unsqueeze(0)]
                 else:
@@ -141,23 +143,33 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
         # print(f"{ scores.shape = }")
         # print(f"{ indices.shape = }")
         # print(f"{ beams.shape = }")
+        # print(f"{ scores = }")
+        # print(f"{ indices = }")
+        # print(f"{ beams = }")
+        # print()
 
         for output_beam in range(config["candidate_multiple_search"] * beam_size):
             # print(f"{ output_beam = }")
-            input_beam = beams[0, output_beam].item()
-            candidate = candidates[input_beam]
+            input_beam = beams[0][output_beam]
+            # copy candidate
+            candidate = candidates[input_beam].copy()
+            # print(f"{ scores[0][output_beam] = }")
             candidate.step(
-                score=scores[0, output_beam].item(),
-                indice=indices[0, output_beam].item(),
+                score=scores[0][output_beam],
+                indice=indices[0][output_beam],
                 past_key_values=candidates_past_key_values[input_beam],
                 past_attn_scores=candidates_past_attn_scores[input_beam],
             )
+            # print(f"{ candidate.scores = }")
             # print(f"{ input_beam = }")
             # print(f"{ scores[0, output_beam].item() = }")
             # print(f"{ indices[0, output_beam].item() = }")
             # print(f"{ candidates_past_attn_scores[input_beam] = }")
             # print(f"{ candidates_past_key_values[input_beam] = }")
             new_candidates.append(candidate)
+
+        # del all elements in candidates from memory
+        del candidates
 
         # sort by score
         candidates = sorted(new_candidates, key=lambda x: x.scores[-1], reverse=True)
