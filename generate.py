@@ -2,6 +2,7 @@ import torch
 
 from .utils.search import (
     TYPE_SEARCH,
+    DIVERSE_BEAM_SEARCH,
     SearchItem,
 )
 
@@ -171,9 +172,13 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
 
         # del all elements in candidates from memory
         del candidates
+        
+        # update candidates
+        candidates = new_candidates
 
         # sort by score
-        candidates = sorted(new_candidates, key=lambda x: x.scores[-1], reverse=True)
-        candidates = candidates[:beam_size]
-    pred_ids = candidates[0].tgt.squeeze()
-    return pred_ids
+        if config["type_search"] != DIVERSE_BEAM_SEARCH:
+            candidates = sorted(new_candidates, key=lambda x: x.scores[-1], reverse=True)
+            candidates = candidates[:beam_size]
+            
+    return candidates

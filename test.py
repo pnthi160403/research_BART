@@ -53,6 +53,7 @@ def test(config):
     model_filename = model_filenames[-1]
 
     if model_filename:
+        print(f"Preloading model from {model_filename}")
         state = torch.load(model_filename)
         model.load_state_dict(state['model_state_dict'])
     else:

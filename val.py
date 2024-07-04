@@ -1,7 +1,10 @@
 import torch
 from tqdm import tqdm
 from .generate import generate
-from .beam_search import beam_search
+from .utils.search import (
+    DIVERSE_BEAM_SEARCH,
+    BEAM_SEARCH,
+)
 from torch.nn.utils.rnn import pad_sequence
 # import evaluate
 from .utils.tokenizers import read_tokenizer
@@ -48,11 +51,7 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
             src_text = batch["src_text"][0]
             tgt_text = batch["tgt_text"][0]
 
-            if config["use_generate"]:
-                fn = generate
-            else:
-                fn = beam_search
-            pred_ids = fn(
+            preds_ids = generate(
                 model=model,
                 config=config,
                 beam_size=beam_size,
@@ -60,6 +59,10 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
                 tokenizer_tgt=tokenizer_tgt,
                 src=src_text
             )
+            if config["type_search"] in [BEAM_SEARCH]:
+                pred_ids = preds_ids[0].tgt.squeeze()
+            elif config["type_search"] in [DIVERSE_BEAM_SEARCH]:
+                pred_ids = preds_ids[-1].tgt.squeeze()
             
             pred_text = tokenizer_tgt.decode(pred_ids.detach().cpu().numpy())
 
@@ -79,9 +82,6 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
             source_texts.append(tokenizer_src.encode(src_text).tokens)
             expected.append([tokenizer_tgt.encode(tgt_text).tokens])
             predicted.append(tokenizer_tgt.encode(pred_text).tokens)
-            # debug
-            # if count == 10:
-            #     break
 
             count += 1
 
@@ -93,7 +93,12 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
                 print(f"{f'TARGET: ':>12}{tgt_text}")
                 print(f"{f'PREDICTED: ':>12}{pred_text}")
                 print(f"{f'TOKENS TARGET: ':>12}{[tokenizer_tgt.encode(tgt_text).tokens]}")
-                print(f"{f'TOKENS PREDICTED: ':>12}{tokenizer_tgt.encode(pred_text).tokens}")
+                if config["type_search"] == BEAM_SEARCH:
+                    print(f"{f'TOKENS PREDICTED: ':>12}{tokenizer_tgt.encode(pred_text).tokens}")
+                else:
+                    for i in range(len(preds_ids)):
+                        print(f"Predict {i}: {tokenizer_tgt.decode(preds_ids[i].tgt.squeeze().detach().cpu().numpy())}")
+                        print()
                 if config["use_bleu"]:
                     scores = torchtext_bleu_score(refs=[[tgt_text.split()]],
                                             cands=[pred_text.split()])

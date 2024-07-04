@@ -138,7 +138,7 @@ class DiverseBeamSearch(Search):
                 "DiverseBeamSearch requires --beam to be divisible by the number of groups"
             )
         
-        # diversity_buf (batch_size, vocab_size)
+        # diversity_buf (batch_size, input_beam_size, vocab_size)
         diversity_buf = torch.zeros(lprobs[:, 0, :].size()).to(lprobs)
 
         scores_G, beams_G = [], []

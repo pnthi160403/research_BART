@@ -46,7 +46,7 @@ def inference(src, beam_size, prepare_inference):
             tokenizer_src=tokenizer_src,
             tokenizer_tgt=tokenizer_tgt,
             src=src,
-        )
+        )[0].tgt.squeeze()
 
         pred = tokenizer_tgt.decode(model_out.detach().cpu().numpy())
 
