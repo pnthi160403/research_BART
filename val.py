@@ -48,7 +48,7 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
             src_text = batch["src_text"][0]
             tgt_text = batch["tgt_text"][0]
 
-            pred_ids = generate(
+            pred_ids = beam_search(
                 model=model,
                 config=config,
                 beam_size=beam_size,
