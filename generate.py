@@ -118,31 +118,26 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
                 lprob = lprob / sequence_length_penalty(len(candidate.tgt), alpha=0.6)
                 # print(f"{ lprob.shape = }")
             lprobs.append(lprob)
-            if step >= 1:
-                # print(f"{ input_beam = }")
-                # print(f"{ candidate.scores = }")
-                # print()
-                if scores is None:
-                    scores = [candidate.scores.unsqueeze(0)]
-                else:
-                    scores.append(candidate.scores.unsqueeze(0))
-            if step >= n_gram:
-                if last_n_gram_indices is None:
-                    # print(f"{ candidate.last_n_gram_indices.unsqueeze(0) = }")
-                    last_n_gram_indices = [candidate.last_n_gram_indices.unsqueeze(0)]
-                    # print(f"{ last_n_gram_indices = }")
-                    # print(f"{ type(last_n_gram_indices) = }")
-                else:
-                    last_n_gram_indices.append(candidate.last_n_gram_indices.unsqueeze(0))
+
+            if scores is None and candidate.scores is not None:
+                scores = [candidate.scores.unsqueeze(0)]
+            elif candidate.scores is not None:
+                scores.append(candidate.scores.unsqueeze(0))
+
+            if candidate.last_n_gram_indices is not None and last_n_gram_indices is None:
+                last_n_gram_indices = [candidate.last_n_gram_indices.unsqueeze(0)]
+            elif candidate.last_n_gram_indices is not None:
+                last_n_gram_indices.append(candidate.last_n_gram_indices.unsqueeze(0))
+
             candidates_past_key_values.append(past_key_values)
             candidates_past_attn_scores.append(past_attn_scores)
         
         # lprobs (batch_size, beam_size, vocab_size)
         lprobs = torch.cat(lprobs, dim=0).unsqueeze(0)
         # scores (batch_size, beam_size, step)
-        if step >= 1 and scores is not None:
+        if scores is not None:
             scores = torch.cat(scores, dim=0).unsqueeze(0)
-        if step >= n_gram and last_n_gram_indices is not None:
+        if last_n_gram_indices is not None:
             last_n_gram_indices = torch.cat(last_n_gram_indices, dim=0).unsqueeze(0)
         # print(f"{ step = }")
         # print(f"{ lprobs.shape = }")

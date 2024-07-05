@@ -89,7 +89,10 @@ class BeamSearch(Search):
 
         # At this point, beams_buf and indices_buf are single-dim and contain relative indices
         return scores_buf, indices_buf, beams_buf
-    
+
+HAMMING_CUMULATIVE_TYPE_DIVERSITY = "Hamming_Cumulative"    
+N_GRAM_TYPE_DIVERSITY = "N_Gram"    
+
 class DiverseBeamSearch(Search):
     def __init__(
         self,
@@ -101,12 +104,17 @@ class DiverseBeamSearch(Search):
         candidate_multiple: int=1,
         n_gram: int=1,
         device: str="cpu",
+        type_diversity_function: str=HAMMING_CUMULATIVE_TYPE_DIVERSITY,
         **kwargs,
     ):
         super().__init__(
             special_tokens=special_tokens,
             vocab_size=vocab_size,
         )
+        TYPE_DIVERSITY_FUNCTION = {
+            HAMMING_CUMULATIVE_TYPE_DIVERSITY: self.calc_overlap_type_hamming_cumulative,
+            N_GRAM_TYPE_DIVERSITY: self.calc_overlap_type_n_gram,
+        }
         self.num_groups = num_groups
         self.diversity_strength = -diversity_strength
         self.beam = BeamSearch(
@@ -118,6 +126,7 @@ class DiverseBeamSearch(Search):
         self.candidate_multiple = candidate_multiple
         self.n_gram = n_gram
         self.device = device
+        self.diversity_fn = TYPE_DIVERSITY_FUNCTION[type_diversity_function]
         # pow_10: (1, 1, n_gram): use to convert [a, b, c, d, ...] -> [abcd...]
         self.pow_10 = torch.tensor([10 ** (self.n_gram - i - 1) for i in range(self.n_gram)]).to(device)
 
@@ -131,16 +140,13 @@ class DiverseBeamSearch(Search):
         self,
         last_n_gram_indices: torch.Tensor=None,
         indices: torch.Tensor=None,
+        **kwargs,
     ):
         if last_n_gram_indices is None or indices is None:
             return None
         # last_n_gram_indices: (batch_size, input_beam_size, [0, n_gram-1])
         # indices: (batch_size, input_beam_size)
         bsz, beam_size, cut_n_gram = last_n_gram_indices.size()
-        # print(f"{ last_n_gram_indices.shape = }")
-        # print(f"{ indices.shape = }")
-        if cut_n_gram + 1 != self.n_gram:
-            return None
         # n_gram_indices: (batch_size, input_beam_size, n_gram)
         n_gram_indices = torch.cat([
             last_n_gram_indices,
@@ -154,26 +160,74 @@ class DiverseBeamSearch(Search):
         )
         return present_indices
     
-    def calc_overlap(
+    def calc_overlap_type_n_gram(
         self,
-        present_n_gram_indices: torch.Tensor=None,
-        mask: torch.Tensor=None,
+        last_n_gram_indices: torch.Tensor=None,
+        indices_n_gram: torch.Tensor=None,
+        mask_indices_n_gram: torch.Tensor=None,
+        indices: torch.Tensor=None,
+        **kwargs,
     ):
+        # last_n_gram_indices (batch_size, input_beam_size, [0, n_gram-1])
+        # indices_n_gram (batch_size, input_beam_size, step - ngram + 1)
+        # mask_indices_n_gram (batch_size, input_beam_size, step - ngram + 1)
+        # indices (batch_size, input_beam_size)
+        present_n_gram_indices = self.calc_present_n_gram_indices(
+            last_n_gram_indices=last_n_gram_indices,
+            indices=indices,
+        )
+        # present_n_gram_indices (batch_size, input_beam_size)
         if present_n_gram_indices is None:
             return None
-        # print(f"{ present_n_gram_indices = }")
-        # print(f"{ mask = }")
-        # present_n_gram_indices: (batch_size, beam_size)
-        # mask: (batch_size, input_beam_size)
         bsz, _ = present_n_gram_indices.size()
 
-        # reshape present_n_gram_indices -> (batch_size, input_beam_size, num_groups)
+        # (batch_size, input_beam_size) -> (batch_size, mini_beam_size, num_groups, step - ngram + 1)
+        present_n_gram_indices = present_n_gram_indices.view(bsz, -1, self.num_groups).contiguous()
+        present_n_gram_indices = present_n_gram_indices.unsqueeze(-1).repeat(1, 1, 1, indices_n_gram.size(-1))
+        # (batch_size, input_beam_size, step - ngram + 1) -> (batch_size, mini_beam_size, num_groups, step - ngram + 1)
+        indices_n_gram = indices_n_gram.view(bsz, -1, self.num_groups, indices_n_gram.size(-1)).contiguous()
+
+        # overlap (batch_size, mini_beam_size, num_groups, num_groups, step - ngram + 1)
+        overlap = (present_n_gram_indices.unsqueeze(2) == indices_n_gram.unsqueeze(3)).int()
+
+        if mask_indices_n_gram is not None:
+            # mask_indices_n_gram (batch_size, mini_beam_size, num_groups, step - ngram + 1)
+            mask_indices_n_gram = mask_indices_n_gram.view(bsz, -1, self.num_groups, mask_indices_n_gram.size(-1))
+            # overlap_mask (batch_size, mini_beam_size, num_groups, num_groups, step - ngram + 1)
+            overlap_mask = mask_indices_n_gram.unsqueeze(2) & mask_indices_n_gram.unsqueeze(3)
+            overlap = overlap.masked_fill_(
+                mask=overlap_mask == 0,
+                value=0,
+            )
+        # overlap (batch_size, num_groups, num_groups)
+        overlap = torch.sum(overlap, dim=-1)
+        overlap = torch.sum(overlap, dim=1)
+        return overlap
+
+    def calc_overlap_type_hamming_cumulative(
+        self,
+        last_n_gram_indices: torch.Tensor=None,
+        indices: torch.Tensor=None,
+        mask: torch.Tensor=None,
+        **kwargs,
+    ):
+        present_n_gram_indices = self.calc_present_n_gram_indices(
+            last_n_gram_indices=last_n_gram_indices,
+            indices=indices,
+        )
+        if present_n_gram_indices is None:
+            return None
+        # present_n_gram_indices (batch_size, beam_size)
+        # mask (batch_size, input_beam_size)
+        bsz, _ = present_n_gram_indices.size()
+
+        # reshape present_n_gram_indices -> (batch_size, mini_beam_size, num_groups)
         present_n_gram_indices = present_n_gram_indices.view(bsz, -1, self.num_groups)
 
         # overlap (batch_size, mini_beam_size, num_groups, num_groups)
         overlap = (present_n_gram_indices.unsqueeze(2) == present_n_gram_indices.unsqueeze(3)).int()
         if mask is not None:
-            # reshape mask -> (batch_size, input_beam_size, num_groups)
+            # reshape mask -> (batch_size, mini_beam_size, num_groups)
             mask = mask.view(bsz, -1, self.num_groups)
             # overlap_mask (batch_size, mini_beam_size, num_groups, num_groups)
             overlap_mask = mask.unsqueeze(2) & mask.unsqueeze(3)
@@ -194,6 +248,8 @@ class DiverseBeamSearch(Search):
         original_batch_idxs: torch.Tensor=None,
         mask: torch.Tensor=None,
         last_n_gram_indices: torch.Tensor=None,
+        indices_n_gram: torch.Tensor=None,
+        mask_indices_n_gram: torch.Tensor=None,
         **kwargs,
     ):
         # lprobs: (batch_size, input_beam_size, vocab_size)
@@ -276,13 +332,12 @@ class DiverseBeamSearch(Search):
         # [d] <=> indices_buf
         # [a, b, c, d] <=> present_n_gram_indices
         # convert [a, b, c, d] -> [abcd] and assign [abcd] to present_n_gram_indices
-        present_n_gram_indices = self.calc_present_n_gram_indices(
-            last_n_gram_indices=last_n_gram_indices,
-            indices=indices_buf,
-        )
         # find num of overlapped tokens for each group pair
-        overlap = self.calc_overlap(
-            present_n_gram_indices=present_n_gram_indices,
+        overlap = self.diversity_fn(
+            last_n_gram_indices=last_n_gram_indices,
+            indices_n_gram=indices_n_gram,
+            indices=indices_buf,
+            mask_indices_n_gram=mask_indices_n_gram,
             mask=mask,
         )
 
