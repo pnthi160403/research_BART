@@ -116,6 +116,8 @@ class DiverseBeamSearch(Search):
         self.diversity_discount = diversity_discount
         self.candidate_multiple = candidate_multiple
         self.n_gram = n_gram
+        # pow_10: (1, 1, n_gram): use to convert [a, b, c, d, ...] -> [abcd...]
+        self.pow_10 = torch.tensor([10 ** (self.n_gram - i - 1) for i in range(self.n_gram)])
 
         # Float tensor to keep track of overlap between groups.
         # Each token shared at the same step between two groups is counted as one.
@@ -142,13 +144,10 @@ class DiverseBeamSearch(Search):
             last_n_gram_indices,
             indices.unsqueeze(-1),
         ], dim=-1)
-        # pow_10: (1, 1, n_gram)
-        pow_10 = torch.tensor([10 ** (self.n_gram - i - 1) for i in range(self.n_gram)])
-        # pow_10: (batch_size, input_beam_size, n_gram)
-        pow_10 = pow_10.unsqueeze(0).unsqueeze(0).repeat(bsz, beam_size, 1)
+        # self.pow_10 is expanded: (batch_size, input_beam_size, n_gram)
         # present_indices (batch_size, input_beam_size)
         present_indices = torch.sum(
-            input=n_gram_indices * pow_10,
+            input=n_gram_indices * (self.pow_10.unsqueeze(0).unsqueeze(0).repeat(bsz, beam_size, 1)),
             dim=-1,
         )
         return present_indices
