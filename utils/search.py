@@ -42,17 +42,6 @@ class BeamSearch(Search):
         mask: torch.Tensor=None,
         **kwargs,
     ):
-        '''
-        Args:
-            step: int
-            lprobs: (batch_size, input_beam_size, vocab_size)
-            scores: (batch_size, input_beam_size, step)
-            mask: (batch_size, input_beam_size), mask[:,i] == 0 means beam i is finished
-        Returns:
-            scores_pred: (batch_size, candidate_multiple * input_beam_size)
-            indices_pred: (batch_size, candidate_multiple * input_beam_size)
-            beams_pred: (batch_size, candidate_multiple * input_beam_size)
-        '''
         # lprobs: (batch_size, input_beam_size, vocab_size)
         # scores: (batch_size, input_beam_size, step)
         # mask: (batch_size, input_beam_size, n_gram)
@@ -382,11 +371,6 @@ class DiverseBeamSearch(Search):
         # print(f"{ indices_buf.shape = }")
         # print(f"{ beams_buf.shape = }")
 
-        # example
-        # [a, b, c] <=> last_n_gram_indices
-        # [d] <=> indices_buf
-        # [a, b, c, d] <=> present_n_gram_indices
-        # convert [a, b, c, d] -> [abcd] and assign [abcd] to present_n_gram_indices
         # find num of overlapped tokens for each group pair
         overlap = self.diversity_fn(
             last_n_gram_indices=last_n_gram_indices,
