@@ -3,7 +3,7 @@ import torch
 from .utils.search import (
     TYPE_SEARCH,
     DIVERSE_BEAM_SEARCH,
-    SearchItem,
+    SearchNode,
 )
 
 # length penalty
@@ -41,6 +41,7 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
     
     device = config["device"]
     max_len = config["max_len"]
+    n_gram = config["n_gram_search"]
 
     enc_input_tokens = tokenizer_src.encode(src).ids
     src = torch.cat(
@@ -57,7 +58,7 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
     ).last_hidden_state
     encoder_output_mask = (src != pad_token_id).type(torch.int64).to(device)
 
-    candidates = [SearchItem(
+    candidates = [SearchNode(
         eos_token_id=eos_token_id,
         pad_token_id=pad_token_id,
         sos_token_id=sos_token_id,
@@ -67,6 +68,7 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
         encoder_output_mask=encoder_output_mask,
         device=device,
         max_len=max_len,
+        n_gram=n_gram,
     )] * beam_size
 
     for step in range(max_len):
@@ -75,6 +77,7 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
         new_candidates = []
         lprobs = []
         scores = None
+        last_n_gram_indices = None
         candidates_past_key_values = []
         candidates_past_attn_scores = []
         # mask (batch_size, beam_size)
@@ -113,7 +116,7 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
                 lprob = lprob / sequence_length_penalty(len(candidate.tgt), alpha=0.6)
                 # print(f"{ lprob.shape = }")
             lprobs.append(lprob)
-            if step > 0:
+            if step >= n_gram:
                 # print(f"{ input_beam = }")
                 # print(f"{ candidate.scores = }")
                 # print()
@@ -121,24 +124,37 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
                     scores = [candidate.scores.unsqueeze(0)]
                 else:
                     scores.append(candidate.scores.unsqueeze(0))
+                if last_n_gram_indices is None:
+                    # print(f"{ candidate.last_n_gram_indices.unsqueeze(0) = }")
+                    last_n_gram_indices = [candidate.last_n_gram_indices.unsqueeze(0)]
+                    # print(f"{ last_n_gram_indices = }")
+                    # print(f"{ type(last_n_gram_indices) = }")
+                else:
+                    last_n_gram_indices.append(candidate.last_n_gram_indices.unsqueeze(0))
             candidates_past_key_values.append(past_key_values)
             candidates_past_attn_scores.append(past_attn_scores)
         
         # lprobs (batch_size, beam_size, vocab_size)
         lprobs = torch.cat(lprobs, dim=0).unsqueeze(0)
         # scores (batch_size, beam_size, step)
-        if step > 0 and scores is not None:
-            scores = torch.cat(scores, dim=0).unsqueeze(0)
+        if step >= n_gram:
+            if scores is not None:
+                scores = torch.cat(scores, dim=0).unsqueeze(0)
+            if last_n_gram_indices is not None:
+                last_n_gram_indices = torch.cat(last_n_gram_indices, dim=0).unsqueeze(0)
         # print(f"{ step = }")
         # print(f"{ lprobs.shape = }")
         # if scores is not None:
             # print(f"{ scores.shape = }")
         # print(f"{ mask.shape = }")
 
+        # print(f"{ type(last_n_gram_indices) = }")
+        # print(f"{ last_n_gram_indices = }")
         scores, indices, beams = search_module.step(
             step=step,
             lprobs=lprobs,
             scores=scores,
+            last_n_gram_indices=last_n_gram_indices,
             original_batch_idxs=torch.tensor([0]).to(device),
             mask=mask,
         )
@@ -156,6 +172,8 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
             # copy candidate
             candidate = candidates[input_beam].copy()
             # print(f"{ scores[0][output_beam] = }")
+            # print(f"{ indices[0][output_beam] = }")
+            # print(f"{ input_beam = }")
             candidate.step(
                 score=scores[0][output_beam],
                 indice=indices[0][output_beam],
@@ -169,6 +187,7 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
             # print(f"{ candidates_past_attn_scores[input_beam] = }")
             # print(f"{ candidates_past_key_values[input_beam] = }")
             new_candidates.append(candidate)
+        # print()
 
         # del all elements in candidates from memory
         del candidates

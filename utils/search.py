@@ -99,6 +99,8 @@ class DiverseBeamSearch(Search):
         diversity_strength: float,
         diversity_discount: float=0.5,
         candidate_multiple: int=1,
+        n_gram: int=1,
+        **kwargs,
     ):
         super().__init__(
             special_tokens=special_tokens,
@@ -113,25 +115,87 @@ class DiverseBeamSearch(Search):
         )
         self.diversity_discount = diversity_discount
         self.candidate_multiple = candidate_multiple
+        self.n_gram = n_gram
 
         # Float tensor to keep track of overlap between groups.
         # Each token shared at the same step between two groups is counted as one.
         # Then token counts are discounted by `diversity_discount` for every next timestep.
         # Once initialized, dimension is batch_size * num_groups * num_groups.
-        self.group_overlap = torch.empty(0)
+        self.group_overlap = None
+
+    def calc_present_n_gram_indices(
+        self,
+        last_n_gram_indices: torch.Tensor=None,
+        indices: torch.Tensor=None,
+    ):
+        if last_n_gram_indices is None or indices is None:
+            return None
+        # last_n_gram_indices: (batch_size, input_beam_size, [0, n_gram-1])
+        # indices: (batch_size, input_beam_size)
+        bsz, beam_size, cut_n_gram = last_n_gram_indices.size()
+        if cut_n_gram + 1 < self.n_gram:
+            return None
+        # n_gram_indices: (batch_size, input_beam_size, n_gram)
+        n_gram_indices = torch.cat([
+            last_n_gram_indices,
+            indices.unsqueeze(-1),
+        ], dim=-1)
+        # pow_10: (1, 1, n_gram)
+        pow_10 = torch.tensor([10 ** (self.n_gram - i - 1) for i in range(self.n_gram)])
+        # pow_10: (batch_size, input_beam_size, n_gram)
+        pow_10 = pow_10.unsqueeze(0).unsqueeze(0).repeat(bsz, beam_size, 1)
+        # present_indices (batch_size, input_beam_size)
+        present_indices = torch.sum(
+            input=n_gram_indices * pow_10,
+            dim=-1,
+        )
+        return present_indices
+    
+    def calc_overlap(
+        self,
+        present_n_gram_indices: torch.Tensor=None,
+        mask: torch.Tensor=None,
+    ):
+        if present_n_gram_indices is None:
+            return None
+        # present_n_gram_indices: (batch_size, beam_size)
+        # mask: (batch_size, input_beam_size)
+        bsz, _ = present_n_gram_indices.size()
+
+        # reshape present_n_gram_indices -> (batch_size, input_beam_size, num_groups)
+        present_n_gram_indices = present_n_gram_indices.view(bsz, -1, self.num_groups)
+
+        # overlap (batch_size, mini_beam_size, num_groups, num_groups)
+        overlap = (present_n_gram_indices.unsqueeze(2) == present_n_gram_indices.unsqueeze(3)).int()
+        if mask is not None:
+            # reshape mask -> (batch_size, input_beam_size, num_groups)
+            mask = mask.view(bsz, -1, self.num_groups)
+            # overlap_mask (batch_size, mini_beam_size, num_groups, num_groups)
+            overlap_mask = mask.unsqueeze(2) & mask.unsqueeze(3)
+            # overlap = overlap * overlap_mask
+            overlap = overlap.masked_fill_(
+                mask=overlap_mask == 0,
+                value=0,
+            )
+        # overlap (batch_size, num_groups, num_groups)
+        overlap =  torch.sum(overlap, dim=1)
+        return overlap
 
     def step(
         self,
         step: int,
-        lprobs,
+        lprobs: torch.Tensor,
         scores: torch.Tensor=None,
         original_batch_idxs: torch.Tensor=None,
         mask: torch.Tensor=None,
+        last_n_gram_indices: torch.Tensor=None,
+        **kwargs,
     ):
         # lprobs: (batch_size, input_beam_size, vocab_size)
         # scores: (batch_size, input_beam_size, step)
         # original_batch_idxs: (batch_size,)
         # mask: (batch_size, input_beam_size), mask[:,i] == 0 means beam i is finished
+        # last_n_gram_indices (batch_size, input_beam_size, [0, n_gram-1])
         bsz, beam_size, vocab_size = lprobs.size()
         if beam_size % self.num_groups != 0:
             raise ValueError(
@@ -144,6 +208,7 @@ class DiverseBeamSearch(Search):
         scores_G, beams_G = [], []
 
         # pre-allocating tensor for indices for all groups
+        # (batch_size, mini_beam_size, num_groups)
         indices_G_stacked = torch.empty(
             bsz,
             int(beam_size / self.num_groups) * self.candidate_multiple,
@@ -165,17 +230,17 @@ class DiverseBeamSearch(Search):
             # apply diversity penalty
             if g > 0:
                 indices_ = indices_G_stacked[:, :, :g]
-                if step > 0:
+                if step >= self.n_gram:
                     penalty_val = 1 + self.group_overlap[original_batch_idxs, g, :g]
                     penalty_val = penalty_val.unsqueeze(1)
                 else:
                     penalty_val = torch.ones(bsz, 1, 1)
                 diversity_buf.scatter_add_(
-                    dim=1,
                     index=indices_.reshape(bsz, -1),
                     src=penalty_val.expand(indices_.size())
                     .reshape(bsz, -1)
                     .to(diversity_buf),
+                    dim=1,
                 )
                 lprobs_g = torch.add(
                     lprobs_g,
@@ -200,34 +265,34 @@ class DiverseBeamSearch(Search):
         scores_buf = torch.stack(scores_G, dim=2).view(bsz, -1)
         indices_buf = indices_G_stacked.view(bsz, -1)
         beams_buf = torch.stack(beams_G, dim=2).view(bsz, -1)
+
+        # example
+        # [a, b, c] <=> last_n_gram_indices
+        # [d] <=> indices_buf
+        # [a, b, c, d] <=> present_n_gram_indices
+        # convert [a, b, c, d] -> [abcd] and assign [abcd] to present_n_gram_indices
+        present_n_gram_indices = self.calc_present_n_gram_indices(
+            last_n_gram_indices=last_n_gram_indices,
+            indices=indices_buf,
+        )
         # find num of overlapped tokens for each group pair
+        overlap = self.calc_overlap(
+            present_n_gram_indices=present_n_gram_indices,
+            mask=mask,
+        )
+
         # then discount it for next timestamp
-        # overlap_pair_gr (batch_size, mini_beam_size, num_groups, num_groups)
-        overlap = (indices_G_stacked.unsqueeze(2) == indices_G_stacked.unsqueeze(3)).int()
-        if mask is not None:
-            # (batch_size, input_beam_size) -> (batch_size, mini_beam_size, num_groups)
-            mask = mask.view(bsz, -1, self.num_groups)
-            # overlap_mask (batch_size, mini_beam_size, num_groups, num_groups)
-            overlap_mask = mask.unsqueeze(2) & mask.unsqueeze(3)
-            # print(f"{ overlap.shape = }")
-            # print(f"{ overlap_mask.shape = }")
-            # overlap = overlap * overlap_mask
-            overlap = overlap.masked_fill_(
-                mask=overlap_mask == 0,
-                value=0,
-            )
-        overlap =  torch.sum(overlap, dim=1)
-    
         # self.group_overlap: (batch_size, num_groups, num_groups)
-        if step == 0:
-            self.group_overlap = overlap
-        else:
-            self.group_overlap[original_batch_idxs] = self.group_overlap[original_batch_idxs] + overlap
-        self.group_overlap = self.group_overlap * self.diversity_discount
+        if overlap is not None:
+            if self.group_overlap is None:
+                self.group_overlap = overlap
+            else:
+                self.group_overlap[original_batch_idxs] = self.group_overlap[original_batch_idxs] + overlap
+            self.group_overlap = self.group_overlap * self.diversity_discount
 
         return scores_buf, indices_buf, beams_buf
 
-class SearchItem():
+class SearchNode():
     def __init__(
         self,
         eos_token_id: int,
@@ -235,10 +300,11 @@ class SearchItem():
         sos_token_id: int,
         tokenizer_tgt,
         tokenizer_src,
-        max_len: int,
         encoder_output: torch.Tensor,
         device: str,
         encoder_output_mask: torch.Tensor=None,
+        max_len: int=200,
+        n_gram: int=1,
     ):
         self.eos_token_id = eos_token_id
         self.pad_token_id = pad_token_id
@@ -247,6 +313,7 @@ class SearchItem():
         self.tokenizer_src = tokenizer_src
         self.device = device
         self.max_len = max_len
+        self.n_gram = n_gram
 
         self.encoder_output = encoder_output
         self.src_attention_mask = encoder_output_mask
@@ -257,9 +324,10 @@ class SearchItem():
         self.scores = None
         self.past_key_values = None
         self.past_attn_scores = None
+        self.last_n_gram_indices = torch.tensor([]).to(device)
 
     def copy(self):
-        new_item = SearchItem(
+        new_item = SearchNode(
             eos_token_id=self.eos_token_id,
             pad_token_id=self.pad_token_id,
             sos_token_id=self.sos_token_id,
@@ -269,6 +337,7 @@ class SearchItem():
             encoder_output=self.encoder_output,
             device=self.device,
             encoder_output_mask=self.src_attention_mask,
+            n_gram=self.n_gram,
         )
         new_item.tgt = self.tgt
         new_item.tgt_attention_mask = self.tgt_attention_mask
@@ -277,6 +346,7 @@ class SearchItem():
         new_item.scores = self.scores
         new_item.past_key_values = self.past_key_values
         new_item.past_attn_scores = self.past_attn_scores
+        new_item.last_n_gram_indices = self.last_n_gram_indices
         return new_item
 
     def stop_search(self):
@@ -306,6 +376,16 @@ class SearchItem():
         self.tgt_attention_mask = (self.tgt != self.pad_token_id).type(torch.int64).to(self.device)
         self.past_key_values = past_key_values
         self.past_attn_scores = past_attn_scores
+        if self.last_n_gram_indices.size(0) < self.n_gram:
+            self.last_n_gram_indices = torch.cat([
+                self.last_n_gram_indices,
+                torch.tensor([indice]).to(self.device)
+            ], dim=-1)
+        else:
+            self.last_n_gram_indices = torch.cat([
+                self.last_n_gram_indices[1:],
+                torch.tensor([indice]).to(self.device)
+            ], dim=-1)
 
 BEAM_SEARCH = "beam_search"
 DIVERSE_BEAM_SEARCH = "diverse_beam_search"
@@ -319,7 +399,7 @@ __all__ = [
     "Search",
     "BeamSearch",
     "DiverseBeamSearch",
-    "SearchItem",
+    "SearchNode",
     "TYPE_SEARCH",
     "BEAM_SEARCH",
     "DIVERSE_BEAM_SEARCH",

@@ -113,6 +113,7 @@ def get_config(base_dir: str=None):
     config["diversity_strength_search"] = 0.5
     config["diversity_discount_search"] = 0.5
     config["candidate_multiple_search"] = 1
+    config["n_gram_search"] = 1
 
     # Random Encoder config
     config["random_encoder_layers"] = 4
