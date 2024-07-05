@@ -39,6 +39,7 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
         candidate_multiple=config["candidate_multiple_search"],
         n_gram=n_gram,
         device=device,
+        type_diversity_function=config["type_diversity_function"],
     )
     # print(f"{ search_module = }")
 
@@ -80,15 +81,16 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
         lprobs = []
         scores = None
         last_n_gram_indices = None
+        mask_last_n_gram_indices = None
+        indices_n_gram = None
+        mask_indices_n_gram = None
         candidates_past_key_values = []
         candidates_past_attn_scores = []
         # mask (batch_size, beam_size)
-        mask = torch.ones((1, beam_size)).type(torch.int64).to(device)
         for input_beam in range(beam_size):
             # print(f"{ input_beam = }")
             candidate = candidates[input_beam]
             if candidate.stop_search():
-                mask[0][input_beam] = 0
                 # lprob (1, vocab_size)
                 lprob = torch.zeros((1, vocab_size), dtype=torch.float32).to(device)
             else:
@@ -124,10 +126,19 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
             elif candidate.scores is not None:
                 scores.append(candidate.scores.unsqueeze(0))
 
-            if candidate.last_n_gram_indices is not None and last_n_gram_indices is None:
+            if candidate.last_n_gram_indices is not None and candidate.last_n_gram_indices.size(-1) == n_gram - 1 and last_n_gram_indices is None:
                 last_n_gram_indices = [candidate.last_n_gram_indices.unsqueeze(0)]
-            elif candidate.last_n_gram_indices is not None:
+                mask_last_n_gram_indices = [candidate.mask_last_n_gram_indices.unsqueeze(0)]
+            elif candidate.last_n_gram_indices is not None and candidate.last_n_gram_indices.size(-1) == n_gram - 1:
                 last_n_gram_indices.append(candidate.last_n_gram_indices.unsqueeze(0))
+                mask_last_n_gram_indices.append(candidate.mask_last_n_gram_indices.unsqueeze(0))
+
+            if candidate.indices_n_gram is not None and indices_n_gram is None:
+                indices_n_gram = [candidate.indices_n_gram.unsqueeze(0)]
+                mask_indices_n_gram = [candidate.mask_indices_n_gram.unsqueeze(0)]
+            elif candidate.indices_n_gram is not None:
+                indices_n_gram.append(candidate.indices_n_gram.unsqueeze(0))
+                mask_indices_n_gram.append(candidate.mask_indices_n_gram.unsqueeze(0))
 
             candidates_past_key_values.append(past_key_values)
             candidates_past_attn_scores.append(past_attn_scores)
@@ -139,6 +150,14 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
             scores = torch.cat(scores, dim=0).unsqueeze(0)
         if last_n_gram_indices is not None:
             last_n_gram_indices = torch.cat(last_n_gram_indices, dim=0).unsqueeze(0)
+            # print(f"{ mask_last_n_gram_indices[0].shape = }")
+            mask_last_n_gram_indices = torch.cat(mask_last_n_gram_indices, dim=0).unsqueeze(0)
+            # print(f"{ mask_last_n_gram_indices.shape = }")
+        if indices_n_gram is not None:
+            indices_n_gram = torch.cat(indices_n_gram, dim=0).unsqueeze(0)
+            # print(f"{ mask_indices_n_gram[0].shape = }")
+            mask_indices_n_gram = torch.cat(mask_indices_n_gram, dim=0).unsqueeze(0)
+            # print(f"{ mask_indices_n_gram.shape = }")
         # print(f"{ step = }")
         # print(f"{ lprobs.shape = }")
         # if scores is not None:
@@ -152,8 +171,10 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
             lprobs=lprobs,
             scores=scores,
             last_n_gram_indices=last_n_gram_indices,
+            mask_last_n_gram_mask=mask_last_n_gram_indices,
+            indices_n_gram=indices_n_gram,
+            mask_indices_n_gram=mask_indices_n_gram,
             original_batch_idxs=torch.tensor([0]).to(device),
-            mask=mask,
         )
         # print(f"{ scores.shape = }")
         # print(f"{ indices.shape = }")
