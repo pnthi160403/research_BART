@@ -32,13 +32,13 @@ class BeamSearch(Search):
             special_tokens=special_tokens,
             vocab_size=vocab_size,
         )
-        self.candidate_multiple = candidate_multiple    
+        self.candidate_multiple = candidate_multiple
 
     def step(
         self,
         step: int,
         lprobs: torch.Tensor,
-        scores: torch.Tensor,
+        scores: torch.Tensor=None,
         mask: torch.Tensor=None,
         **kwargs,
     ):
@@ -133,7 +133,9 @@ class DiverseBeamSearch(Search):
         # last_n_gram_indices: (batch_size, input_beam_size, [0, n_gram-1])
         # indices: (batch_size, input_beam_size)
         bsz, beam_size, cut_n_gram = last_n_gram_indices.size()
-        if cut_n_gram + 1 < self.n_gram:
+        # print(f"{ last_n_gram_indices.shape = }")
+        # print(f"{ indices.shape = }")
+        if cut_n_gram + 1 != self.n_gram:
             return None
         # n_gram_indices: (batch_size, input_beam_size, n_gram)
         n_gram_indices = torch.cat([
@@ -158,6 +160,8 @@ class DiverseBeamSearch(Search):
     ):
         if present_n_gram_indices is None:
             return None
+        # print(f"{ present_n_gram_indices = }")
+        # print(f"{ mask = }")
         # present_n_gram_indices: (batch_size, beam_size)
         # mask: (batch_size, input_beam_size)
         bsz, _ = present_n_gram_indices.size()
@@ -376,12 +380,12 @@ class SearchNode():
         self.tgt_attention_mask = (self.tgt != self.pad_token_id).type(torch.int64).to(self.device)
         self.past_key_values = past_key_values
         self.past_attn_scores = past_attn_scores
-        if self.last_n_gram_indices.size(0) < self.n_gram:
+        if self.last_n_gram_indices.size(0) < self.n_gram - 1:
             self.last_n_gram_indices = torch.cat([
                 self.last_n_gram_indices,
                 torch.tensor([indice]).to(self.device)
             ], dim=-1)
-        else:
+        elif self.n_gram - 1 > 0:
             self.last_n_gram_indices = torch.cat([
                 self.last_n_gram_indices[1:],
                 torch.tensor([indice]).to(self.device)

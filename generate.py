@@ -16,6 +16,10 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
     # print(f"{ beam_size = }")
     # Search Module
     # special token id
+    device = config["device"]
+    max_len = config["max_len"]
+    n_gram = config["n_gram_search"]
+
     sos_token_id = tokenizer_src.token_to_id("<s>")
     eos_token_id = tokenizer_src.token_to_id("</s>")
     pad_token_id = tokenizer_src.token_to_id("<pad>")
@@ -33,15 +37,12 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
         diversity_strength=config["diversity_strength_search"],
         diversity_discount=config["diversity_discount_search"],
         candidate_multiple=config["candidate_multiple_search"],
+        n_gram=n_gram,
     )
     # print(f"{ search_module = }")
 
     sos_token = torch.tensor([tokenizer_tgt.token_to_id("<s>")], dtype=torch.int64)
     eos_token = torch.tensor([tokenizer_tgt.token_to_id("</s>")], dtype=torch.int64)
-    
-    device = config["device"]
-    max_len = config["max_len"]
-    n_gram = config["n_gram_search"]
 
     enc_input_tokens = tokenizer_src.encode(src).ids
     src = torch.cat(
@@ -116,7 +117,7 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
                 lprob = lprob / sequence_length_penalty(len(candidate.tgt), alpha=0.6)
                 # print(f"{ lprob.shape = }")
             lprobs.append(lprob)
-            if step >= n_gram:
+            if step >= 1:
                 # print(f"{ input_beam = }")
                 # print(f"{ candidate.scores = }")
                 # print()
@@ -124,6 +125,7 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
                     scores = [candidate.scores.unsqueeze(0)]
                 else:
                     scores.append(candidate.scores.unsqueeze(0))
+            if step >= n_gram:
                 if last_n_gram_indices is None:
                     # print(f"{ candidate.last_n_gram_indices.unsqueeze(0) = }")
                     last_n_gram_indices = [candidate.last_n_gram_indices.unsqueeze(0)]
@@ -137,11 +139,10 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
         # lprobs (batch_size, beam_size, vocab_size)
         lprobs = torch.cat(lprobs, dim=0).unsqueeze(0)
         # scores (batch_size, beam_size, step)
-        if step >= n_gram:
-            if scores is not None:
-                scores = torch.cat(scores, dim=0).unsqueeze(0)
-            if last_n_gram_indices is not None:
-                last_n_gram_indices = torch.cat(last_n_gram_indices, dim=0).unsqueeze(0)
+        if step >= 1 and scores is not None:
+            scores = torch.cat(scores, dim=0).unsqueeze(0)
+        if step >= n_gram and last_n_gram_indices is not None:
+            last_n_gram_indices = torch.cat(last_n_gram_indices, dim=0).unsqueeze(0)
         # print(f"{ step = }")
         # print(f"{ lprobs.shape = }")
         # if scores is not None:
