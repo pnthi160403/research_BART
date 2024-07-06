@@ -13,7 +13,6 @@ def sequence_length_penalty(length: int, alpha: float=0.6) -> float:
 # beam search
 def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
     model.eval()
-    # print(f"{ beam_size = }")
     # Search Module
     # special token id
     device = config["device"]
@@ -41,7 +40,6 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
         device=device,
         type_diversity_function=config["type_diversity_function"],
     )
-    # print(f"{ search_module = }")
 
     sos_token = torch.tensor([tokenizer_tgt.token_to_id("<s>")], dtype=torch.int64)
     eos_token = torch.tensor([tokenizer_tgt.token_to_id("</s>")], dtype=torch.int64)
@@ -88,7 +86,6 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
         candidates_past_attn_scores = []
         # mask (batch_size, beam_size)
         for input_beam in range(beam_size):
-            # print(f"{ input_beam = }")
             candidate = candidates[input_beam]
             if candidate.stop_search():
                 # lprob (1, vocab_size)
@@ -118,7 +115,6 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
                 # lprob (1, vocab_size)
                 lprob = torch.nn.functional.log_softmax(out[:, -1], dim=1)
                 lprob = lprob / sequence_length_penalty(len(candidate.tgt), alpha=0.6)
-                # print(f"{ lprob.shape = }")
             lprobs.append(lprob)
 
             if scores is None and candidate.scores is not None:
@@ -150,22 +146,10 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
             scores = torch.cat(scores, dim=0).unsqueeze(0)
         if last_n_gram_indices is not None:
             last_n_gram_indices = torch.cat(last_n_gram_indices, dim=0).unsqueeze(0)
-            # print(f"{ mask_last_n_gram_indices[0].shape = }")
             mask_last_n_gram_indices = torch.cat(mask_last_n_gram_indices, dim=0).unsqueeze(0)
-            # print(f"{ mask_last_n_gram_indices.shape = }")
         if indices_n_gram is not None:
             indices_n_gram = torch.cat(indices_n_gram, dim=0).unsqueeze(0)
-            # print(f"{ mask_indices_n_gram[0].shape = }")
             mask_indices_n_gram = torch.cat(mask_indices_n_gram, dim=0).unsqueeze(0)
-            # print(f"{ mask_indices_n_gram.shape = }")
-        # print(f"{ step = }")
-        # print(f"{ lprobs.shape = }")
-        # if scores is not None:
-            # print(f"{ scores.shape = }")
-        # print(f"{ mask.shape = }")
-
-        # print(f"{ type(last_n_gram_indices) = }")
-        # print(f"{ last_n_gram_indices = }")
         scores, indices, beams = search_module.step(
             step=step,
             lprobs=lprobs,
@@ -176,36 +160,18 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
             mask_indices_n_gram=mask_indices_n_gram,
             original_batch_idxs=torch.tensor([0]).to(device),
         )
-        # print(f"{ scores.shape = }")
-        # print(f"{ indices.shape = }")
-        # print(f"{ beams.shape = }")
-        # print(f"{ scores = }")
-        # print(f"{ indices = }")
-        # print(f"{ beams = }")
-        # print()
 
         for output_beam in range(config["candidate_multiple_search"] * beam_size):
-            # print(f"{ output_beam = }")
             input_beam = beams[0][output_beam]
             # copy candidate
             candidate = candidates[input_beam].copy()
-            # print(f"{ scores[0][output_beam] = }")
-            # print(f"{ indices[0][output_beam] = }")
-            # print(f"{ input_beam = }")
             candidate.step(
                 score=scores[0][output_beam],
                 indice=indices[0][output_beam],
                 past_key_values=candidates_past_key_values[input_beam],
                 past_attn_scores=candidates_past_attn_scores[input_beam],
             )
-            # print(f"{ candidate.scores = }")
-            # print(f"{ input_beam = }")
-            # print(f"{ scores[0, output_beam].item() = }")
-            # print(f"{ indices[0, output_beam].item() = }")
-            # print(f"{ candidates_past_attn_scores[input_beam] = }")
-            # print(f"{ candidates_past_key_values[input_beam] = }")
             new_candidates.append(candidate)
-        # print()
 
         # del all elements in candidates from memory
         del candidates
