@@ -8,8 +8,7 @@ class Search(nn.Module):
         vocab_size: int,
     ):
         super().__init__()
-        for k, v in special_tokens.items():
-            setattr(self, k, v)
+        self.special_tokens = special_tokens
         self.vocab_size = vocab_size
 
     def step(
@@ -103,7 +102,7 @@ class DiverseBeamSearch(Search):
             special_tokens=special_tokens,
             vocab_size=vocab_size,
         )
-        TYPE_DIVERSITY_FUNCTION = {
+        self.TYPE_DIVERSITY_FUNCTION = {
             HAMMING_CUMULATIVE_TYPE_DIVERSITY: self.calc_overlap_type_hamming_cumulative,
             N_GRAM_TYPE_DIVERSITY: self.calc_overlap_type_n_gram,
         }
@@ -118,7 +117,9 @@ class DiverseBeamSearch(Search):
         self.candidate_multiple = candidate_multiple
         self.n_gram = n_gram
         self.device = device
-        self.diversity_fn = TYPE_DIVERSITY_FUNCTION[type_diversity_function]
+        self.type_diversity_function = type_diversity_function
+        if self.type_diversity_function == N_GRAM_TYPE_DIVERSITY and self.n_gram <= 1:
+            raise ValueError("N-gram diversity requires n_gram > 1")
         self.group_overlap = None
 
     def calc_present_n_gram_indices(
@@ -254,7 +255,7 @@ class DiverseBeamSearch(Search):
         # scores: (batch_size, input_beam_size, step)
         # original_batch_idxs: (batch_size,)
         # last_n_gram_indices (batch_size, input_beam_size, n_gram - 1)
-        # mask_last_n_gram_indices: (batch_size, input_beam_size, n_gram)
+        # mask_last_n_gram_indices: (batch_size, input_beam_size, n_gram - 1)
         # indices_n_gram (batch_size, input_beam_size, step - n_gram + 1, n_gram)
         # mask_indices_n_gram (batch_size, input_beam_size, step - n_gram + 1, n_gram)
         bsz, beam_size, vocab_size = lprobs.size()
@@ -278,33 +279,88 @@ class DiverseBeamSearch(Search):
         indices_G_stacked = torch.empty(bsz, mini_beam_size, self.num_groups, dtype=torch.long, device=lprobs.device)
 
         for g in range(self.num_groups):
-            # lpobbs_g: (batch_size, mini_beam, vocab_size)
+            # lpobbs_g: (batch_size, mini_beam_size, vocab_size)
             lprobs_g = lprobs[:, g :: self.num_groups, :]
-            # scores_g: (batch_size, mini_beam, step)
+            # scores_g: (batch_size, mini_beam_size, step)
             scores_g = scores[:, g :: self.num_groups, :] if step > 0 else None
-            # mask_g: (batch_size, mini_beam, n_gram)
+            # mask_g: (batch_size, mini_beam_size, n_gram)
             mask_g = mask_last_n_gram_indices[:, g :: self.num_groups, :] if mask_last_n_gram_indices is not None else None
 
             diversity_buf.zero_()
             # apply diversity penalty
             if g > 0:
-                if self.group_overlap is not None:
-                    # penatly_val (batch_size, g)
-                    penalty_val = 1 + self.group_overlap[original_batch_idxs, g, :g]
-                    # penatly_val (batch_size, 1, g)
-                    penalty_val = penalty_val.unsqueeze(1)
-                else:
-                    penalty_val = torch.ones(bsz, 1, 1)
-                # penalty_val (batch_size, 1, g)
-                # indices_ (batch_size, mini_beam, g)
-                indices_ = indices_G_stacked[:, :, :g]
-                # diversity_buf (batch_size, vocab_size)
-                diversity_buf.scatter_add_(
-                    index=indices_.reshape(bsz, -1),
-                    src=penalty_val.expand(indices_.size()).reshape(bsz, -1).to(diversity_buf),
-                    dim=1,
-                )
-                # lprobs_g (batch_size, mini_beam, vocab_size)
+                if self.type_diversity_function is HAMMING_CUMULATIVE_TYPE_DIVERSITY:
+                    if self.group_overlap is not None:
+                        # penatly_val (batch_size, g)
+                        penalty_val = 1 + self.group_overlap[original_batch_idxs, g, :g]
+                        # penatly_val (batch_size, 1, g)
+                        penalty_val = penalty_val.unsqueeze(1)
+                    else:
+                        penalty_val = torch.ones(bsz, 1, 1)
+                    # penalty_val (batch_size, 1, g)
+                    # indices_ (batch_size, mini_beam_size, g)
+                    indices_ = indices_G_stacked[:, :, :g]
+                    # diversity_buf (batch_size, vocab_size)
+                    diversity_buf.scatter_add_(
+                        index=indices_.reshape(bsz, -1),
+                        src=penalty_val.expand(indices_.size()).reshape(bsz, -1).to(diversity_buf),
+                        dim=1,
+                    )
+                elif self.type_diversity_function is N_GRAM_TYPE_DIVERSITY and step >= self.n_gram - 1:
+                    # indices_ (batch_size, mini_beam_size, g)
+                    indices_ = indices_G_stacked[:, :, :g]
+                    # last_n_gram_indices_g (batch_size, mini_beam_size, g, n_gram)
+                    if self.n_gram > 1:
+                        last_n_gram_indices_g = torch.cat([
+                            # (batch_size, mini_beam_size, g, n_gram - 1)
+                            last_n_gram_indices.view(bsz, -1, self.num_groups, last_n_gram_indices.size(-1)).contiguous()[:, :, :g, :],
+                            # (batch_size, mini_beam_size, g, 1)
+                            indices_.unsqueeze(-1),
+                        ], dim=-1).to(self.device)
+                    else:
+                        last_n_gram_indices_g = indices_.unsqueeze(-1)
+                    if indices_n_gram is not None:
+                        # indices_n_gram_g (batch_size, mini_beam_size, num_groups, step - n_gram + 1, n_gram)
+                        indices_n_gram_reshape = indices_n_gram.view(bsz, -1, self.num_groups, indices_n_gram.size(-2), indices_n_gram.size(-1))
+                        # indices_n_gram_g (batch_size, mini_beam_size, g, step - n_gram + 1, n_gram)
+                        indices_n_gram_g = indices_n_gram_reshape[:, :, :g, :, :]
+                        # indices_n_gram_g (batch_size, mini_beam_size, g, step - n_gram + 2, n_gram)
+                        indices_n_gram_g = torch.cat([
+                            # (batch_size, mini_beam_size, g, step - n_gram + 1, n_gram)
+                            indices_n_gram_g,
+                            # (batch_size, mini_beam_size, g, n_gram)
+                            last_n_gram_indices_g.unsqueeze(-2),
+                        ], dim=-2).to(self.device)
+                    else:
+                        # indices_n_gram_g (batch_size, mini_beam_size, g, step - n_gram + 2, n_gram)
+                        indices_n_gram_g = last_n_gram_indices_g.unsqueeze(-2)
+                    # last_indices_g (batch_size, mini_beam_size, g, step - n_gram + 2)
+                    last_indices_g = indices_n_gram_g[:, :, :, :, -1]
+                    # indices_n_gram_g (batch_size, mini_beam_size, g, step - n_gram + 2, n_gram - 1)
+                    indices_n_gram_g = indices_n_gram_g[:, :, :, :, :-1]
+                    # mask_indices_n_gram_g (batch_size, mini_beam_size, g, step - n_gram + 2, n_gram)
+                    mask_indices_n_gram_g = (indices_n_gram_g != self.special_tokens["<pad>"]).type(torch.int64).to(self.device)
+                    # last_n_gram_indices_cur_group (batch_size, mini_beam_size, n_gram - 1)
+                    last_n_gram_indices_cur_group = last_n_gram_indices.view(bsz, -1, self.num_groups, last_n_gram_indices.size(-1)).contiguous()[:, :, g, :]
+                    # penalty_val (batch_size, mini_beam_size, g, step - n_gram + 2, n_gram - 1)
+                    penalty_val = (indices_n_gram_g == last_n_gram_indices_cur_group.unsqueeze(-2).unsqueeze(-2)).int()
+                    if mask_indices_n_gram is not None:
+                        penalty_val = penalty_val.masked_fill_(
+                            mask=mask_indices_n_gram_g == 0,
+                            value=0,
+                        )
+                    # penalty_val (batch_size, mini_beam_size, g, step - n_gram + 2)
+                    penalty_val = penalty_val.sum(dim=-1)
+                    penalty_val = (penalty_val == self.n_gram - 1).int()
+                    if self.group_overlap is not None:
+                        penalty_val = penalty_val + self.group_overlap[original_batch_idxs, g, :g].unsqueeze(1).unsqueeze(-1)
+                    # diversity_buf (batch_size, vocab_size)
+                    diversity_buf.scatter_add_(
+                        index=last_indices_g.reshape(bsz, -1),
+                        src=penalty_val.reshape(bsz, -1).to(diversity_buf),
+                        dim=1,
+                    )
+                # lprobs_g (batch_size, mini_beam_size, vocab_size)
                 lprobs_g = torch.add(
                     lprobs_g,
                     other=diversity_buf.unsqueeze(1),
@@ -334,7 +390,7 @@ class DiverseBeamSearch(Search):
 
         # find num of overlapped tokens for each group pair
         # overlap (batch_size, num_groups, num_groups)
-        overlap = self.diversity_fn(
+        overlap = self.TYPE_DIVERSITY_FUNCTION[self.type_diversity_function](
             last_n_gram_indices=last_n_gram_indices,
             indices_n_gram=indices_n_gram,
             indices=indices_buf,
