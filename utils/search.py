@@ -290,7 +290,7 @@ class DiverseBeamSearch(Search):
             if g > 0:
                 if self.group_overlap is not None:
                     # penatly_val (batch_size, g)
-                    penalty_val = (1 + self.group_overlap[original_batch_idxs, g, :g]).to(self.device)
+                    penalty_val = 1 + self.group_overlap[original_batch_idxs, g, :g]
                     # penatly_val (batch_size, 1, g)
                     penalty_val = penalty_val.unsqueeze(1)
                 else:
@@ -301,7 +301,7 @@ class DiverseBeamSearch(Search):
                 # diversity_buf (batch_size, vocab_size)
                 diversity_buf.scatter_add_(
                     index=indices_.reshape(bsz, -1),
-                    src=penalty_val.repeat(1, mini_beam_size, 1).reshape(bsz, -1),
+                    src=penalty_val.repeat(1, mini_beam_size, 1).reshape(bsz, -1).to(diversity_buf),
                     dim=1,
                 )
                 # lprobs_g (batch_size, mini_beam, vocab_size)
