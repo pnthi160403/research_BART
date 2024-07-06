@@ -301,9 +301,7 @@ class DiverseBeamSearch(Search):
                 # diversity_buf (batch_size, vocab_size)
                 diversity_buf.scatter_add_(
                     index=indices_.reshape(bsz, -1),
-                    src=penalty_val.expand(indices_.size())
-                    .reshape(bsz, -1)
-                    .to(diversity_buf),
+                    src=penalty_val.expand(indices_.size()).reshape(bsz, -1).to(diversity_buf),
                     dim=1,
                 )
                 # lprobs_g (batch_size, mini_beam, vocab_size)
