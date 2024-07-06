@@ -290,7 +290,7 @@ class DiverseBeamSearch(Search):
             if g > 0:
                 if self.group_overlap is not None:
                     # penatly_val (batch_size, g)
-                    penalty_val = 1 + self.group_overlap[original_batch_idxs, g, :g]
+                    penalty_val = (1 + self.group_overlap[original_batch_idxs, g, :g]).to(self.device)
                     # penatly_val (batch_size, 1, g)
                     penalty_val = penalty_val.unsqueeze(1)
                 else:
