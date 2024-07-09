@@ -18,7 +18,7 @@ class Search(nn.Module):
         scores: torch.Tensor,
     ):
         raise NotImplementedError
-    
+        
 class BeamSearch(Search):
     def __init__(
         self,
@@ -53,7 +53,7 @@ class BeamSearch(Search):
         else:
             # make probs contain cumulative scores for each hypothesis
             assert scores is not None
-            lprobs = lprobs + scores[:, :, step - 1].unsqueeze(-1)
+            lprobs = lprobs + scores[:, :, step].unsqueeze(-1)
 
         top_prediction = torch.topk(
             lprobs.view(bsz, -1),

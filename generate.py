@@ -72,7 +72,7 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
         n_gram=n_gram,
     )] * beam_size
 
-    for step in range(max_len):
+    for step in range(0, max_len - 1):
         if all([candidate.stop_search() for candidate in candidates]):
             break
         new_candidates = []
@@ -87,8 +87,7 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
             candidate = candidates[input_beam]
             if candidate.stop_search():
                 # lprob (1, vocab_size)
-                lprob = -torch.ones((1, vocab_size), dtype=torch.float32).to(device) * 1e9
-                lprob[0][pad_token_id] = 0
+                lprob = torch.zeros((1, vocab_size), dtype=torch.float32).to(device)
             else:
                 if config["use_cache"]:
                     decoder_out_obj = model.get_decoder_out(
