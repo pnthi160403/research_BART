@@ -60,31 +60,33 @@ def test(config):
         print("No model to preload!")
 
     for beam_size in beams:
-        res = validate(
+        ans = validate(
             model=model,
             config=config,
             beam_size=beam_size,
             val_dataloader=test_dataloader
         )
+        for i in range(beam_size):
+            res = ans[i]
+            column_names = []
+            data = []
+            for name, value in res.items():
+                if value is None:
+                    continue
+                column_names.append(name)
+                data.append(value)
 
-        column_names = []
-        data = []
-        for name, value in res.items():
-            if value is None:
-                continue
-            column_names.append(name)
-            data.append(value)
+            data_frame = figure_list_to_csv(
+                config=config,
+                column_names=column_names,
+                data=data,
+                name_csv=f"results_beam_{beam_size}_prediction_{i}.csv"
+            )
 
-        data_frame = figure_list_to_csv(
-            config=config,
-            column_names=column_names,
-            data=data,
-            name_csv=f"results_beam_{beam_size}"
-        )
+            zip_directory(
+                directory_path=config["log_dir"],
+                output_zip_path=config["log_dir_zip"]
+            )
 
-        zip_directory(
-            directory_path=config["log_dir"],
-            output_zip_path=config["log_dir_zip"]
-        )
-
-        print(data_frame)
+            print(f"Result test model in prediction {i} with beam size {beam_size}")
+            print(data_frame)
