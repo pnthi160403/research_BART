@@ -67,12 +67,15 @@ class BeamSearch(Search):
         # beams_buf (batch_size, candidate_multiple * beam_size)
         beams_buf = torch.div(indices_buf, vocab_size, rounding_mode="trunc")
         indices_buf = indices_buf.fmod(vocab_size)
-        for batch in range(bsz):
-            for i in range(self.candidate_multiple * beam_size):
-                prev_beam = beams_buf[batch][i]
-                if mask_stop_search[batch][prev_beam] == 1:
-                    continue
-                indices_buf[batch][i] = self.special_tokens["<pad>"]
+        mask = torch.gather(
+            input=mask_stop_search,
+            index=beams_buf,
+            dim=-1,
+        )
+        indices_buf = indices_buf.masked_fill_(
+            mask=mask == 0,
+            value=self.special_tokens["<pad>"],
+        )
         # At this point, beams_buf and indices_buf are single-dim and contain relative indices
         return scores_buf, indices_buf, beams_buf
 
