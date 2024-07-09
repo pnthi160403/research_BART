@@ -38,10 +38,12 @@ class BeamSearch(Search):
         step: int,
         lprobs: torch.Tensor,
         scores: torch.Tensor=None,
+        mask_stop_search: torch.Tensor=None,
         **kwargs,
     ):
-        # lprobs: (batch_size, input_beam_size, vocab_size)
-        # scores: (batch_size, input_beam_size, step + 1)
+        # lprobs (batch_size, input_beam_size, vocab_size)
+        # scores (batch_size, input_beam_size, step + 1)
+        # mask_stop_search (batch_size, input_beam_size)
 
         bsz, beam_size, vocab_size = lprobs.size()
         if step == 0:
@@ -57,12 +59,20 @@ class BeamSearch(Search):
             lprobs.view(bsz, -1),
             k=self.candidate_multiple * beam_size,
         )
+        # scores_buf (batch_size, candidate_multiple * beam_size)
         scores_buf = top_prediction[0]
+        # indices_buf (batch_size, candidate_multiple * beam_size)
         indices_buf = top_prediction[1]
         # Project back into relative indices and beams
+        # beams_buf (batch_size, candidate_multiple * beam_size)
         beams_buf = torch.div(indices_buf, vocab_size, rounding_mode="trunc")
         indices_buf = indices_buf.fmod(vocab_size)
-
+        for batch in range(bsz):
+            for i in range(self.candidate_multiple * beam_size):
+                prev_beam = beams_buf[batch][i]
+                if mask_stop_search[batch][prev_beam] == 1:
+                    continue
+                indices_buf[batch][i] = self.special_tokens["<pad>"]
         # At this point, beams_buf and indices_buf are single-dim and contain relative indices
         return scores_buf, indices_buf, beams_buf
 
