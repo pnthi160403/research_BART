@@ -78,18 +78,17 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
         new_candidates = []
         lprobs = []
         scores = None
-        last_n_gram_indices = None
-        mask_last_n_gram_indices = None
-        indices_n_gram = None
-        mask_indices_n_gram = None
+        indices = []
         candidates_past_key_values = []
         candidates_past_attn_scores = []
+        mask_stop_search = None
         # mask (batch_size, beam_size)
         for input_beam in range(beam_size):
             candidate = candidates[input_beam]
             if candidate.stop_search():
                 # lprob (1, vocab_size)
-                lprob = torch.zeros((1, vocab_size), dtype=torch.float32).to(device)
+                lprob = -torch.ones((1, vocab_size), dtype=torch.float32).to(device) * 1e9
+                lprob[0][pad_token_id] = 0
             else:
                 if config["use_cache"]:
                     decoder_out_obj = model.get_decoder_out(
@@ -122,42 +121,35 @@ def generate(model, config, beam_size, tokenizer_src, tokenizer_tgt, src):
             elif candidate.scores is not None:
                 scores.append(candidate.scores.unsqueeze(0))
 
-            if candidate.last_n_gram_indices is not None and candidate.last_n_gram_indices.size(-1) == n_gram - 1 and last_n_gram_indices is None:
-                last_n_gram_indices = [candidate.last_n_gram_indices.unsqueeze(0)]
-                mask_last_n_gram_indices = [candidate.mask_last_n_gram_indices.unsqueeze(0)]
-            elif candidate.last_n_gram_indices is not None and candidate.last_n_gram_indices.size(-1) == n_gram - 1:
-                last_n_gram_indices.append(candidate.last_n_gram_indices.unsqueeze(0))
-                mask_last_n_gram_indices.append(candidate.mask_last_n_gram_indices.unsqueeze(0))
+            if mask_stop_search is None:
+                mask_stop_search = [torch.tensor(1- candidate.stop_search()).to(device).unsqueeze(0)]
+            elif mask_stop_search is not None:
+                mask_stop_search.append(torch.tensor(1 - candidate.stop_search()).to(device).unsqueeze(0))
 
-            if candidate.indices_n_gram is not None and indices_n_gram is None:
-                indices_n_gram = [candidate.indices_n_gram.unsqueeze(0)]
-                mask_indices_n_gram = [candidate.mask_indices_n_gram.unsqueeze(0)]
-            elif candidate.indices_n_gram is not None:
-                indices_n_gram.append(candidate.indices_n_gram.unsqueeze(0))
-                mask_indices_n_gram.append(candidate.mask_indices_n_gram.unsqueeze(0))
-
+            indices.append(candidate.indices.unsqueeze(0))
             candidates_past_key_values.append(past_key_values)
             candidates_past_attn_scores.append(past_attn_scores)
         
         # lprobs (batch_size, beam_size, vocab_size)
         lprobs = torch.cat(lprobs, dim=0).unsqueeze(0)
+        
         # scores (batch_size, beam_size, step)
         if scores is not None:
             scores = torch.cat(scores, dim=0).unsqueeze(0)
-        if last_n_gram_indices is not None:
-            last_n_gram_indices = torch.cat(last_n_gram_indices, dim=0).unsqueeze(0)
-            mask_last_n_gram_indices = torch.cat(mask_last_n_gram_indices, dim=0).unsqueeze(0)
-        if indices_n_gram is not None:
-            indices_n_gram = torch.cat(indices_n_gram, dim=0).unsqueeze(0)
-            mask_indices_n_gram = torch.cat(mask_indices_n_gram, dim=0).unsqueeze(0)
+        
+        # indices (batch_size, beam_size, step)
+        indices = torch.cat(indices, dim=0).unsqueeze(0)
+
+        # mask_stop_search (batch_size, input_beam_size)
+        if mask_stop_search is not None:
+            mask_stop_search = torch.cat(mask_stop_search, dim=0).unsqueeze(0)
+
         scores, indices, beams = search_module.step(
             step=step,
             lprobs=lprobs,
             scores=scores,
-            last_n_gram_indices=last_n_gram_indices,
-            mask_last_n_gram_mask=mask_last_n_gram_indices,
-            indices_n_gram=indices_n_gram,
-            mask_indices_n_gram=mask_indices_n_gram,
+            prev_indices=indices,
+            mask_stop_search=mask_stop_search,
             original_batch_idxs=torch.tensor([0]).to(device),
         )
 
