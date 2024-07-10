@@ -246,11 +246,13 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
     )
 
     # get cosine similarity
+    decoder_embeds_matrix = torch.tensor(model.decoder_inputs_embeds.embed_tokens.weight.data.clone().detach().cpu().numpy()).to(device)
+    decoder_embeds_matrix.requires_grad = False
     top_cosine_similarity_indices = get_cosine_similarity(
         path=config["cosine_similarity_path"],
         vocab_size=config["tgt_vocab_size"],
         k=config["top_k_cosine_similarity"],
-        decoder_embeds_matrix=model.decoder_inputs_embeds.embed_tokens.weight.data,
+        decoder_embeds_matrix=decoder_embeds_matrix,
         eos_token_id=tokenizer_tgt.token_to_id("</s>")
     )
         
@@ -324,9 +326,9 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
                         skip_special_tokens=True,
                     )
                     # print(f"{f'TOKENS TARGET {i}: ':>12}{[tokenizer_tgt.encode(text).tokens]}")
-                    print(f"{f'TOKENS IDS {i}: ':>12}{preds_ids[i].tgt.squeeze().detach().cpu().numpy()}")
+                    # print(f"{f'TOKENS IDS {i}: ':>12}{preds_ids[i].tgt.squeeze().detach().cpu().numpy()}")
                     print(f"{f'PREDICTED {i}: ':>12}{text}")
-                    print()
+                    # print()
                 if config["use_bleu"]:
                     scores = torchtext_bleu_score(refs=[[tgt_text.split()]],
                                             cands=[pred_text.split()])
