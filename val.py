@@ -248,7 +248,6 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
 
     # get cosine similarity
     decoder_embeds_matrix = torch.tensor(model.decoder_inputs_embeds.embed_tokens.weight.data.clone().detach().cpu().numpy()).to(device)
-    decoder_embeds_matrix.requires_grad = False
     top_cosine_similarity_indices = get_cosine_similarity(
         path=config["cosine_similarity_path"],
         vocab_size=config["tgt_vocab_size"],
