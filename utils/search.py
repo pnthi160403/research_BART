@@ -2,35 +2,6 @@ import torch
 import torch.nn as nn
 from tqdm import tqdm
 
-def calc_consine_similarity(
-    E: torch.Tensor,
-    vocab_size: int,
-    k: int,
-) -> torch.Tensor:
-    # E (vocab_size, d_model)
-    # k: number of top cosine similarity indices to return
-    for i in tqdm(range(vocab_size)):
-        # (vocab_size, d_model)
-        embed_i = E[i].unsqueeze(0).repeat(vocab_size, 1)
-        cosine_similarities = nn.functional.cosine_similarity(
-            x1=E,
-            x2=embed_i,
-            dim=-1,
-        )
-        val, idx = torch.topk(
-            input=cosine_similarities,
-            k=k,
-        )
-        # top_cosine_similarity_indices (vocab_size, k)
-        if top_cosine_similarity_indices is None:
-            top_cosine_similarity_indices = idx.unsqueeze(0)
-        else:
-            top_cosine_similarity_indices = torch.cat([
-                top_cosine_similarity_indices,
-                idx.unsqueeze(0),
-            ], dim=0)
-    return top_cosine_similarity_indices
-
 class Search(nn.Module):
     def __init__(
         self,
@@ -344,7 +315,7 @@ class DiverseBeamSearch(Search):
                     # expand last_indices_g_gr to (batch_size, mini_beam_size, g, k)
                     last_indices_g_gr = last_indices_g_gr.unsqueeze(-1).expand(-1, -1, -1, k)
                     # last_indices_g_gr_similarities (batch_size, mini_beam_size, g, k)
-                    last_indices_g_gr_similarities = self.top_cosine_similarity_indices[last_indices_g_gr_similarities]
+                    last_indices_g_gr_similarities = self.top_cosine_similarity_indices[last_indices_g_gr]
                     # last_indices_g_gr_similarities (batch_size, mini_beam_size, g * k)
                     last_indices_g_gr_similarities = last_indices_g_gr_similarities.view(bsz, mini_beam_size, -1).contiguous()
                     # penalty_val

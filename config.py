@@ -115,6 +115,8 @@ def get_config(base_dir: str=None):
     config["candidate_multiple_search"] = 1
     config["n_gram_search"] = 1
     config["type_diversity_function"] = "Hamming_Cumulative"
+    config["cosine_similarity_path"] = None
+    config["top_k_cosine_similarity"] = 16
 
     # Random Encoder config
     config["random_encoder_layers"] = 4
