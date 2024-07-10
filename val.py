@@ -256,7 +256,6 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
         
     vocab_size=tokenizer_tgt.get_vocab_size()
     pad_token_id = tokenizer_src.token_to_id("<pad>")
-    unk_token_id = tokenizer_tgt.token_to_id("<unk>")
 
     with torch.no_grad():
 
@@ -289,7 +288,10 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
             if config["type_search"] in [BEAM_SEARCH, DIVERSE_BEAM_SEARCH]:
                 pred_ids = preds_ids[0].tgt.squeeze()
             
-            pred_text = tokenizer_tgt.decode(list(filter(lambda x: x != unk_token_id, pred_ids.detach().cpu().numpy())))
+            pred_text = tokenizer_tgt.decode(
+                pred_ids.detach().cpu().numpy(),
+                skip_special_tokens=True,
+            )
 
             rouge_preds.append(pred_text)
             rouge_targets.append(tgt_text)  
@@ -317,10 +319,14 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
                 print(f"{f'SOURCE: ':>12}{src_text}")
                 print(f"{f'TARGET: ':>12}{tgt_text}")
                 for i in range(len(preds_ids)):
-                    text = tokenizer_tgt.decode(list(filter(lambda x: x != unk_token_id, preds_ids[i].tgt.squeeze().detach().cpu().numpy())))
+                    text = tokenizer_tgt.decode(
+                        preds_ids[i].tgt.squeeze().detach().cpu().numpy(),
+                        skip_special_tokens=True,
+                    )
                     # print(f"{f'TOKENS TARGET {i}: ':>12}{[tokenizer_tgt.encode(text).tokens]}")
+                    print(f"{f'TOKENS IDS {i}: ':>12}{preds_ids[i].tgt.squeeze().detach().cpu().numpy()}")
                     print(f"{f'PREDICTED {i}: ':>12}{text}")
-                    # print()
+                    print()
                 if config["use_bleu"]:
                     scores = torchtext_bleu_score(refs=[[tgt_text.split()]],
                                             cands=[pred_text.split()])
