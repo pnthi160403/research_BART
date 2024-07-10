@@ -320,16 +320,20 @@ class DiverseBeamSearch(Search):
                     last_indices_g_gr_similarities = last_indices_g_gr_similarities.view(bsz, mini_beam_size, -1).contiguous()
                     # penalty_val
                     if self.group_overlap is not None:
+                        # penalty_val (batch_size, g)
                         penalty_val = 1 + self.group_overlap[original_batch_idxs, g, :g]
-                        penalty_val = penalty_val.unsqueeze(1)
+                        # penalty_val (batch_size, mini_beam_size, g, k)
+                        penalty_val = penalty_val.unsqueeze(1).unsqueeze(-1).repeat(1, last_indices_g_gr_similarities.size(1), 1, last_indices_g_gr_similarities.size(-1))
+                        # penalty_val (batch_size, mini_beam_size, g * k)
+                        penalty_val = penalty_val.view(bsz, mini_beam_size, -1).contiguous()
                     else:
-                        penalty_val = torch.ones(bsz, 1, 1)
+                        penalty_val = torch.ones(last_indices_g_gr_similarities.size())
 
                     # diversity_buf (batch_size, vocab_size)
                     diversity_buf.scatter_add_(
                         index=last_indices_g_gr_similarities.reshape(bsz, -1),
-                        src=penalty_val.expand(last_indices_g_gr_similarities.size()).reshape(bsz, -1).to(diversity_buf),
-                        dim=1,
+                        src=penalty_val.reshape(bsz, -1).to(diversity_buf),
+                        dim=-1,
                     )
                 # lprobs_g (batch_size, mini_beam_size, vocab_size)
                 lprobs_g = torch.add(
