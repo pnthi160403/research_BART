@@ -52,12 +52,26 @@ def calc_consine_similarity(
                 k=k,
             )
         else:
-            val, idx = torch.topk(
+            val, idxs = torch.topk(
                 input=cosine_similarities,
                 k=k+1,
             )
-            val = val[1:]
-            idx = idx[1:]
+            for j in range(len(idxs)):
+                if idxs[j] == eos_token_id:
+                    idxs = idxs.cpu().numpy().tolist()
+                    idxs = idxs[:j] + idxs[j+1:]
+                    val = val.cpu().numpy().tolist()
+                    val = val[:j] + val[j+1:]
+                    idxs = torch.tensor(idxs).to(E.device)
+                    val = torch.tensor(val).to(E.device)
+                    break
+                if j == len(idxs) - 1:
+                    idxs = idxs.cpu().numpy().tolist()
+                    idxs = idxs[:k]
+                    val = val.cpu().numpy().tolist()
+                    val = val[:k]
+                    idxs = torch.tensor(idxs).to(E.device)
+                    val = torch.tensor(val).to(E.device)
         # top_cosine_similarity_indices (vocab_size, k)
         if top_cosine_similarity_indices is None:
             top_cosine_similarity_indices = idx.unsqueeze(0)
