@@ -237,18 +237,21 @@ from .utils.metrics import (
 )
 
 def validate(model, config, beam_size, val_dataloader, num_example=20):
-    top_cosine_similarity_indices = get_cosine_similarity(
-        path=config["cosine_similarity_path"],
-        vocab_size=config["tgt_vocab_size"],
-        k=config["top_k_cosine_similarity"],
-        decoder_embeds_matrix=model.decoder_inputs_embeds.embed_tokens.weight.data,
-    )
     device = config["device"]
     
     # read tokenizer
     tokenizer_src, tokenizer_tgt = read_tokenizer(
         tokenizer_src_path=config["tokenizer_src_path"],
         tokenizer_tgt_path=config["tokenizer_tgt_path"],
+    )
+
+    # get cosine similarity
+    top_cosine_similarity_indices = get_cosine_similarity(
+        path=config["cosine_similarity_path"],
+        vocab_size=config["tgt_vocab_size"],
+        k=config["top_k_cosine_similarity"],
+        decoder_embeds_matrix=model.decoder_inputs_embeds.embed_tokens.weight.data,
+        eos_token_id=tokenizer_tgt.token_to_id("</s>")
     )
         
     vocab_size=tokenizer_tgt.get_vocab_size()

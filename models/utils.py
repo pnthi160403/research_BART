@@ -33,6 +33,7 @@ def calc_consine_similarity(
     E: torch.Tensor,
     vocab_size: int,
     k: int,
+    eos_token_id: int,
 ) -> torch.Tensor:
     # E (vocab_size, d_model)
     # k: number of top cosine similarity indices to return
@@ -45,10 +46,18 @@ def calc_consine_similarity(
             x2=embed_i,
             dim=-1,
         )
-        val, idx = torch.topk(
-            input=cosine_similarities,
-            k=k,
-        )
+        if i != eos_token_id:
+            val, idx = torch.topk(
+                input=cosine_similarities,
+                k=k,
+            )
+        else:
+            val, idx = torch.topk(
+                input=cosine_similarities,
+                k=k+1,
+            )
+            val = val[1:]
+            idx = idx[1:]
         # top_cosine_similarity_indices (vocab_size, k)
         if top_cosine_similarity_indices is None:
             top_cosine_similarity_indices = idx.unsqueeze(0)
@@ -64,6 +73,7 @@ def get_cosine_similarity(
     vocab_size: int,
     k: int,
     decoder_embeds_matrix: torch.Tensor=None,
+    eos_token_id: int=None,
 ):
     if path is not None and os.path.exists(path):
         top_cosine_similarity_indices = torch.load(path)
@@ -72,6 +82,7 @@ def get_cosine_similarity(
             E=decoder_embeds_matrix,
             vocab_size=vocab_size,
             k=k,
+            eos_token_id=eos_token_id,
         )
         if path is not None:
             torch.save(
