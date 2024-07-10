@@ -237,6 +237,7 @@ from .utils.metrics import (
 )
 
 def validate(model, config, beam_size, val_dataloader, num_example=20):
+    model.eval()
     device = config["device"]
     
     # read tokenizer

@@ -20,7 +20,6 @@ def generate(
     tokenizer_tgt,
     src
 ):
-    model.eval()
     # Search Module
     # special token id
     device = config["device"]
