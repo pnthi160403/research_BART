@@ -1,5 +1,35 @@
 import torch
 import torch.nn as nn
+from tqdm import tqdm
+
+def calc_consine_similarity(
+    E: torch.Tensor,
+    vocab_size: int,
+    k: int,
+) -> torch.Tensor:
+    # E (vocab_size, d_model)
+    # k: number of top cosine similarity indices to return
+    for i in tqdm(range(vocab_size)):
+        # (vocab_size, d_model)
+        embed_i = E[i].unsqueeze(0).repeat(vocab_size, 1)
+        cosine_similarities = nn.functional.cosine_similarity(
+            x1=E,
+            x2=embed_i,
+            dim=-1,
+        )
+        val, idx = torch.topk(
+            input=cosine_similarities,
+            k=k,
+        )
+        # top_cosine_similarity_indices (vocab_size, k)
+        if top_cosine_similarity_indices is None:
+            top_cosine_similarity_indices = idx.unsqueeze(0)
+        else:
+            top_cosine_similarity_indices = torch.cat([
+                top_cosine_similarity_indices,
+                idx.unsqueeze(0),
+            ], dim=0)
+    return top_cosine_similarity_indices
 
 class Search(nn.Module):
     def __init__(
@@ -81,6 +111,7 @@ class BeamSearch(Search):
 
 HAMMING_CUMULATIVE_TYPE_DIVERSITY = "Hamming_Cumulative"
 N_GRAM_TYPE_DIVERSITY = "N_Gram"
+NEURAL_EMBEDDING_TYPE_DIVERSITY = "Neural_Embedding"
 
 class DiverseBeamSearch(Search):
     def __init__(
@@ -94,6 +125,7 @@ class DiverseBeamSearch(Search):
         n_gram: int=1,
         device: str="cpu",
         type_diversity_function: str=HAMMING_CUMULATIVE_TYPE_DIVERSITY,
+        top_cosine_similarity_indices: torch.Tensor=None,
         **kwargs,
     ):
         super().__init__(
@@ -103,6 +135,7 @@ class DiverseBeamSearch(Search):
         self.TYPE_DIVERSITY_FUNCTION = {
             HAMMING_CUMULATIVE_TYPE_DIVERSITY: self.calc_overlap_type_hamming_cumulative,
             N_GRAM_TYPE_DIVERSITY: self.calc_overlap_type_n_gram,
+            NEURAL_EMBEDDING_TYPE_DIVERSITY: self.calc_overlap_type_hamming_cumulative,
         }
         self.num_groups = num_groups
         self.diversity_strength = -diversity_strength
@@ -118,9 +151,8 @@ class DiverseBeamSearch(Search):
         self.type_diversity_function = type_diversity_function
         if self.type_diversity_function == N_GRAM_TYPE_DIVERSITY and self.n_gram <= 1:
             raise ValueError("N-gram diversity requires n_gram > 1")
-        # elif self.type_diversity_function == HAMMING_CUMULATIVE_TYPE_DIVERSITY and self.n_gram != 1:
-        #     raise ValueError("Hamming cumulative diversity requires n_gram = 1")
         self.group_overlap = None
+        self.top_cosine_similarity_indices = top_cosine_similarity_indices
 
     def transform_tensor(
         self,
@@ -259,6 +291,7 @@ class DiverseBeamSearch(Search):
             diversity_buf.zero_()
             # apply diversity penalty
             if g > 0:
+                # HAMMING_CUMULATIVE_TYPE_DIVERSITY
                 if self.type_diversity_function is HAMMING_CUMULATIVE_TYPE_DIVERSITY:
                     if self.group_overlap is not None:
                         # penatly_val (batch_size, g)
@@ -276,6 +309,7 @@ class DiverseBeamSearch(Search):
                         src=penalty_val.expand(indices_.size()).reshape(bsz, -1).to(diversity_buf),
                         dim=1,
                     )
+                # N_GRAM_TYPE_DIVERSITY
                 elif self.type_diversity_function is N_GRAM_TYPE_DIVERSITY and step + 1 >= self.n_gram:
                     # prev_indices_reshape (batch_size, mini_beam_size, num_groups, step + 1)
                     prev_indices_reshape = prev_indices.view(bsz, mini_beam_size, self.num_groups, -1)
@@ -286,17 +320,13 @@ class DiverseBeamSearch(Search):
                     )
                     # last_prev_cut_n_gram_g_gr (batch_size, mini_beam_size, g, n_gram - 1)
                     last_prev_cut_n_gram_g_gr = prev_indices_cut_n_gram[:, :, :g, -1, :]
-                    # print(f"{ last_prev_cut_n_gram_g_gr.shape = }")
                     # last_prev_cut_n_gram_g (batch_size, mini_beam_size, n_gram - 1)
                     # print(f"{ indices_cut_n_gram.shape = }")
                     last_prev_cut_n_gram_g = prev_indices_cut_n_gram[:, :, g, -1, :]
-                    # print(f"{ last_prev_cut_n_gram_g.shape = }")
                     # overlap_n_gram (batch_size, mini_beam_size, g, n_gram - 1)
                     overlap_n_gram = (last_prev_cut_n_gram_g.unsqueeze(-2) == last_prev_cut_n_gram_g_gr).int()
-                    # print(f"{ overlap_n_gram.shape = }")
                     # overlap_n_gram (batch_size, mini_beam_size, g)
                     penalty_val = (torch.sum(overlap_n_gram, dim=-1) == self.n_gram - 1).int()
-                    # print(f"{ penalty_val.sum() = }")
                     # last_indices_g_gr (batch_size, mini_beam_size, g)
                     last_indices_g_gr = indices[:, :, :g, -1]
                     # diversity_buf (batch_size, vocab_size)
@@ -305,7 +335,31 @@ class DiverseBeamSearch(Search):
                         src=penalty_val.reshape(bsz, -1).to(diversity_buf),
                         dim=1,
                     )
-                    # print(f"{ diversity_buf.sum().item() = }")
+                # NEURAL_EMBEDDING_TYPE_DIVERSITY
+                elif self.type_diversity_function is NEURAL_EMBEDDING_TYPE_DIVERSITY:
+                    # last_indices_g_gr (batch_size, mini_beam_size, g)
+                    last_indices_g_gr = indices[:, :, :g, -1]
+                    # top k cosine similarity indices
+                    k = self.top_cosine_similarity_indices.size(-1)
+                    # expand last_indices_g_gr to (batch_size, mini_beam_size, g, k)
+                    last_indices_g_gr = last_indices_g_gr.unsqueeze(-1).expand(-1, -1, -1, k)
+                    # last_indices_g_gr_similarities (batch_size, mini_beam_size, g, k)
+                    last_indices_g_gr_similarities = self.top_cosine_similarity_indices[last_indices_g_gr_similarities]
+                    # last_indices_g_gr_similarities (batch_size, mini_beam_size, g * k)
+                    last_indices_g_gr_similarities = last_indices_g_gr_similarities.view(bsz, mini_beam_size, -1).contiguous()
+                    # penalty_val
+                    if self.group_overlap is not None:
+                        penalty_val = 1 + self.group_overlap[original_batch_idxs, g, :g]
+                        penalty_val = penalty_val.unsqueeze(1)
+                    else:
+                        penalty_val = torch.ones(bsz, 1, 1)
+
+                    # diversity_buf (batch_size, vocab_size)
+                    diversity_buf.scatter_add_(
+                        index=last_indices_g_gr_similarities.reshape(bsz, -1),
+                        src=penalty_val.expand(last_indices_g_gr_similarities.size()).reshape(bsz, -1).to(diversity_buf),
+                        dim=1,
+                    )
                 # lprobs_g (batch_size, mini_beam_size, vocab_size)
                 lprobs_g = torch.add(
                     lprobs_g,
@@ -475,6 +529,7 @@ TYPE_SEARCH = {
 }
 
 __all__ = [
+    "calc_consine_similarity",
     "Search",
     "BeamSearch",
     "DiverseBeamSearch",

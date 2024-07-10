@@ -186,6 +186,18 @@ class BartSeq2seq(nn.Module):
             past_attn_scores=past_attn_scores,
         )
     
+    def get_encoder_embeds(
+        self,
+        input_ids: torch.Tensor,
+    ):
+        return self.inputs_embeds.embed_tokens(input_ids)
+    
+    def get_decoder_embeds(
+        self,
+        input_ids: torch.Tensor,
+    ):
+        return self.decoder_inputs_embeds.embed_tokens(input_ids)
+    
 def get_model(
     **kwargs,
 ):
