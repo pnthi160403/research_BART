@@ -125,15 +125,16 @@ class DiverseBeamSearch(Search):
         self.group_overlap = None
         self.top_cosine_similarity_indices = top_cosine_similarity_indices
 
-    def transform_tensor(
+    def transform_n_gram_tensor(
         self,
         tensor: torch.Tensor,
         n_gram: int=1,
+        dim_n_gram: int=-1,
     ):
         dim_2 = tensor.size(2)
         if dim_2 < n_gram:
             return None
-        transformed_tensor = tensor.unfold(dimension=2, size=n_gram, step=1)
+        transformed_tensor = tensor.unfold(dimension=dim_n_gram, size=n_gram, step=1)
         return transformed_tensor
 
     def calc_overlap_type_n_gram(
@@ -147,7 +148,7 @@ class DiverseBeamSearch(Search):
             return None
 
         # indices_n_gram (batch_size, mini_beam_size, num_groups, step + 2) -> (batch_size, mini_beam_size, num_groups, step + 3 - n_gram, n_gram)
-        indices_n_gram = self.transform_tensor(
+        indices_n_gram = self.transform_n_gram_tensor(
             tensor=indices,
             n_gram=self.n_gram,
         )
@@ -285,7 +286,7 @@ class DiverseBeamSearch(Search):
                     # prev_indices_reshape (batch_size, mini_beam_size, num_groups, step + 1)
                     prev_indices_reshape = prev_indices.view(bsz, mini_beam_size, self.num_groups, -1)
                     # prev_indices_cut_n_gram (batch_size, mini_beam_size, num_groups, step + 3 - n_gram, n_gram - 1)
-                    prev_indices_cut_n_gram = self.transform_tensor(
+                    prev_indices_cut_n_gram = self.transform_n_gram_tensor(
                         tensor=prev_indices_reshape,
                         n_gram=self.n_gram - 1,
                     )
