@@ -57,7 +57,7 @@ def test(config):
         print(f"Preloading model from {model_filename}")
         state = torch.load(model_filename)
         if config["multi_gpu"]:
-            loc = f"cuda:{int(os.environ["LOCAL_RANK"])}"
+            loc = f"cuda:{int(os.environ['LOCAL_RANK'])}"
             model.load_state_dict(state['model_state_dict'], map_location=loc)
         else:
             model.load_state_dict(state['model_state_dict'])
