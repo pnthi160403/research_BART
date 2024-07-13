@@ -105,6 +105,7 @@ def get_config(base_dir: str=None):
     config["max_relative_positions"] = 200
     config["window_size"] = 32
     config["use_cache"] = True
+    config["multi_gpu"] = False
 
     # Search module
     config["type_search"] = "beam_search"
