@@ -6,6 +6,7 @@ from .utils.folders import weights_file_path
 from .utils.figures import figure_list_to_csv, zip_directory
 from .prepare_dataset.seq2seq import get_dataloader
 from .models.get_instance_bart import get_model
+import os
 
 def test(config):
     # set seed
@@ -56,7 +57,8 @@ def test(config):
         print(f"Preloading model from {model_filename}")
         state = torch.load(model_filename)
         if config["multi_gpu"]:
-            model.module.load_state_dict(state['model_state_dict'])
+            loc = f"cuda:{int(os.environ["LOCAL_RANK"])}"
+            model.load_state_dict(state['model_state_dict'], map_location=loc)
         else:
             model.load_state_dict(state['model_state_dict'])
     else:
