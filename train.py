@@ -1,6 +1,8 @@
 import torch
 import torch
 from tqdm import tqdm
+import os
+import json
 
 from .prepare_dataset.seq2seq import get_dataloader
 from .utils.tokenizers import read_tokenizer
@@ -31,15 +33,19 @@ def lambda_lr(global_step: int, config):
     global_step = max(global_step, 1)
     return (config["d_model"] ** -0.5) * min(global_step ** (-0.5), global_step * config["warmup_steps"] ** (-1.5))
 
+def ddp_setup():
+    torch.distributed.init_process_group(backend="nccl")
+    torch.cuda.set_device(int(os.environ["LOCAL_RANK"]))
+
+def clean_up():
+    torch.distributed.destroy_process_group()
+
 def train(config):
     # create dirs
     create_dirs(dir_paths=[config["log_dir"], config["model_folder_name"], config["log_files"]])
     
     # set seed
     set_seed(seed=config["seed"])
-
-    # device
-    device = config["device"]
 
     # big batch
     big_batch = config["big_batch"]
@@ -58,7 +64,9 @@ def train(config):
     model = get_model(
         config=config,
         model_train=config["model_train"],
-    ).to(device)
+    ).to(int(os.environ["LOCAL_RANK"]))
+
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[int(os.environ["LOCAL_RANK"])])
 
     # get dataloaders
     train_dataloader, val_dataloader, test_dataloader = get_dataloader(
@@ -173,11 +181,11 @@ def train(config):
         for batch in batch_iterator:
             if global_step >= config["num_steps"]:
                 break
-            src = batch["src"].to(device)
-            tgt = batch["tgt"].to(device)
+            src = batch["src"].to(int(os.environ["LOCAL_RANK"]))
+            tgt = batch["tgt"].to(int(os.environ["LOCAL_RANK"]))
             src_attention_mask = (src != tokenizer_src.token_to_id("<pad>")).type(torch.int64)
             tgt_attention_mask = (tgt != tokenizer_tgt.token_to_id("<pad>")).type(torch.int64)
-            label = batch['label'].to(device)
+            label = batch['label'].to(int(os.environ["LOCAL_RANK"]))
 
             logits, loss = model(
                 input_ids=src,
@@ -222,11 +230,11 @@ def train(config):
                         # for batch in batch_iterator:
                         for batch in val_dataloader:
                             global_val_step += 1
-                            src = batch["src"].to(device)
-                            tgt = batch["tgt"].to(device)
+                            src = batch["src"].to(int(os.environ["LOCAL_RANK"]))
+                            tgt = batch["tgt"].to(int(os.environ["LOCAL_RANK"]))
                             src_attention_mask = (src != tokenizer_src.token_to_id("<pad>")).type(torch.int64)
                             tgt_attention_mask = (tgt != tokenizer_tgt.token_to_id("<pad>")).type(torch.int64)
-                            label = batch['label'].to(device)
+                            label = batch['label'].to(int(os.environ["LOCAL_RANK"]))
                             
                             logits, loss = model(
                                 input_ids=src,
@@ -332,3 +340,24 @@ def train(config):
         directory_path=config["model_folder_name"],
         output_zip_path=config["model_folder_name_zip"],
     )
+
+def main(config):
+    # ddp setting
+    ddp_setup()
+
+    # train model
+    train(config=config)
+
+    # clean up
+    clean_up()
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description='simple distributed training job')
+    parser.add_argument('config_path', type=str, help='All config')
+
+    args = parser.parse_args()
+    with open(args.config_path, 'r') as f:
+        config = json.load(f)
+
+    main(config=config)
