@@ -355,9 +355,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description='simple distributed training job')
     parser.add_argument('config_path', type=str, help='All config')
-
     args = parser.parse_args()
     with open(args.config_path, 'r') as f:
         config = json.load(f)
-
     main(config=config)
