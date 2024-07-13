@@ -56,17 +56,7 @@ def test(config):
     if model_filename:
         print(f"Preloading model from {model_filename}")
         state = torch.load(model_filename)
-        if config["multi_gpu"]:
-            state_dict = torch.load(model_filename)
-            new_state_dict = {}
-            for k, v in state_dict['model_state_dict'].items():
-                if k.startswith('module.'):
-                    new_state_dict[k[7:]] = v
-                else:
-                    new_state_dict[k] = v
-            model.load_state_dict(new_state_dict)
-        else:
-            model.load_state_dict(state['model_state_dict'])
+        model.load_state_dict(state['model_state_dict'])
     else:
         print("No model to preload!")
 
