@@ -164,11 +164,12 @@ def get_dataloader(
         batch_test,
         lang_src,
         lang_tgt,
-        train_ds_path=None,
-        val_ds_path=None,
-        test_ds_path=None,
-        max_num_val=10000,
-        max_num_test=2000,
+        train_ds_path: str=None,
+        val_ds_path: str=None,
+        test_ds_path: str=None,
+        max_num_val: int=15000,
+        max_num_test: int=15000,
+        multi_gpu: bool=False,
 ):
     train_ds, val_ds, test_ds = read_ds(
         train_ds_path=train_ds_path,
@@ -205,38 +206,84 @@ def get_dataloader(
         lang_tgt=lang_tgt,
     )
 
-    train_dataloader = DataLoader(
-        train_dataset,
-        batch_size=batch_train,
-        shuffle=True,
-        collate_fn=lambda batch: collate_fn(
-            batch=batch,
-            tokenizer_src=tokenizer_src,
-            tokenizer_tgt=tokenizer_tgt,
+    if multi_gpu == False:
+        train_dataloader = DataLoader(
+            train_dataset,
+            batch_size=batch_train,
+            shuffle=True,
+            collate_fn=lambda batch: collate_fn(
+                batch=batch,
+                tokenizer_src=tokenizer_src,
+                tokenizer_tgt=tokenizer_tgt,
+            )
         )
-    )
 
-    val_dataloader = DataLoader(
-        val_dataset,
-        batch_size=batch_val,
-        shuffle=False,
-        collate_fn=lambda batch: collate_fn(
-            batch=batch,
-            tokenizer_src=tokenizer_src,
-            tokenizer_tgt=tokenizer_tgt,
+        val_dataloader = DataLoader(
+            val_dataset,
+            batch_size=batch_val,
+            shuffle=False,
+            collate_fn=lambda batch: collate_fn(
+                batch=batch,
+                tokenizer_src=tokenizer_src,
+                tokenizer_tgt=tokenizer_tgt,
+            )
         )
-    )
 
-    test_dataloader = DataLoader(
-        test_dataset,
-        batch_size=batch_test,
-        shuffle=False,
-        collate_fn=lambda batch: collate_fn(
-            batch=batch,
-            tokenizer_src=tokenizer_src,
-            tokenizer_tgt=tokenizer_tgt,
+        test_dataloader = DataLoader(
+            test_dataset,
+            batch_size=batch_test,
+            shuffle=False,
+            collate_fn=lambda batch: collate_fn(
+                batch=batch,
+                tokenizer_src=tokenizer_src,
+                tokenizer_tgt=tokenizer_tgt,
+            )
         )
-    )
+    else:
+        train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
+        val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset)
+        test_sampler = torch.utils.data.distributed.DistributedSampler(test_dataset)
+
+        num_gpu = torch.cuda.device_count()
+
+        train_dataloader = DataLoader(
+            train_dataset,
+            batch_size=batch_train,
+            sampler=train_sampler,
+            num_workers=4*num_gpu,
+            pin_memory=True,
+            collate_fn=lambda batch: collate_fn(
+                batch=batch,
+                tokenizer_src=tokenizer_src,
+                tokenizer_tgt=tokenizer_tgt,
+            )
+        )
+
+        val_dataloader = DataLoader(
+            val_dataset,
+            batch_size=batch_val,
+            sampler=val_sampler,
+            num_workers=4*num_gpu,
+            pin_memory=True,
+            collate_fn=lambda batch: collate_fn(
+                batch=batch,
+                tokenizer_src=tokenizer_src,
+                tokenizer_tgt=tokenizer_tgt,
+            )
+        )
+
+        test_dataloader = DataLoader(
+            test_dataset,
+            batch_size=batch_test,
+            sampler=test_sampler,
+            num_workers=4*num_gpu,
+            pin_memory=True,
+            collate_fn=lambda batch: collate_fn(
+                batch=batch,
+                tokenizer_src=tokenizer_src,
+                tokenizer_tgt=tokenizer_tgt,
+            )
+        )
 
     ValueError("Dataloader not found")
 
