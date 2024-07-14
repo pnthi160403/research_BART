@@ -1,6 +1,7 @@
 import torch
 from tqdm import tqdm
 from .generate import generate
+import os
 from .models.utils import (
     get_cosine_similarity,
 )
@@ -25,7 +26,10 @@ from .utils.metrics import (
 
 def validate(model, config, beam_size, val_dataloader, num_example=20):
     model.eval()
-    device = config["device"]
+    if config["multi_gpu"] == False:
+        device = config["device"]
+    else:
+        device = int(os.environ["LOCAL_RANK"])
     
     # read tokenizer
     tokenizer_src, tokenizer_tgt = read_tokenizer(
@@ -42,7 +46,6 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
         decoder_embeds_matrix=decoder_embeds_matrix,
         eos_token_id=tokenizer_tgt.token_to_id("</s>")
     )
-    print(f"{top_cosine_similarity_indices.shape = }")
         
     vocab_size=tokenizer_tgt.get_vocab_size()
     pad_token_id = tokenizer_src.token_to_id("<pad>")
