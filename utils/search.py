@@ -131,8 +131,7 @@ class DiverseBeamSearch(Search):
         n_gram: int=1,
         dim_n_gram: int=-1,
     ):
-        dim_2 = tensor.size(2)
-        if dim_2 < n_gram:
+        if tensor.size(dim_n_gram) < n_gram:
             return None
         transformed_tensor = tensor.unfold(dimension=dim_n_gram, size=n_gram, step=1)
         return transformed_tensor
