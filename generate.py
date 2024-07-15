@@ -48,7 +48,6 @@ def generate(
         type_diversity_function=config["type_diversity_function"],
         top_cosine_similarity_indices=top_cosine_similarity_indices,
     )
-    print(f"{ search_module = }")
 
     sos_token = torch.tensor([tokenizer_tgt.token_to_id("<s>")], dtype=torch.int64)
     eos_token = torch.tensor([tokenizer_tgt.token_to_id("</s>")], dtype=torch.int64)
