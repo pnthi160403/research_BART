@@ -89,7 +89,7 @@ def save_model(model, global_step, global_val_step, optimizer, lr_scheduler, mod
 
 # save config
 def save_config(config: dict, global_step: int):
-    config_filename = f"{config['model_folder_name']}/config_{global_step:010d}.json"
+    config_filename = f"{config['config_dir']}/config_{global_step:010d}.json"
     with open(config_filename, "w") as f:
         json.dump(config, f)
     print(f"Saved config at {config_filename}")

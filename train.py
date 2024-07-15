@@ -33,7 +33,7 @@ def lambda_lr(global_step: int, config):
 
 def train(config):
     # create dirs
-    create_dirs(dir_paths=[config["log_dir"], config["model_folder_name"], config["log_files"]])
+    create_dirs(dir_paths=[config["log_dir"], config["model_folder_name"], config["log_files"], config["config_dir"]])
     
     # set seed
     set_seed(seed=config["seed"])
@@ -327,6 +327,10 @@ def train(config):
     zip_directory(
         directory_path=config["log_dir"],
         output_zip_path=config["log_dir_zip"],
+    )
+    zip_directory(
+        directory_path=config["config_dir"],
+        output_zip_path=config["config_dir_zip"],
     )
     zip_directory(
         directory_path=config["model_folder_name"],

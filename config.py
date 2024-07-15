@@ -37,6 +37,8 @@ def get_config(base_dir: str=None):
     
     config["preload"] = "latest"
     config["data"] = join_base(config["base_dir"], "/data")
+    config["config_dir"] = join_base(config["base_dir"], "/config")
+    config["config_dir_zip"] = join_base(config["base_dir"], "/config.zip")
     config["log_dir"] = join_base(config["base_dir"], "/log")
     config["log_dir_zip"] = join_base(config["base_dir"], "/log.zip")
     config["log_files"] = join_base(config["log_dir"], "/log_files")
