@@ -115,7 +115,7 @@ def train(config):
     else:
         model_filename = None
     if model_filename:
-        state = torch.load(model_filename)
+        state = torch.load(model_filename, map_location=device)
         model.load_state_dict(state["model_state_dict"])
         global_step = state["global_step"]
         global_val_step = state["global_val_step"]
