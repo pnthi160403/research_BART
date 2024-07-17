@@ -81,7 +81,7 @@ def test(config):
                 config=config,
                 column_names=column_names,
                 data=data,
-                name_csv=f"results_beam_{beam_size}_prediction_{i}.csv"
+                name_csv=f"results_beam_{beam_size}_prediction_{i}"
             )
 
             zip_directory(
