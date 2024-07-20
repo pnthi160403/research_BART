@@ -39,6 +39,8 @@ def get_config(base_dir: str=None):
     config["data"] = join_base(config["base_dir"], "/data")
     config["config_dir"] = join_base(config["base_dir"], "/config")
     config["config_dir_zip"] = join_base(config["base_dir"], "/config.zip")
+    config["generated_dir"] = join_base(config["base_dir"], "/generated")
+    config["generated_dir_zip"] = join_base(config["base_dir"], "/generated.zip")
     config["log_dir"] = join_base(config["base_dir"], "/log")
     config["log_dir_zip"] = join_base(config["base_dir"], "/log.zip")
     config["log_files"] = join_base(config["log_dir"], "/log_files")
@@ -138,7 +140,7 @@ def get_config(base_dir: str=None):
     config["betas"] = (0.9, 0.98)
 
     # CrossEntropyLoss
-    config[ch] = 0.01
+    config["label_smoothing"] = 0.01
 
     # Scheduler (Noam decay)
     config["warmup_steps"] = 4000
@@ -153,5 +155,6 @@ def get_config(base_dir: str=None):
     config["use_recall"] = False
     config["use_precision"] = False
     config["use_rouge"] = False
+    config["sub_test_id"] = 0
 
     return config

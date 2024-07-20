@@ -4,12 +4,18 @@ from .generate import generate
 from .models.utils import (
     get_cosine_similarity,
 )
+from .utils.folders import (
+    write_json,
+    read_json,
+)
+from .utils.figures import (
+    zip_directory,
+)
 from .utils.search import (
     DIVERSE_BEAM_SEARCH,
     BEAM_SEARCH,
 )
 from torch.nn.utils.rnn import pad_sequence
-# import evaluate
 from .utils.tokenizers import read_tokenizer
 from .utils.metrics import (
     torchmetrics_accuracy,
@@ -23,9 +29,11 @@ from .utils.metrics import (
     torchtext_bleu_score
 )
 
-def validate(model, config, beam_size, val_dataloader, num_example=20):
+def validate(model, config, beam_size, val_dataloader, num_example: int=20):
     model.eval()
     device = config["device"]
+    # get sub test id
+    sub_test_id = config["sub_test_id"]
     
     # read tokenizer
     tokenizer_src, tokenizer_tgt = read_tokenizer(
@@ -191,6 +199,14 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
                     target=rouge_targets,
                     device=device
                 )
+                write_json(
+                    file_path=config["generated_dir"] + f"/rouge_preds_{sub_test_id}.json",
+                    data=rouge_preds,
+                )
+                write_json(
+                    file_path=config["generated_dir"] + f"/rouge_targets_{sub_test_id}.json",
+                    data=rouge_targets,
+                )
         else:
             if config["use_recall"]:
                 recall = torcheval_recall(
@@ -208,6 +224,11 @@ def validate(model, config, beam_size, val_dataloader, num_example=20):
         if config["use_bleu"]:
             bleus = torchtext_bleu_score(refs=expected,
                                         cands=predicted)
+            
+        zip_directory(
+            directory_path=config["generated_dir"],
+            output_zip_path=config["generated_dir_zip"],
+        )
         
         res = {}
         if config["use_bleu"]:

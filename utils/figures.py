@@ -61,6 +61,7 @@ def figure_list_to_csv(config, column_names, data, name_csv):
         print(e)
 
 def zip_directory(directory_path, output_zip_path):
+    print(f"{ directory_path } -> { output_zip_path }")
     with zipfile.ZipFile(output_zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
         for root, dirs, files in os.walk(directory_path):
             for file in files:

@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import json
 
 def read(file_path):
     if not os.path.exists(file_path):
@@ -18,6 +19,17 @@ def write(file_path, data):
                 file.write(f"{value}\n")
     except Exception as e:
         print(e)
+
+def read_json(file_path: str):
+    if not os.path.exists(file_path):
+        ValueError(f"File {file_path} does not exist!")
+    with open(file_path, "r") as f:
+        data = json.load(f)
+    return data
+
+def write_json(file_path: str, data):
+    with open(file_path, "w") as f:
+        json.dump(data, f)
 
 def join_base(base_dir: str, path: str):
     return f"{base_dir}{path}"
@@ -53,6 +65,8 @@ def weights_file_path(model_folder_name: str, model_base_name: str):
 __all__ = [
     "read",
     "write",
+    "read_json",
+    "write_json",
     "join_base",
     "create_dirs",
     "get_weights_file_path",

@@ -33,7 +33,7 @@ def lambda_lr(global_step: int, config):
 
 def train(config):
     # create dirs
-    create_dirs(dir_paths=[config["log_dir"], config["model_folder_name"], config["log_files"], config["config_dir"]])
+    create_dirs(dir_paths=[config["log_dir"], config["model_folder_name"], config["log_files"], config["config_dir"], config["generated_dir"]])
     
     # set seed
     set_seed(seed=config["seed"])
