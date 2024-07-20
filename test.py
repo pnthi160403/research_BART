@@ -2,13 +2,16 @@ import torch
 from .val import validate
 from .utils.seed import set_seed
 from .utils.tokenizers import read_tokenizer
-from .utils.folders import weights_file_path
+from .utils.folders import weights_file_path, create_dirs
 from .utils.figures import figure_list_to_csv, zip_directory
 from .prepare_dataset.seq2seq import get_dataloader
 from .models.get_instance_bart import get_model
 import os
 
 def test(config):
+    # create dirs
+    create_dirs(dir_paths=[config["log_dir"], config["model_folder_name"], config["log_files"], config["config_dir"], config["generated_dir"]])
+    
     # set seed
     set_seed(seed=config['seed'])
 
