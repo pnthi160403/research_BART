@@ -20,16 +20,17 @@ def write(file_path, data):
     except Exception as e:
         print(e)
 
-def read_json(file_path: str):
-    if not os.path.exists(file_path):
-        ValueError(f"File {file_path} does not exist!")
+def read_json(file_path: str=None):
+    if file_path is not None and not os.path.exists(file_path):
+        return []
     with open(file_path, "r") as f:
         data = json.load(f)
     return data
 
-def write_json(file_path: str, data):
-    with open(file_path, "w") as f:
-        json.dump(data, f)
+def write_json(file_path: str=None, data=None):
+    if file_path is not None and data is not None:
+        with open(file_path, "w") as f:
+            json.dump(data, f)
 
 def join_base(base_dir: str, path: str):
     return f"{base_dir}{path}"
