@@ -250,6 +250,7 @@ def train(config):
                     cnt_update_loss_val = 0
 
                     timestep_train_and_val.append(global_step)
+                    model.train()
 
     # save model
     save_model(

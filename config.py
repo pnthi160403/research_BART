@@ -138,7 +138,7 @@ def get_config(base_dir: str=None):
     config["betas"] = (0.9, 0.98)
 
     # CrossEntropyLoss
-    config["label_smoothing"] = 0.01
+    config[ch] = 0.01
 
     # Scheduler (Noam decay)
     config["warmup_steps"] = 4000
