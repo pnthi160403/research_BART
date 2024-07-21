@@ -40,7 +40,6 @@ def get_config(base_dir: str=None):
     config["config_dir"] = join_base(config["base_dir"], "/config")
     config["config_dir_zip"] = join_base(config["base_dir"], "/config.zip")
     config["generated_dir"] = join_base(config["base_dir"], "/generated")
-    config["generated_dir_zip"] = join_base(config["base_dir"], "/generated.zip")
     config["log_dir"] = join_base(config["base_dir"], "/log")
     config["log_dir_zip"] = join_base(config["base_dir"], "/log.zip")
     config["log_files"] = join_base(config["log_dir"], "/log_files")

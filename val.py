@@ -231,7 +231,7 @@ def validate(model, config, beam_size, val_dataloader, num_example: int=20):
             
         zip_directory(
             directory_path=config["generated_dir"],
-            output_zip_path=config["generated_dir_zip"],
+            output_zip_path=f"{config['generated_dir']}_{config['sub_test_id']}.zip",
         )
         
         res = {}
