@@ -14,6 +14,7 @@ from .utils.figures import (
 from .utils.search import (
     DIVERSE_BEAM_SEARCH,
     BEAM_SEARCH,
+    NEURAL_EMBEDDING_TYPE_DIVERSITY,
 )
 from torch.nn.utils.rnn import pad_sequence
 from .utils.tokenizers import read_tokenizer
@@ -43,13 +44,16 @@ def validate(model, config, beam_size, val_dataloader, num_example: int=20):
 
     # get cosine similarity
     decoder_embeds_matrix = torch.tensor(model.decoder_inputs_embeds.embed_tokens.weight.data.clone().detach().cpu().numpy()).to(device)
-    top_cosine_similarity_indices = get_cosine_similarity(
-        path=config["cosine_similarity_path"],
-        vocab_size=config["tgt_vocab_size"],
-        k=config["top_k_cosine_similarity"],
-        decoder_embeds_matrix=decoder_embeds_matrix,
-        eos_token_id=tokenizer_tgt.token_to_id("</s>")
-    )
+    if config["type_diversity_function"] == NEURAL_EMBEDDING_TYPE_DIVERSITY:
+        top_cosine_similarity_indices = get_cosine_similarity(
+            path=config["cosine_similarity_path"],
+            vocab_size=config["tgt_vocab_size"],
+            k=config["top_k_cosine_similarity"],
+            decoder_embeds_matrix=decoder_embeds_matrix,
+            eos_token_id=tokenizer_tgt.token_to_id("</s>")
+        )
+    else:
+        top_cosine_similarity_indices = None
         
     vocab_size=tokenizer_tgt.get_vocab_size()
     pad_token_id = tokenizer_src.token_to_id("<pad>")
