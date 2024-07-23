@@ -2,9 +2,9 @@ import torch
 import torch
 from tqdm import tqdm
 
-from prepare_dataset.seq2seq import get_dataloader
-from utils.tokenizers import read_tokenizer
-from utils.figures import (
+from .prepare_dataset.seq2seq import get_dataloader
+from .utils.tokenizers import read_tokenizer
+from .utils.figures import (
     draw_graph,
     draw_multi_graph,
     zip_directory,
@@ -14,16 +14,16 @@ from .utils.folders import (
     get_weights_file_path,
     weights_file_path,
 )
-from utils.seed import set_seed
-from utils.tokenizers import read_tokenizer
-from utils.optimizers import (
+from .utils.seed import set_seed
+from .utils.tokenizers import read_tokenizer
+from .utils.optimizers import (
     GET_OPTIMIZER,
 )
-from models.get_instance_bart import get_model
-from utils.figures import (
+from .models.get_instance_bart import get_model
+from .utils.figures import (
     LossFigure,
 )
-from trainers import (
+from .trainers import (
     BartTrainerSingleGPU,
 )
 
