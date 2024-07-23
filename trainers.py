@@ -62,12 +62,15 @@ class BartTrainerSingleGPU:
         # self.lr_scheduler = lr_scheduler
         self.lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
             optimizer=optimizer,
-            lr_lambda=lambda step: lambda_lr(
-                global_step=self.global_epoch,
-                config=config
-            )
+            lr_lambda=lambda step: self.lambda_lr(),
         )
         self.step_accumulation = step_accumulation
+
+    def lambda_lr(
+        self,
+    ):
+        global_step = max(self.global_step, 1)
+        return (self.config["d_model"] ** -0.5) * min(global_step ** (-0.5), global_step * self.config["warmup_steps"] ** (-1.5))
 
     def train(
         self,
