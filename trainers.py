@@ -160,6 +160,14 @@ class BartTrainerSingleGPU:
             json.dump(self.config, f)
         print(f"Saved config at {config_filename}")
 
+    def save_figure(
+        self,
+    ):
+        self.loss_train_step_figure.save()
+        self.loss_val_step_figure.save()
+        self.loss_train_epoch_figure.save()
+        self.loss_val_epoch_figure.save()
+
     def train_loop(
         self,
     ):

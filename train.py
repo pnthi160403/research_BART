@@ -184,7 +184,7 @@ def train(config):
         step_accumulation=config["step_accumulation"],
     )
     trainer.train_loop()
-
+    trainer.save_figure()
 
     # draw graph loss
     # train and val
