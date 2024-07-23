@@ -1,7 +1,6 @@
 import torch
-import torch
-from tqdm import tqdm
 import os
+from tqdm import tqdm
 import json
 
 from .prepare_dataset.seq2seq import get_dataloader
@@ -25,8 +24,13 @@ from .utils.tokenizers import read_tokenizer
 from .utils.optimizers import (
     GET_OPTIMIZER,
 )
-
 from .models.get_instance_bart import get_model
+from .utils.figures import (
+    LossFigure,
+)
+from .trainers import (
+    BartTrainerMultiGPU,
+)
 
 # get optimizer lambda lr
 def lambda_lr(global_step: int, config):
@@ -46,10 +50,6 @@ def train(config):
     
     # set seed
     set_seed(seed=config["seed"])
-
-    # big batch
-    big_batch = config["big_batch"]
-    step_accumulation = big_batch // config["batch_train"]
 
     # read tokenizer
     tokenizer_src, tokenizer_tgt = read_tokenizer(
@@ -95,8 +95,7 @@ def train(config):
     )
 
     global_step = 0
-    global_val_step = 0
-
+    global_epoch = 0
     preload = config["preload"]
 
     # get lr schduler
@@ -134,157 +133,64 @@ def train(config):
     else:
         print("No model to preload, start training from scratch")
 
-    if global_step == 0:
-        write(config["loss_train"], []) # Oy for loss train in per epoch
-        write(config["loss_val"], []) # Oy for loss val in per epoch
-        write(config["loss_train_step"], []) # Oy for loss train in per step
-        write(config["loss_val_step"], []) # Oy for loss val in per step
-        write(config["learning_rate_step"], []) # Oy for learning rate in per step
-        write(config["timestep_train"], []) # Ox for train
-        write(config["timestep_val"], []) # Ox for val
-        write(config["timestep_train_and_val"], []) # Ox for train and val
-        write(config["timestep_lr"], []) # Ox for lr
-
-    losses_train = read(config["loss_train"])
-    losses_val = read(config["loss_val"])
-    losses_train_step = read(config["loss_train_step"])
-    losses_val_step = read(config["loss_val_step"])
-    learning_rate_step = read(config["learning_rate_step"])
-
-    timestep_train = read(config["timestep_train"])
-    timestep_val = read(config["timestep_val"])
-    timestep_train_and_val = read(config["timestep_train_and_val"])
-    timestep_lr = read(config["timestep_lr"])
-
-    i = 0
-    while global_step < config["num_steps"]:
-        torch.cuda.empty_cache()
-        # train
-        model.train()
-        sum_loss_train = 0
-        cnt_update_loss_train = 0
-        # shuffle dataloader
-        train_dataloader, val_dataloader, test_dataloader = get_dataloader(
-            tokenizer_src=tokenizer_src,
-            tokenizer_tgt=tokenizer_tgt,
-            batch_train=config["batch_train"],
-            batch_val=config["batch_val"],
-            batch_test=config["batch_test"],
-            lang_src=config["lang_src"],
-            lang_tgt=config["lang_tgt"],
-            train_ds_path=config["train_ds_path"],
-            val_ds_path=config["val_ds_path"],
-            test_ds_path=config["test_ds_path"],
-        )
-
-        batch_iterator = tqdm(train_dataloader, desc="Trainning")
-        for batch in batch_iterator:
-            if global_step >= config["num_steps"]:
-                break
-            src = batch["src"].to(int(os.environ["LOCAL_RANK"]))
-            tgt = batch["tgt"].to(int(os.environ["LOCAL_RANK"]))
-            src_attention_mask = (src != tokenizer_src.token_to_id("<pad>")).type(torch.int64)
-            tgt_attention_mask = (tgt != tokenizer_tgt.token_to_id("<pad>")).type(torch.int64)
-            label = batch['label'].to(int(os.environ["LOCAL_RANK"]))
-            
-            with model.no_sync():
-                logits, loss = model(
-                    input_ids=src,
-                    attention_mask=src_attention_mask,
-                    decoder_input_ids=tgt,
-                    decoder_attention_mask=tgt_attention_mask,
-                    label=label,
-                )
-                loss.backward()
-                sum_loss_train += loss.item()
-                cnt_update_loss_train += 1
-                i += 1
-                gpu = int(os.environ["LOCAL_RANK"])
-
-            if i % step_accumulation == 0:
-                global_step += 1
-                current_lr = optimizer.param_groups[0]['lr']
-                learning_rate_step.append(current_lr)
-                timestep_lr.append(global_step)
-
-                losses_train_step.append(loss.item())
-                timestep_train.append(global_step)
-
-                batch_iterator.set_postfix({
-                    "loss": f"{loss.item():6.3f}",
-                })
-
-                optimizer.step()
-                lr_scheduler.step()
-                optimizer.zero_grad(set_to_none=True)
-                model.zero_grad(set_to_none=True)
-
-                if global_step % config["val_steps"] == 0:
-                    # val
-                    with torch.no_grad():
-                        sum_loss_val = 0
-                        cnt_update_loss_val = 0
-                        model.eval()
-
-                        for batch in val_dataloader:
-                            global_val_step += 1
-                            src = batch["src"].to(int(os.environ["LOCAL_RANK"]))
-                            tgt = batch["tgt"].to(int(os.environ["LOCAL_RANK"]))
-                            src_attention_mask = (src != tokenizer_src.token_to_id("<pad>")).type(torch.int64)
-                            tgt_attention_mask = (tgt != tokenizer_tgt.token_to_id("<pad>")).type(torch.int64)
-                            label = batch['label'].to(int(os.environ["LOCAL_RANK"]))
-                            
-                            logits, loss = model(
-                                input_ids=src,
-                                attention_mask=src_attention_mask,
-                                decoder_input_ids=tgt,
-                                decoder_attention_mask=tgt_attention_mask,
-                                label=label,
-                            )
-
-                            sum_loss_val += loss.item()
-                            cnt_update_loss_val += 1
-                            losses_val_step.append(loss.item())
-                            timestep_val.append(global_val_step)
-                            
-                    losses_train.append(sum_loss_train / cnt_update_loss_train)
-                    losses_val.append(sum_loss_val / cnt_update_loss_val)
-                    sum_loss_train = 0
-                    sum_loss_val = 0
-                    cnt_update_loss_train = 0
-                    cnt_update_loss_val = 0
-
-                    timestep_train_and_val.append(global_step)
-                    model.train()
-
-    # save model
-    save_model(
-        model=model.module,
-        global_step=global_step,
-        global_val_step=global_val_step,
-        optimizer=optimizer,
-        lr_scheduler=lr_scheduler,
-        model_folder_name=config["model_folder_name"],
-        model_base_name=config["model_base_name"],
+    # loss figures
+    # train step figures
+    loss_train_step_figure = LossFigure(
+        xlabel="Step",
+        ylabel="Loss value",
+        title="Loss train",
+        loss_value_path=config["step_loss_train_value_path"],
+        loss_step_path=config["step_loss_train_step_path"],
+    )
+    # val step figures
+    loss_val_step_figure = LossFigure(
+        xlabel="Step",
+        ylabel="Loss value",
+        title="Loss val",
+        loss_value_path=config["step_loss_val_value_path"],
+        loss_step_path=config["step_loss_val_step_path"],
+    )
+    # train epoch figures
+    loss_train_epoch_figure = LossFigure(
+        xlabel="Epoch",
+        ylabel="Loss value",
+        title="Loss train",
+        loss_value_path=config["epoch_loss_train_value_path"],
+        loss_step_path=config["epoch_loss_train_step_path"],
+    )
+    # val epoch figures
+    loss_val_epoch_figure = LossFigure(
+        xlabel="Epoch",
+        ylabel="Loss value",
+        title="Loss val",
+        loss_value_path=config["epoch_loss_val_value_path"],
+        loss_step_path=config["epoch_loss_val_step_path"],
     )
 
-    # save config
-    save_config(
+    # train model
+    trainer = BartTrainerMultiGPU(
         config=config,
+        model=model,
+        optimizer=optimizer,
+        tokenizer_src=tokenizer_src,
+        tokenizer_tgt=tokenizer_tgt,
+        lr_scheduler=lr_scheduler,
+        loss_train_step_figure=loss_train_step_figure,
+        loss_val_step_figure=loss_val_step_figure,
+        loss_train_epoch_figure=loss_train_epoch_figure,
+        loss_val_epoch_figure=loss_val_epoch_figure,
+        model_folder_name=model_folder_name,
+        model_base_name=model_base_name,
+        train_dataloader=train_dataloader,
+        val_dataloader=val_dataloader,
         global_step=global_step,
+        global_epoch=global_epoch,
+        max_global_step=config["max_global_step"],
+        max_epoch=config["max_epoch"],
+        step_accumulation=config["step_accumulation"],
     )
-
-    # save log
-    write(config["loss_train"], losses_train)
-    write(config["loss_val"], losses_val)
-    write(config["loss_train_step"], losses_train_step)
-    write(config["loss_val_step"], losses_val_step)
-    write(config["learning_rate_step"], learning_rate_step)
-
-    write(config["timestep_train"], timestep_train)
-    write(config["timestep_val"], timestep_val)
-    write(config["timestep_train_and_val"], timestep_train_and_val)
-    write(config["timestep_lr"], timestep_lr)
+    trainer.train_loop()
+    trainer.save_figure()
 
     # draw graph loss
     # train and val
@@ -294,10 +200,10 @@ def train(config):
         ylabel="Loss value",
         title="Loss",
         all_data=[
-            (losses_train, "Train"),
-            (losses_val, "Val")
+            (trainer.loss_train_epoch_figure.loss_value, "Train"),
+            (trainer.loss_val_epoch_figure.loss_value, "Val")
         ],
-        steps=timestep_train_and_val
+        steps=trainer.loss_train_epoch_figure.loss_step,
     )
     # train step
     draw_graph(
@@ -305,8 +211,8 @@ def train(config):
         title="Loss train",
         xlabel="Step",
         ylabel="Loss value",
-        data=losses_train_step,
-        steps=timestep_train
+        data=trainer.loss_train_step_figure.loss_value,
+        steps=trainer.loss_train_step_figure.loss_step,
     )
 
     # val step
@@ -315,18 +221,8 @@ def train(config):
         title="Loss val",
         xlabel="Step",
         ylabel="Loss value",
-        data=losses_val_step,
-        steps=timestep_val
-    )
-
-    # learning rate step
-    draw_graph(
-        config=config,
-        title="Learning rate",
-        xlabel="Step",
-        ylabel="Learning rate value",
-        data=learning_rate_step,
-        steps=timestep_lr,
+        data=trainer.loss_val_step_figure.loss_value,
+        steps=trainer.loss_val_step_figure.loss_step,
     )
 
     # zip directory
