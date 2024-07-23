@@ -12,6 +12,11 @@ from .utils.folders import (
 import os
 import json
 
+# get optimizer lambda lr
+def lambda_lr(global_step: int, config):
+    global_step = max(global_step, 1)
+    return (config["d_model"] ** -0.5) * min(global_step ** (-0.5), global_step * config["warmup_steps"] ** (-1.5))
+
 class BartTrainerSingleGPU:
     def __init__(
         self,
@@ -21,7 +26,7 @@ class BartTrainerSingleGPU:
         device,
         tokenizer_src,
         tokenizer_tgt,
-        lr_scheduler,
+        # lr_scheduler,
         loss_train_step_figure: LossFigure,
         loss_val_step_figure: LossFigure,
         loss_train_epoch_figure: LossFigure,
@@ -54,14 +59,20 @@ class BartTrainerSingleGPU:
         self.global_epoch = global_epoch
         self.max_global_step = max_global_step
         self.max_epoch = max_epoch
-        self.lr_scheduler = lr_scheduler
+        # self.lr_scheduler = lr_scheduler
+        self.lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
+            optimizer=optimizer,
+            lr_lambda=lambda step: lambda_lr(
+                global_step=self.global_epoch,
+                config=config
+            )
+        )
         self.step_accumulation = step_accumulation
 
     def train(
         self,
         epoch: int,
     ):
-        torch.cuda.empty_cache()
         self.model.train()
         batch_iterator = tqdm(self.train_dataloader, desc=f"Train {epoch}")
         sum_loss = 0
@@ -100,7 +111,7 @@ class BartTrainerSingleGPU:
                 self.optimizer.step()
                 self.lr_scheduler.step()
                 self.optimizer.zero_grad(set_to_none=True)
-                self.model.zero_grad()
+                self.model.zero_grad(set_to_none=True)
 
         return sum_loss / len(self.train_dataloader)
 
@@ -108,9 +119,8 @@ class BartTrainerSingleGPU:
         self,
         epoch: int,
     ):
-        torch.cuda.empty_cache()
+        self.model.eval()
         with torch.no_grad():
-            self.model.eval()
             batch_iterator = tqdm(self.val_dataloader, desc=f"Val {epoch}")
             sum_loss = 0
             for step, batch in enumerate(batch_iterator):
@@ -172,6 +182,7 @@ class BartTrainerSingleGPU:
     def train_loop(
         self,
     ):
+        torch.cuda.empty_cache()
         for epoch in range(self.global_epoch + 1, self.max_epoch):
             if self.global_epoch + 1 > self.max_epoch or self.global_step + 1 > self.max_global_step:
                 break
@@ -274,7 +285,7 @@ class BartTrainerMultiGPU:
                 self.optimizer.step()
                 self.lr_scheduler.step()
                 self.optimizer.zero_grad(set_to_none=True)
-                self.model.zero_grad()
+                self.model.zero_grad(set_to_none=True)
 
         return sum_loss / len(self.train_dataloader)
 
