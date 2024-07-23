@@ -43,15 +43,14 @@ def get_config(base_dir: str=None):
     config["log_dir"] = join_base(config["base_dir"], "/log")
     config["log_dir_zip"] = join_base(config["base_dir"], "/log.zip")
     config["log_files"] = join_base(config["log_dir"], "/log_files")
-    config["loss_train"] = join_base(config["log_files"], "/loss_train.json")
-    config["loss_val"] = join_base(config["log_files"], "/loss_val.json")
-    config["loss_train_step"] = join_base(config["log_files"], "/loss_train_step.json")
-    config["loss_val_step"] = join_base(config["log_files"], "/loss_val_step.json")
-    config["learning_rate_step"] = join_base(config["log_files"], "/learning_rate_step.json")
-    config["timestep_train"] = join_base(config["log_files"], "/timestep_train.json")
-    config["timestep_val"] = join_base(config["log_files"], "/timestep_val.json")
-    config["timestep_train_and_val"] = join_base(config["log_files"], "/timestep_train_and_val.json")
-    config["timestep_lr"] = join_base(config["log_files"], "/timestep_lr.json")
+    config["step_loss_train_value_path"] = join_base(config["log_files"], "/step_loss_train_value.json")
+    config["step_loss_train_step_path"] = join_base(config["log_files"], "/step_loss_train_step.json")
+    config["step_loss_val_value_path"] = join_base(config["log_files"], "/step_loss_val_value.json")
+    config["step_loss_val_step_path"] = join_base(config["log_files"], "/step_loss_val_step.json")
+    config["epoch_loss_train_value_path"] = join_base(config["log_files"], "/epoch_loss_train_value.json")
+    config["epoch_loss_train_step_path"] = join_base(config["log_files"], "/epoch_loss_train_step.json")
+    config["epoch_loss_val_value_path"] = join_base(config["log_files"], "/epoch_loss_val_value.json")
+    config["epoch_loss_val_step_path"] = join_base(config["log_files"], "/epoch_loss_val_step.json")
 
     # Dataset
     config["lang_src"] = "noise_vi"
@@ -74,12 +73,12 @@ def get_config(base_dir: str=None):
     config["continue_step"] = False
     
     # Trainning loop
-    config["big_batch"] = 128
     config["batch_train"] = 32
-    config["batch_val"] = 32
+    config["batch_val"] = 1
     config["batch_test"] = 1
-    config["num_steps"] = 15000
-    config["val_steps"] = config["num_steps"] // 5
+    config["max_global_step"] = 30000
+    config["max_epoch"] = 10
+    config["step_accumulation"] = 1
 
     # BART config model
     config["d_model"] = 768

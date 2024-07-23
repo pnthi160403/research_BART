@@ -11,6 +11,49 @@ from .folders import (
     get_weights_file_path,
 )
 
+class LossFigure:
+    def __init__(
+        self,
+        xlabel: str,
+        ylabel: str,
+        title: str,
+        loss_value_path: str,
+        loss_step_path: str,
+    ):
+        self.xlabel = xlabel
+        self.ylabel = ylabel
+        self.title = title
+
+        self.loss_value_path = loss_value_path
+        self.loss_step_path = loss_step_path
+        self.loss_value = []
+        self.loss_step = []
+        if os.path.exists(loss_value_path) and os.path.exists(loss_step_path):
+            self.loss_value = read(loss_value_path)
+            self.loss_step = read(loss_step_path)
+
+    def update(
+        self,
+        value: float,
+        step: int,
+    ):
+        if len(self.loss_step) != 0 and step < self.loss_step[-1] and step >= 0:
+            find_index = self.loss_step.index(step)
+            self.loss_value[find_index] = value
+        else:
+            self.loss_value.append(value)
+            self.loss_step.append(step)
+
+    def save(self):
+        write(self.loss_value_path, self.loss_value)
+        write(self.loss_step_path, self.loss_step)
+
+    def load(self):
+        self.loss_value = read(self.loss_value_path)
+        self.loss_step = read(self.loss_step_path)
+        
+
+
 # figures
 def draw_graph(config, title, xlabel, ylabel, data, steps):
     try:
@@ -96,6 +139,7 @@ def save_config(config: dict, global_step: int):
     print(f"Saved config at {config_filename}")
 
 __all__ = [
+    "LossFigure",
     "read",
     "write",
     "draw_graph",
