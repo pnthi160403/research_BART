@@ -325,16 +325,17 @@ class BartTrainerMultiGPU:
     def save_checkpoint(
         self,
     ):
+        model = self.model.module
         model_filename = get_weights_file_path(
             model_folder_name=self.model_folder_name,
             model_base_name=self.model_base_name,    
-            step=self.global_step
+            step=self.global_step,
         )
 
         torch.save({
             "global_step": self.global_step,
             "global_epoch": self.global_epoch,
-            "model_state_dict": self.model.state_dict(),
+            "model_state_dict": model.state_dict(),
             "optimizer_state_dict": self.optimizer.state_dict(),
             "lr_scheduler_state_dict": self.lr_scheduler.state_dict()
         }, model_filename)
