@@ -3,28 +3,28 @@ import os
 from tqdm import tqdm
 import json
 
-from prepare_dataset.seq2seq import get_dataloader
-from utils.tokenizers import read_tokenizer
-from utils.figures import (
+from research_BART.prepare_dataset.seq2seq import get_dataloader
+from research_BART.utils.tokenizers import read_tokenizer
+from research_BART.utils.figures import (
     draw_graph,
     draw_multi_graph,
     zip_directory,
 )
-from utils.folders import (
+from research_BART.utils.folders import (
     create_dirs,
     get_weights_file_path,
     weights_file_path,
 )
-from utils.seed import set_seed
-from utils.tokenizers import read_tokenizer
-from utils.optimizers import (
+from research_BART.utils.seed import set_seed
+from research_BART.utils.tokenizers import read_tokenizer
+from research_BART.utils.optimizers import (
     GET_OPTIMIZER,
 )
-from models.get_instance_bart import get_model
-from utils.figures import (
+from research_BART.models.get_instance_bart import get_model
+from research_BART.utils.figures import (
     LossFigure,
 )
-from trainers import (
+from research_BART.trainers import (
     BartTrainerMultiGPU,
 )
 
