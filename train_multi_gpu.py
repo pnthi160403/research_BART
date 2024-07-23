@@ -8,10 +8,6 @@ from .utils.tokenizers import read_tokenizer
 from .utils.figures import (
     draw_graph,
     draw_multi_graph,
-    read,
-    write,
-    save_model,
-    save_config,
     zip_directory,
 )
 from .utils.folders import (
@@ -125,7 +121,7 @@ def train(config):
         state = torch.load(model_filename)
         model.module.load_state_dict(state["model_state_dict"])
         global_step = state["global_step"]
-        global_val_step = state["global_val_step"]
+        global_epoch = state["global_epoch"]
         if config["continue_step"] == False:
             optimizer.load_state_dict(state["optimizer_state_dict"])
             lr_scheduler.load_state_dict(state["lr_scheduler_state_dict"])

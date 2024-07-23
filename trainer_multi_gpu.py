@@ -1,12 +1,17 @@
 import torch
-import torch
+import os
 from tqdm import tqdm
+import json
 
 from .prepare_dataset.seq2seq import get_dataloader
 from .utils.tokenizers import read_tokenizer
 from .utils.figures import (
     draw_graph,
     draw_multi_graph,
+    read,
+    write,
+    save_model,
+    save_config,
     zip_directory,
 )
 from .utils.folders import (
@@ -24,7 +29,7 @@ from .utils.figures import (
     LossFigure,
 )
 from .trainers import (
-    BartTrainerSingleGPU,
+    BartTrainerMultiGPU,
 )
 
 # get optimizer lambda lr
@@ -32,15 +37,19 @@ def lambda_lr(global_step: int, config):
     global_step = max(global_step, 1)
     return (config["d_model"] ** -0.5) * min(global_step ** (-0.5), global_step * config["warmup_steps"] ** (-1.5))
 
+def ddp_setup():
+    torch.distributed.init_process_group(backend="nccl")
+    torch.cuda.set_device(int(os.environ["LOCAL_RANK"]))
+
+def clean_up():
+    torch.distributed.destroy_process_group()
+
 def train(config):
     # create dirs
-    create_dirs(dir_paths=[config["log_dir"], config["model_folder_name"], config["log_files"], config["config_dir"], config["generated_dir"]])
+    create_dirs(dir_paths=[config["log_dir"], config["model_folder_name"], config["log_files"], config["config_dir"]])
     
     # set seed
     set_seed(seed=config["seed"])
-
-    # device
-    device = config["device"]
 
     # read tokenizer
     tokenizer_src, tokenizer_tgt = read_tokenizer(
@@ -55,7 +64,9 @@ def train(config):
     model = get_model(
         config=config,
         model_train=config["model_train"],
-    ).to(device)
+    ).to(int(os.environ["LOCAL_RANK"]))
+
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[int(os.environ["LOCAL_RANK"])])
 
     # get dataloaders
     train_dataloader, val_dataloader, test_dataloader = get_dataloader(
@@ -111,10 +122,9 @@ def train(config):
     else:
         model_filename = None
     if model_filename:
-        state = torch.load(model_filename, map_location=device)
-        model.load_state_dict(state["model_state_dict"])
+        state = torch.load(model_filename)
+        model.module.load_state_dict(state["model_state_dict"])
         global_step = state["global_step"]
-        global_epoch = state["global_epoch"]
         if config["continue_step"] == False:
             optimizer.load_state_dict(state["optimizer_state_dict"])
             lr_scheduler.load_state_dict(state["lr_scheduler_state_dict"])
@@ -157,11 +167,10 @@ def train(config):
     )
 
     # train model
-    trainer = BartTrainerSingleGPU(
+    trainer = BartTrainerMultiGPU(
         config=config,
         model=model,
         optimizer=optimizer,
-        device=device,
         tokenizer_src=tokenizer_src,
         tokenizer_tgt=tokenizer_tgt,
         lr_scheduler=lr_scheduler,
@@ -228,3 +237,22 @@ def train(config):
         directory_path=config["model_folder_name"],
         output_zip_path=config["model_folder_name_zip"],
     )
+
+def main(config):
+    # ddp setting
+    ddp_setup()
+
+    # train model
+    train(config=config)
+
+    # clean up
+    clean_up()
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description='simple distributed training job')
+    parser.add_argument('config_path', type=str, help='All config')
+    args = parser.parse_args()
+    with open(args.config_path, 'r') as f:
+        config = json.load(f)
+    main(config=config)
