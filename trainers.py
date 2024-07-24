@@ -183,7 +183,7 @@ class BartTrainerSingleGPU:
         self,
     ):
         torch.cuda.empty_cache()
-        for epoch in range(self.global_epoch + 1, self.max_epoch):
+        for epoch in range(self.global_epoch + 1, self.max_epoch + 1):
             if self.global_epoch + 1 > self.max_epoch or self.global_step + 1 > self.max_global_step:
                 break
             self.global_epoch += 1
@@ -369,7 +369,7 @@ class BartTrainerMultiGPU:
     def train_loop(
         self,
     ):
-        for epoch in range(self.global_epoch + 1, self.max_epoch):
+        for epoch in range(self.global_epoch + 1, self.max_epoch + 1):
             if self.global_epoch + 1 > self.max_epoch or self.global_step + 1 > self.max_global_step:
                 break
             self.global_epoch += 1
