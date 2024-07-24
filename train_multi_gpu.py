@@ -78,6 +78,7 @@ def train(config):
         test_ds_path=config["test_ds_path"],
         max_num_val=config["max_num_val"],
         max_num_test=config["max_num_test"],
+        multi_gpu=True,
     )
 
     # optimizer
