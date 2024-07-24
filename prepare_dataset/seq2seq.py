@@ -4,6 +4,7 @@ from torch.nn.utils.rnn import pad_sequence
 import torch
 import os
 import zipfile
+from torch.utils.data.distributed import DistributedSampler
 
 def read_csv_from_zip(zip_path, csv_filename):
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
@@ -240,18 +241,11 @@ def get_dataloader(
             )
         )
     else:
-        train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
-        val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset)
-        test_sampler = torch.utils.data.distributed.DistributedSampler(test_dataset)
-
-        num_gpu = torch.cuda.device_count()
-
         train_dataloader = DataLoader(
-            train_dataset,
+            dataset=train_dataset,
             batch_size=batch_train,
-            sampler=train_sampler,
-            num_workers=4*num_gpu,
             pin_memory=True,
+            sampler=DistributedSampler(train_dataset),
             collate_fn=lambda batch: collate_fn(
                 batch=batch,
                 tokenizer_src=tokenizer_src,
