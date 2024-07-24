@@ -263,29 +263,23 @@ def get_dataloader(
         val_dataloader = DataLoader(
             val_dataset,
             batch_size=batch_val,
-            sampler=val_sampler,
-            num_workers=4*num_gpu,
-            pin_memory=True,
+            shuffle=False,
             collate_fn=lambda batch: collate_fn(
                 batch=batch,
                 tokenizer_src=tokenizer_src,
                 tokenizer_tgt=tokenizer_tgt,
-            ),
-            shuffle=False,
+            )
         )
 
         test_dataloader = DataLoader(
             test_dataset,
             batch_size=batch_test,
-            sampler=test_sampler,
-            num_workers=4*num_gpu,
-            pin_memory=True,
+            shuffle=False,
             collate_fn=lambda batch: collate_fn(
                 batch=batch,
                 tokenizer_src=tokenizer_src,
                 tokenizer_tgt=tokenizer_tgt,
-            ),
-            shuffle=False,
+            )
         )
 
     ValueError("Dataloader not found")

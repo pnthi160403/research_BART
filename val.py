@@ -124,10 +124,7 @@ def validate(model, config, beam_size, val_dataloader, num_example: int=20):
                         preds_ids[i].tgt.squeeze().detach().cpu().numpy(),
                         skip_special_tokens=True,
                     )
-                    # print(f"{f'TOKENS TARGET {i}: ':>12}{[tokenizer_tgt.encode(text).tokens]}")
-                    # print(f"{f'TOKENS IDS {i}: ':>12}{preds_ids[i].tgt.squeeze().detach().cpu().numpy()}")
                     print(f"{f'PREDICTED {i}: ':>12}{text}")
-                    # print()
                 if config["use_bleu"]:
                     scores = torchtext_bleu_score(refs=[[tgt_text.split()]],
                                             cands=[pred_text.split()])
@@ -179,6 +176,15 @@ def validate(model, config, beam_size, val_dataloader, num_example: int=20):
         preds = torch.cat(preds, dim=0)
 
         recall, precision, rouges = None, None, None
+        
+        write_json(
+            file_path=config["generated_dir"] + f"/rouge_preds_{sub_test_id}.json",
+            data=rouge_preds,
+        )
+        write_json(
+            file_path=config["generated_dir"] + f"/rouge_targets_{sub_test_id}.json",
+            data=rouge_targets,
+        )
 
         if not config["use_pytorch_metric"]:
             if config["use_recall"]:
@@ -202,14 +208,6 @@ def validate(model, config, beam_size, val_dataloader, num_example: int=20):
                     preds=rouge_preds,
                     target=rouge_targets,
                     device=device
-                )
-                write_json(
-                    file_path=config["generated_dir"] + f"/rouge_preds_{sub_test_id}.json",
-                    data=rouge_preds,
-                )
-                write_json(
-                    file_path=config["generated_dir"] + f"/rouge_targets_{sub_test_id}.json",
-                    data=rouge_targets,
                 )
         else:
             if config["use_recall"]:
