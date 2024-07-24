@@ -271,16 +271,17 @@ class BartTrainerMultiGPU:
             tgt_attention_mask = (tgt != self.tokenizer_tgt.token_to_id("<pad>")).type(torch.int64)
             label = batch['label'].to(int(os.environ["LOCAL_RANK"]))
 
-            logits, loss = self.model(
-                input_ids=src,
-                attention_mask=src_attention_mask,
-                decoder_input_ids=tgt,
-                decoder_attention_mask=tgt_attention_mask,
-                label=label,
-            )
-            loss.backward()
-            sum_loss += loss.item()
-            sum_loss_step_accumulation += loss.item()
+            with self.model.no_sync():
+                logits, loss = self.model(
+                    input_ids=src,
+                    attention_mask=src_attention_mask,
+                    decoder_input_ids=tgt,
+                    decoder_attention_mask=tgt_attention_mask,
+                    label=label,
+                )
+                loss.backward()
+                sum_loss += loss.item()
+                sum_loss_step_accumulation += loss.item()
 
             if (step + 1) % self.step_accumulation == 0:
                 self.global_step += 1
