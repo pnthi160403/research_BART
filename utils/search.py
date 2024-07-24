@@ -246,8 +246,6 @@ class DiverseBeamSearch(Search):
 
         scores_G, beams_G = [], []
 
-        # pre-allocating tensor for indices for all groups
-
         for g in range(self.num_groups):
             # lpobbs_g: (batch_size, mini_beam_size, vocab_size)
             lprobs_g = lprobs[:, g :: self.num_groups, :]
@@ -291,7 +289,6 @@ class DiverseBeamSearch(Search):
                     # last_prev_cut_n_gram_g_gr (batch_size, mini_beam_size, g, n_gram - 1)
                     last_prev_cut_n_gram_g_gr = prev_indices_cut_n_gram[:, :, :g, -1, :]
                     # last_prev_cut_n_gram_g (batch_size, mini_beam_size, n_gram - 1)
-                    # print(f"{ indices_cut_n_gram.shape = }")
                     last_prev_cut_n_gram_g = prev_indices_cut_n_gram[:, :, g, -1, :]
                     # overlap_n_gram (batch_size, mini_beam_size, g, n_gram - 1)
                     overlap_n_gram = (last_prev_cut_n_gram_g.unsqueeze(-2) == last_prev_cut_n_gram_g_gr).int()
@@ -347,14 +344,12 @@ class DiverseBeamSearch(Search):
             # scores_buf (batch_size, mini_beam_size)
             # indices_buf (batch_size, mini_beam_size)
             # beams_buf (batch_size, mini_beam_size)
-            # print(f"{ mask_stop_search_g = }")
             scores_buf, indices_buf, beams_buf = self.beam.step(
                 step=step,
                 lprobs=lprobs_g,
                 scores=scores_g,
                 mask_stop_search=mask_stop_search_g,
             )
-            # print(f"{ indices_buf = }")
             prev_indices_buf = prev_indices_g.view(bsz * mini_beam_size, -1).contiguous()[beams_buf.view(-1).contiguous()]
             # (batch_size, mini_beam_size, step + 1)
             prev_indices_buf = prev_indices_buf.view(bsz, mini_beam_size, -1).contiguous()
@@ -379,8 +374,6 @@ class DiverseBeamSearch(Search):
         # interleave results from different groups
         scores_buf = torch.stack(scores_G, dim=2).view(bsz, -1)
         indices_buf = indices[:, :, :, -1].view(bsz, -1)
-        # print(f"{ indices = }")
-        # print(f"{ indices_buf = }")
         beams_buf = torch.stack(beams_G, dim=2).view(bsz, -1)
 
         # find num of overlapped tokens for each group pair
