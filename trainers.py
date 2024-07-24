@@ -4,9 +4,6 @@ from .utils.figures import (
 from tqdm import tqdm
 import torch
 from .utils.folders import (
-    join_base,
-    read,
-    write,
     get_weights_file_path,
 )
 import os
@@ -26,7 +23,6 @@ class BartTrainerSingleGPU:
         device,
         tokenizer_src,
         tokenizer_tgt,
-        # lr_scheduler,
         loss_train_step_figure: LossFigure,
         loss_val_step_figure: LossFigure,
         loss_train_epoch_figure: LossFigure,
@@ -35,11 +31,7 @@ class BartTrainerSingleGPU:
         model_base_name: str,
         train_dataloader,
         val_dataloader,
-        global_step: int,
-        global_epoch: int,
-        max_global_step: int,
-        max_epoch: int,
-        step_accumulation: int=1,
+        state: dict=None,
     ):
         self.config = config
         self.model = model
@@ -55,16 +47,22 @@ class BartTrainerSingleGPU:
         self.model_base_name = model_base_name
         self.train_dataloader = train_dataloader
         self.val_dataloader = val_dataloader
-        self.global_step = global_step
-        self.global_epoch = global_epoch
-        self.max_global_step = max_global_step
-        self.max_epoch = max_epoch
-        # self.lr_scheduler = lr_scheduler
+        self.global_step = 0
+        self.global_epoch = 0
+        self.max_epoch = config["max_epoch"]
+        self.max_global_step = config["max_global_step"]
         self.lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
             optimizer=optimizer,
             lr_lambda=lambda step: self.lambda_lr(),
         )
-        self.step_accumulation = step_accumulation
+        self.step_accumulation = config["step_accumulation"]
+        if state is not None:
+            self.model.load_state_dict(state["model_state_dict"])
+            self.global_step = state["global_step"]
+            self.global_epoch = state["global_epoch"]
+            if self.config["continue_step"] == False:
+                self.optimizer.load_state_dict(state["optimizer_state_dict"])
+                self.lr_scheduler.load_state_dict(state["lr_scheduler_state_dict"])
 
     def lambda_lr(
         self,
@@ -83,7 +81,6 @@ class BartTrainerSingleGPU:
         for step, batch in enumerate(batch_iterator):
             if self.global_step + 1 > self.max_global_step:
                 break
-        
             src = batch["src"].to(self.device)
             tgt = batch["tgt"].to(self.device)
             src_attention_mask = (src != self.tokenizer_src.token_to_id("<pad>")).type(torch.int64)
@@ -210,7 +207,6 @@ class BartTrainerMultiGPU:
         optimizer,
         tokenizer_src,
         tokenizer_tgt,
-        lr_scheduler,
         loss_train_step_figure: LossFigure,
         loss_val_step_figure: LossFigure,
         loss_train_epoch_figure: LossFigure,
@@ -219,11 +215,7 @@ class BartTrainerMultiGPU:
         model_base_name: str,
         train_dataloader,
         val_dataloader,
-        global_step: int,
-        global_epoch: int,
-        max_global_step: int,
-        max_epoch: int,
-        step_accumulation: int=1,
+        state: dict=None,
     ):
         self.config = config
         self.model = model
@@ -238,12 +230,28 @@ class BartTrainerMultiGPU:
         self.model_base_name = model_base_name
         self.train_dataloader = train_dataloader
         self.val_dataloader = val_dataloader
-        self.global_step = global_step
-        self.global_epoch = global_epoch
-        self.max_global_step = max_global_step
-        self.max_epoch = max_epoch
-        self.lr_scheduler = lr_scheduler
-        self.step_accumulation = step_accumulation
+        self.global_step = 0
+        self.global_epoch = 0
+        self.max_epoch = config["max_epoch"]
+        self.max_global_step = config["max_global_step"]
+        self.lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
+            optimizer=optimizer,
+            lr_lambda=lambda step: self.lambda_lr(),
+        )
+        self.step_accumulation = config["step_accumulation"]
+        if state is not None:
+            self.model.load_state_dict(state["model_state_dict"])
+            self.global_step = state["global_step"]
+            self.global_epoch = state["global_epoch"]
+            if self.config["continue_step"] == False:
+                self.optimizer.load_state_dict(state["optimizer_state_dict"])
+                self.lr_scheduler.load_state_dict(state["lr_scheduler_state_dict"])
+
+    def lambda_lr(
+        self,
+    ):
+        global_step = max(self.global_step, 1)
+        return (self.config["d_model"] ** -0.5) * min(global_step ** (-0.5), global_step * self.config["warmup_steps"] ** (-1.5))
 
     def train(
         self,
@@ -257,7 +265,6 @@ class BartTrainerMultiGPU:
         for step, batch in enumerate(batch_iterator):
             if self.global_step + 1 > self.max_global_step:
                 break
-        
             src = batch["src"].to(int(os.environ["LOCAL_RANK"]))
             tgt = batch["tgt"].to(int(os.environ["LOCAL_RANK"]))
             src_attention_mask = (src != self.tokenizer_src.token_to_id("<pad>")).type(torch.int64)

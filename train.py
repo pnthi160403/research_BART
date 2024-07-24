@@ -83,18 +83,7 @@ def train(config):
         betas=config["betas"]
     )
 
-    global_step = 0
-    global_epoch = 0
     preload = config["preload"]
-
-    # get lr schduler
-    # lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
-    #     optimizer=optimizer,
-    #     lr_lambda=lambda step: lambda_lr(
-    #         global_step=global_step,
-    #         config=config
-    #     )
-    # )
 
     # load model
     model_folder_name=config["model_folder_name"]
@@ -110,14 +99,9 @@ def train(config):
         )) if preload else None
     else:
         model_filename = None
+    state = None
     if model_filename:
         state = torch.load(model_filename, map_location=device)
-        model.load_state_dict(state["model_state_dict"])
-        global_step = state["global_step"]
-        global_epoch = state["global_epoch"]
-        if config["continue_step"] == False:
-            optimizer.load_state_dict(state["optimizer_state_dict"])
-            # lr_scheduler.load_state_dict(state["lr_scheduler_state_dict"])
         print(f"Loaded model from {model_filename}")
     else:
         print("No model to preload, start training from scratch")
@@ -164,7 +148,6 @@ def train(config):
         device=device,
         tokenizer_src=tokenizer_src,
         tokenizer_tgt=tokenizer_tgt,
-        # lr_scheduler=lr_scheduler,
         loss_train_step_figure=loss_train_step_figure,
         loss_val_step_figure=loss_val_step_figure,
         loss_train_epoch_figure=loss_train_epoch_figure,
@@ -173,11 +156,7 @@ def train(config):
         model_base_name=model_base_name,
         train_dataloader=train_dataloader,
         val_dataloader=val_dataloader,
-        global_step=global_step,
-        global_epoch=global_epoch,
-        max_global_step=config["max_global_step"],
-        max_epoch=config["max_epoch"],
-        step_accumulation=config["step_accumulation"],
+        state=state,
     )
     trainer.train_loop()
     trainer.save_figure()
