@@ -257,7 +257,6 @@ def get_dataloader(
                 tokenizer_src=tokenizer_src,
                 tokenizer_tgt=tokenizer_tgt,
             ),
-            shuffle=True,
         )
 
         val_dataloader = DataLoader(
@@ -271,7 +270,6 @@ def get_dataloader(
                 tokenizer_src=tokenizer_src,
                 tokenizer_tgt=tokenizer_tgt,
             ),
-            shuffle=False,
         )
 
         test_dataloader = DataLoader(
@@ -285,7 +283,6 @@ def get_dataloader(
                 tokenizer_src=tokenizer_src,
                 tokenizer_tgt=tokenizer_tgt,
             ),
-            shuffle=False,
         )
 
     ValueError("Dataloader not found")
