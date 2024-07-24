@@ -76,7 +76,7 @@ def get_config(base_dir: str=None):
     config["batch_train"] = 32
     config["batch_val"] = 1
     config["batch_test"] = 1
-    config["max_global_step"] = 30000
+    config["max_global_step"] = 1000000000
     config["max_epoch"] = 10
     config["step_accumulation"] = 1
 
