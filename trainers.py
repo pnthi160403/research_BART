@@ -122,7 +122,10 @@ class BartTrainerSingleGPU:
                 self.optimizer.zero_grad(set_to_none=True)
                 self.model.zero_grad(set_to_none=True)
 
-        return sum_loss / len(self.train_dataloader)
+        self.loss_train_epoch_figure.update(
+            value=sum_loss / len(self.train_dataloader),
+            step=self.global_epoch,
+        )
 
     def val(
         self,
@@ -154,7 +157,10 @@ class BartTrainerSingleGPU:
                 batch_iterator.set_postfix({
                     "loss": f"{loss.item():6.3f}",
                 })
-            return sum_loss / len(self.val_dataloader)
+        self.loss_val_epoch_figure.update(
+            value=sum_loss / len(self.val_dataloader),
+            step=self.global_epoch,
+        )
         
     def test(
         self,
@@ -233,17 +239,9 @@ class BartTrainerSingleGPU:
             if self.global_step + 1 > self.max_global_step:
                 break
             self.global_epoch += 1
-            mean_loss_train_epoch = self.train(epoch)
-            mean_loss_val_epoch = self.val(epoch)
+            self.train(epoch)
+            self.val(epoch)
             self.test(epoch)
-            self.loss_train_epoch_figure.update(
-                value=mean_loss_train_epoch,
-                step=self.global_epoch,
-            )
-            self.loss_val_epoch_figure.update(
-                value=mean_loss_val_epoch,
-                step=self.global_epoch,
-            )
             self.save_checkpoint()
 
 class BartTrainerMultiGPU:
