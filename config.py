@@ -51,6 +51,12 @@ def get_config(base_dir: str=None):
     config["epoch_loss_train_step_path"] = join_base(config["log_files"], "/epoch_loss_train_step.json")
     config["epoch_loss_val_value_path"] = join_base(config["log_files"], "/epoch_loss_val_value.json")
     config["epoch_loss_val_step_path"] = join_base(config["log_files"], "/epoch_loss_val_step.json")
+    config["epoch_rouge_1_value_path"] = join_base(config["log_files"], "/epoch_rouge_1_value.json")
+    config["epoch_rouge_1_step_path"] = join_base(config["log_files"], "/epoch_rouge_1_step.json")
+    config["epoch_rouge_2_value_path"] = join_base(config["log_files"], "/epoch_rouge_2_value.json")
+    config["epoch_rouge_2_step_path"] = join_base(config["log_files"], "/epoch_rouge_2_step.json")
+    config["epoch_rouge_l_value_path"] = join_base(config["log_files"], "/epoch_rouge_l_value.json")
+    config["epoch_rouge_l_step_path"] = join_base(config["log_files"], "/epoch_rouge_l_step.json")
 
     # Dataset
     config["lang_src"] = "noise_vi"

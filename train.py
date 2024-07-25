@@ -139,6 +139,30 @@ def train(config):
         loss_value_path=config["epoch_loss_val_value_path"],
         loss_step_path=config["epoch_loss_val_step_path"],
     )
+    # rouge_1 epoch figures
+    rouge_1_epoch_figure = LossFigure(
+        xlabel="Epoch",
+        ylabel="Rouge 1",
+        title="Rouge 1",
+        loss_value_path=config["epoch_rouge_1_value_path"],
+        loss_step_path=config["epoch_rouge_1_step_path"],
+    )
+    # rouge_2 epoch figures
+    rouge_2_epoch_figure = LossFigure(
+        xlabel="Epoch",
+        ylabel="Rouge 2",
+        title="Rouge 2",
+        loss_value_path=config["epoch_rouge_2_value_path"],
+        loss_step_path=config["epoch_rouge_2_step_path"],
+    )
+    # rouge_l epoch figures
+    rouge_l_epoch_figure = LossFigure(
+        xlabel="Epoch",
+        ylabel="Rouge L",
+        title="Rouge L",
+        loss_value_path=config["epoch_rouge_l_value_path"],
+        loss_step_path=config["epoch_rouge_l_step_path"],
+    )
 
     # train model
     trainer = BartTrainerSingleGPU(
@@ -152,10 +176,14 @@ def train(config):
         loss_val_step_figure=loss_val_step_figure,
         loss_train_epoch_figure=loss_train_epoch_figure,
         loss_val_epoch_figure=loss_val_epoch_figure,
+        rouge_1_epoch_figure=rouge_1_epoch_figure,
+        rouge_2_epoch_figure=rouge_2_epoch_figure,
+        rouge_l_epoch_figure=rouge_l_epoch_figure,
         model_folder_name=model_folder_name,
         model_base_name=model_base_name,
         train_dataloader=train_dataloader,
         val_dataloader=val_dataloader,
+        test_dataloader=test_dataloader,
         state=state,
     )
     trainer.train_loop()
@@ -192,6 +220,36 @@ def train(config):
         ylabel="Loss value",
         data=trainer.loss_val_step_figure.loss_value,
         steps=trainer.loss_val_step_figure.loss_step,
+    )
+
+    # rouge 1
+    draw_graph(
+        config=config,
+        title="Rouge 1",
+        xlabel="Epoch",
+        ylabel="Rouge 1",
+        data=trainer.rouge_1_epoch_figure.loss_value,
+        steps=trainer.rouge_1_epoch_figure.loss_step,
+    )
+
+    # rouge 2
+    draw_graph(
+        config=config,
+        title="Rouge 2",
+        xlabel="Epoch",
+        ylabel="Rouge 2",
+        data=trainer.rouge_2_epoch_figure.loss_value,
+        steps=trainer.rouge_2_epoch_figure.loss_step,
+    )
+
+    # rouge l
+    draw_graph(
+        config=config,
+        title="Rouge L",
+        xlabel="Epoch",
+        ylabel="Rouge L",
+        data=trainer.rouge_l_epoch_figure.loss_value,
+        steps=trainer.rouge_l_epoch_figure.loss_step,
     )
 
     # zip directory

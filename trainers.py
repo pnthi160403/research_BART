@@ -8,6 +8,7 @@ from .utils.folders import (
 )
 import os
 import json
+from .val import validate
 
 # get optimizer lambda lr
 def lambda_lr(global_step: int, config):
@@ -27,10 +28,14 @@ class BartTrainerSingleGPU:
         loss_val_step_figure: LossFigure,
         loss_train_epoch_figure: LossFigure,
         loss_val_epoch_figure: LossFigure,
+        rouge_1_epoch_figure: LossFigure,
+        rouge_2_epoch_figure: LossFigure,
+        rouge_l_epoch_figure: LossFigure,
         model_folder_name: str,
         model_base_name: str,
         train_dataloader,
         val_dataloader,
+        test_dataloader,
         state: dict=None,
     ):
         self.config = config
@@ -43,10 +48,14 @@ class BartTrainerSingleGPU:
         self.loss_val_step_figure = loss_val_step_figure
         self.loss_train_epoch_figure = loss_train_epoch_figure
         self.loss_val_epoch_figure = loss_val_epoch_figure
+        self.rouge_1_epoch_figure = rouge_1_epoch_figure
+        self.rouge_2_epoch_figure = rouge_2_epoch_figure
+        self.rouge_l_epoch_figure = rouge_l_epoch_figure
         self.model_folder_name = model_folder_name
         self.model_base_name = model_base_name
         self.train_dataloader = train_dataloader
         self.val_dataloader = val_dataloader
+        self.test_dataloader = test_dataloader
         self.global_step = 0
         self.global_epoch = 0
         self.max_epoch = config["max_epoch"]
@@ -146,6 +155,39 @@ class BartTrainerSingleGPU:
                     "loss": f"{loss.item():6.3f}",
                 })
             return sum_loss / len(self.val_dataloader)
+        
+    def test(
+        self,
+        epoch: int,
+    ):
+        beam_size = self.config["beams"][-1]
+        ans = validate(
+            model=self.model,
+            config=self.config,
+            beam_size=beam_size,
+            val_dataloader=self.test_dataloader,
+        )
+        for i in range(len(ans)):
+            res = ans[i]
+            for name, value in res.items():
+                if value is None:
+                    continue
+                print(f"{ name = }")
+                if name == "rouge1_fmeasure":
+                    self.rouge_1_epoch_figure.update(
+                        value=value,
+                        step=epoch,
+                    )
+                elif name == "rouge2_fmeasure":
+                    self.rouge_2_epoch_figure.update(
+                        value=value,
+                        step=epoch,
+                    )
+                elif name == "rougeL_fmeasure":
+                    self.rouge_l_epoch_figure.update(
+                        value=value,
+                        step=epoch,
+                    )
 
     def save_checkpoint(
         self,
@@ -178,17 +220,22 @@ class BartTrainerSingleGPU:
         self.loss_val_step_figure.save()
         self.loss_train_epoch_figure.save()
         self.loss_val_epoch_figure.save()
+        self.rouge_1_epoch_figure.save()
+        self.rouge_2_epoch_figure.save()
+        self.rouge_l_epoch_figure.save()
 
     def train_loop(
         self,
     ):
         torch.cuda.empty_cache()
-        for epoch in range(self.global_epoch + 1, self.max_epoch + 1):
-            if self.global_epoch + 1 > self.max_epoch or self.global_step + 1 > self.max_global_step:
+        initial_epoch = self.global_epoch + 1
+        for epoch in range(initial_epoch, self.max_epoch + 1):
+            if self.global_step + 1 > self.max_global_step:
                 break
             self.global_epoch += 1
             mean_loss_train_epoch = self.train(epoch)
             mean_loss_val_epoch = self.val(epoch)
+            self.test(epoch)
             self.loss_train_epoch_figure.update(
                 value=mean_loss_train_epoch,
                 step=self.global_epoch,
