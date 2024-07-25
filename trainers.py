@@ -178,7 +178,6 @@ class BartTrainerSingleGPU:
             for name, value in res.items():
                 if value is None:
                     continue
-                print(f"{ name = }")
                 if name == "rouge1_fmeasure":
                     self.rouge_1_epoch_figure.update(
                         value=value,
