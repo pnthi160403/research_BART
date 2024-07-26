@@ -77,6 +77,7 @@ def get_config(base_dir: str=None):
     config["preload"] = "latest"
     config["pretrain"] = False
     config["continue_step"] = False
+    config["test_model"] = True
     
     # Trainning loop
     config["batch_train"] = 32
