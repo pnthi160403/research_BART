@@ -115,6 +115,9 @@ def get_config(base_dir: str=None):
     config["use_cache"] = True
     config["multi_gpu"] = False
 
+    # GELU activation function
+    config["approximate_gelu"] = 'none'
+
     # Search module
     config["type_search"] = "beam_search"
     config["beams"] = [2]

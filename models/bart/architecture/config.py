@@ -32,6 +32,7 @@ class BartConfig:
         type_attn: str="scaled_dot_product",
         max_relative_positions: int=200,
         window_size: int=32,
+        approximate_gelu: str="none",
         **kwargs,
     ):
         self.src_vocab_size = src_vocab_size
@@ -59,6 +60,7 @@ class BartConfig:
         self.type_attn = type_attn
         self.max_relative_positions = max_relative_positions
         self.window_size = window_size
+        self.approximate_gelu = approximate_gelu
 
 __all__ = [
     "BartConfig",

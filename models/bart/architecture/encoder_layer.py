@@ -4,6 +4,7 @@ from .config import BartConfig
 from .attns import TYPE_ATTN
 from .utils import (
     ACT_FN,
+    GELU,
     BartEncoderLayerOut,
 )
 
@@ -28,7 +29,12 @@ class BartEncoderLayer(nn.Module):
         )
         self.self_attn_layer_norm = nn.LayerNorm(self.embed_dim)
         self.dropout = config.dropout
-        self.activation_fn = ACT_FN[config.activation_function]()
+        if config.activation_function != GELU:
+            self.activation_fn = ACT_FN[config.activation_function]()
+        else:
+            self.activation_fn = ACT_FN[config.activation_function](
+                approximate=config.approximate_gelu,
+            )
         self.activation_dropout = nn.Dropout((config.activation_dropout))
         self.fc1 = nn.Linear(self.embed_dim, config.encoder_ffn_dim)
         self.fc2 = nn.Linear(config.encoder_ffn_dim, self.embed_dim)
