@@ -86,7 +86,11 @@ class BartSeq2seq(nn.Module):
         label: torch.Tensor=None,
         input_ids: torch.Tensor=None,
         inputs_embeds: torch.Tensor=None,
+        encoder_head_mask: torch.Tensor=None,
+        decoder_head_mask: torch.Tensor=None,
     ):
+        # encoder_head_mask (encoder_layers, encoder_attention_heads)
+        # decoder_head_mask (decoder_layers, decoder_attention_heads)
         # encoder
         if inputs_embeds is not None:
             encoder_block_out_obj = self.encoder(
@@ -94,6 +98,7 @@ class BartSeq2seq(nn.Module):
                     inputs_embeds=inputs_embeds,
                 ),
                 attention_mask=attention_mask,
+                head_mask=encoder_head_mask,
             )
         else:
             encoder_block_out_obj = self.encoder(
@@ -101,6 +106,7 @@ class BartSeq2seq(nn.Module):
                     input_ids=input_ids,
                 ),
                 attention_mask=attention_mask,
+                head_mask=decoder_head_mask,
             )
         # decoder
         decoder_block_out_obj = self.decoder(
@@ -108,6 +114,7 @@ class BartSeq2seq(nn.Module):
             attention_mask=decoder_attention_mask,
             encoder_hidden_states=encoder_block_out_obj.out,
             encoder_attention_mask=attention_mask,
+            head_mask=decoder_head_mask,
         )
         decoder_hidden_states = decoder_block_out_obj.out
         # out

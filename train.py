@@ -230,6 +230,7 @@ def train(config):
         ylabel="Rouge 1",
         data=trainer.rouge_1_epoch_figure.loss_value,
         steps=trainer.rouge_1_epoch_figure.loss_step,
+        log_scale=False,
     )
 
     # rouge 2
@@ -240,6 +241,7 @@ def train(config):
         ylabel="Rouge 2",
         data=trainer.rouge_2_epoch_figure.loss_value,
         steps=trainer.rouge_2_epoch_figure.loss_step,
+        log_scale=False,
     )
 
     # rouge l
@@ -250,6 +252,7 @@ def train(config):
         ylabel="Rouge L",
         data=trainer.rouge_l_epoch_figure.loss_value,
         steps=trainer.rouge_l_epoch_figure.loss_step,
+        log_scale=False,
     )
 
     # zip directory

@@ -51,18 +51,17 @@ class LossFigure:
     def load(self):
         self.loss_value = read(self.loss_value_path)
         self.loss_step = read(self.loss_step_path)
-        
-
 
 # figures
-def draw_graph(config, title, xlabel, ylabel, data, steps):
+def draw_graph(config, title, xlabel, ylabel, data, steps, log_scale=True):
     try:
         save_path = join_base(config['log_dir'], f"/{title}.png")
         plt.plot(steps, data)
         plt.title(title)
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
-        plt.yscale('log')
+        if log_scale:
+            plt.yscale('log')
         plt.grid(True)
         plt.savefig(save_path)
         plt.show()

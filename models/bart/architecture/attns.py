@@ -44,13 +44,18 @@ class MultiheadScaledDotProductAttention(nn.Module):
         key: torch.Tensor,
         value: torch.Tensor,
         mask: torch.Tensor=None,
+        layer_head_mask: torch.Tensor=None,
         dropout: nn.Dropout=None,
         use_cache: bool=False,
     ) -> torch.Tensor:
+        # attention_scores (batch, num_heads, tgt_len, src_len)
         attention_scores = torch.matmul(query, key.transpose(-2, -1)) / self.scaling
         if mask is not None and not use_cache:
             attention_scores.masked_fill_(mask == 0, -1e9)
         attention_scores = attention_scores.softmax(dim=-1)
+        if layer_head_mask is not None:
+            attention_scores = layer_head_mask.view(1, -1, 1, 1) * attention_scores
+            attention_scores = attention_scores.view(query.size(0) * self.num_heads, query.size(1), key.size(1))
         if dropout is not None:
             attention_scores = dropout(attention_scores)
         attn_weights = torch.matmul(attention_scores, value)
@@ -122,10 +127,6 @@ class MultiheadScaledDotProductAttention(nn.Module):
             use_cache=use_cache,
         )
         
-        if layer_head_mask is not None:
-            attn_weights = layer_head_mask.view(1, -1, 1, 1) * attn_weights.view(bsz, self.num_heads, tgt_len, tgt_len)
-            attn_weights = attn_weights.view(bsz * self.num_heads, tgt_len, tgt_len)
-
         attn_weights = attn_weights.transpose(1, 2).contiguous().view(bsz, -1, self.num_heads * self.head_dim)
         attn_output = self.out_proj(attn_weights)
 

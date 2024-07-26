@@ -183,16 +183,19 @@ class BartTrainerSingleGPU:
                         value=value,
                         step=epoch,
                     )
+                    print(f"rouge1_fmeasure: {value}")
                 elif name == "rouge2_fmeasure":
                     self.rouge_2_epoch_figure.update(
                         value=value,
                         step=epoch,
                     )
+                    print(f"rouge2_fmeasure: {value}")
                 elif name == "rougeL_fmeasure":
                     self.rouge_l_epoch_figure.update(
                         value=value,
                         step=epoch,
                     )
+                    print(f"rougeL_fmeasure: {value}")
 
     def save_checkpoint(
         self,
