@@ -187,7 +187,6 @@ def train(config):
         state=state,
     )
     trainer.train_loop()
-    trainer.save_figure()
 
     # draw graph loss
     # train and val

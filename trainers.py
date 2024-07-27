@@ -244,6 +244,7 @@ class BartTrainerSingleGPU:
             self.train(epoch)
             self.val(epoch)
             self.test(epoch)
+            self.save_figure()
             self.save_checkpoint()
 
 class BartTrainerMultiGPU:
