@@ -243,8 +243,7 @@ class BartTrainerSingleGPU:
             self.global_epoch += 1
             self.train(epoch)
             self.val(epoch)
-            if self.config["test_model"]:
-                self.test(epoch)
+            self.test(epoch)
             self.save_checkpoint()
 
 class BartTrainerMultiGPU:
