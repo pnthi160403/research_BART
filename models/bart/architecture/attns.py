@@ -331,7 +331,7 @@ class MultiheadAdditiveAttention(nn.Module):
         k_expand = key.unsqueeze(2)
         score = self.score_proj(torch.tanh(q_expand + k_expand)).squeeze(-1)
         if mask is not None:
-            score = score.masked_fill_(mask == 0, float("-inf"))
+            score = score.masked_fill_(mask == 0, -1e9)
         p_attn = nn.functional.softmax(score, dim=-1)
         if dropout is not None:
             p_attn = dropout(p_attn)
