@@ -352,11 +352,9 @@ class MultiheadAdditiveAttention(nn.Module):
         if key_value_states is None:
             key_states = self.k_proj(hidden_states)
             value_states = self.v_proj(hidden_states)
-            value_states = hidden_states
         else: # is cross-attention
             key_states = self.k_proj(key_value_states)
             value_states = self.v_proj(key_value_states)
-            value_states = key_value_states
 
 
         query_states = self._shape(query_states, tgt_len, bsz)
