@@ -307,7 +307,7 @@ class MultiheadAdditiveAttention(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.k_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
         self.q_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
-        # self.v_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
+        self.v_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
         self.out_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
         self.score_proj = nn.Linear(self.head_dim, 1, bias=bias)
 
@@ -351,11 +351,11 @@ class MultiheadAdditiveAttention(nn.Module):
         query_states = self.q_proj(hidden_states)
         if key_value_states is None:
             key_states = self.k_proj(hidden_states)
-            # value_states = self.v_proj(hidden_states)
+            value_states = self.v_proj(hidden_states)
             value_states = hidden_states
         else: # is cross-attention
             key_states = self.k_proj(key_value_states)
-            # value_states = self.v_proj(key_value_states)
+            value_states = self.v_proj(key_value_states)
             value_states = key_value_states
 
 
