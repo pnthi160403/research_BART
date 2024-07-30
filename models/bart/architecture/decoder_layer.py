@@ -66,7 +66,6 @@ class BartDecoderLayer(nn.Module):
         cross_attn_layer_head_mask: torch.Tensor=None,
         past_key_value: list=None,
         past_attn_score: list=None,
-        past_layer_key_value: list=None,
         use_cache: bool=False,
         idx_layer: int=0,
     ):
@@ -77,14 +76,12 @@ class BartDecoderLayer(nn.Module):
         # Self Attention
         self_attn_past_key_value = past_key_value[0] if past_key_value is not None else None
         self_attn_past_attn_score = past_attn_score[0] if past_attn_score is not None else None
-        self_attn_past_layer_key_value = past_layer_key_value[0] if past_layer_key_value is not None else None
         attn_obj = self.self_attn(
             hidden_states=hidden_states,
             attention_mask=attention_mask,
             layer_head_mask=layer_head_mask,
             past_key_value=self_attn_past_key_value,
             past_attn_score=self_attn_past_attn_score,
-            past_layer_key_value=self_attn_past_layer_key_value,
             use_cache=use_cache,
             idx_layer=idx_layer,
         )
@@ -106,7 +103,6 @@ class BartDecoderLayer(nn.Module):
         if encoder_hidden_states is not None:
             cross_attn_past_key_value = past_key_value[1] if past_key_value is not None else None
             cross_attn_past_attn_score = past_attn_score[1] if past_attn_score is not None else None
-            cross_attn_past_layer_key_value = past_layer_key_value[1] if past_layer_key_value is not None else None
             attn_obj = self.encoder_attn(
                 hidden_states=hidden_states,
                 key_value_states=encoder_hidden_states,
@@ -114,7 +110,6 @@ class BartDecoderLayer(nn.Module):
                 layer_head_mask=cross_attn_layer_head_mask,
                 past_key_value=cross_attn_past_key_value,
                 past_attn_score=cross_attn_past_attn_score,
-                past_layer_key_value=cross_attn_past_layer_key_value,
                 use_cache=use_cache,
                 is_cross_attn=True,
                 idx_layer=idx_layer,

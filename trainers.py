@@ -40,6 +40,7 @@ class BartTrainerSingleGPU:
     ):
         self.config = config
         self.model = model
+        print(f"model: {model}")
         self.optimizer = optimizer
         self.device = device
         self.tokenizer_src = tokenizer_src
@@ -196,6 +197,7 @@ class BartTrainerSingleGPU:
                         step=epoch,
                     )
                     print(f"rougeL_fmeasure: {value}")
+                print(f"{name}: {value}")
 
     def save_checkpoint(
         self,

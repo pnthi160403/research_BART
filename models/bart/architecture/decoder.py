@@ -95,7 +95,6 @@ class BartDecoder(nn.Module):
 
         next_past_key_value = [] if use_cache else None
         next_past_attn_score = [] if use_cache else None
-        past_layer_key_value = None # [0] -> self attn, [1] -> cross attn            
         for idx in range(len(self.layers)):
             decoder_layer = self.layers[idx]
             if self.training:
@@ -113,16 +112,10 @@ class BartDecoder(nn.Module):
                 cross_attn_layer_head_mask=(cross_attn_head_mask[idx] if cross_attn_head_mask is not None else None),
                 past_key_value=past_key_value,
                 past_attn_score=past_attn_score,
-                past_layer_key_value=past_layer_key_value,
                 use_cache=use_cache,
                 idx_layer=idx,
             )
             hidden_states = decoder_layer_output_obj.out
-            if self.type_attn == MULTIQUERY_SCALED_DOT_PRODUCT:
-                if idx == 0:
-                    past_layer_key_value = decoder_layer_output_obj.present_key_value
-                elif idx == len(self.layers) - 1:
-                    past_layer_key_value = None
             if use_cache:
                 next_past_key_value.append(decoder_layer_output_obj.present_key_value)
                 next_past_attn_score.append(decoder_layer_output_obj.present_attn_score)

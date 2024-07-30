@@ -45,19 +45,16 @@ class BartEncoderLayer(nn.Module):
         hidden_states: torch.FloatTensor,
         attention_mask: torch.FloatTensor=None,
         layer_head_mask: torch.FloatTensor=None,
-        past_layer_key_value: list=None,
         idx_layer: int=0,
     ):
         residual = hidden_states
 
         present_key_value = None
         present_attn_score = None
-        self_attn_past_layer_key_value = past_layer_key_value[0] if past_layer_key_value is not None else None
         attn_obj = self.self_attn(
             hidden_states=hidden_states,
             attention_mask=attention_mask,
             layer_head_mask=layer_head_mask,
-            past_layer_key_value=self_attn_past_layer_key_value,
             idx_layer=idx_layer,
         )
         hidden_states = attn_obj.attn_output
