@@ -329,7 +329,7 @@ class MultiheadAdditiveAttention(nn.Module):
         k_expand = key.unsqueeze(2)
         score = self.score_proj(torch.tanh(q_expand + k_expand)).squeeze(-1)
         if mask is not None:
-            score = score.masked_fill_(mask == 0, -1e9)
+            score = score.masked_fill_(mask == 0, float("-inf"))
         p_attn = nn.functional.softmax(score, dim=-1)
         if dropout is not None:
             p_attn = dropout(p_attn)
@@ -341,7 +341,6 @@ class MultiheadAdditiveAttention(nn.Module):
         key_value_states: torch.Tensor=None,
         attention_mask: torch.Tensor=None,
         layer_head_mask: torch.Tensor=None,
-        **kwargs,
     )-> torch.Tensor:
         bsz, tgt_len, embed_dim = hidden_states.size()
         assert embed_dim == self.embed_dim, f"Hidden states have embed_dim {embed_dim}, expected {self.embed_dim}"
