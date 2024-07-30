@@ -30,7 +30,7 @@ from .utils.metrics import (
     torchtext_bleu_score
 )
 
-def validate(model, config, beam_size, val_dataloader, num_example: int=20):
+def validate(model, config, beam_size, val_dataloader, num_example: int=5):
     model.eval()
     device = config["device"]
     # get sub test id
