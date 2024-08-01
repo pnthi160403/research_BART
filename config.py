@@ -107,6 +107,7 @@ def get_config(base_dir: str=None):
     config["num_beams"] = 1
     config["init_type"] = None
     config["share_tgt_emb_and_out"] = False
+    config["share_vocab"] = False
     config["checkpoint"] = None
     config["num_labels"] = None
     config["type_attn"] = "scaled_dot_product"

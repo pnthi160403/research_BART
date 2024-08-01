@@ -34,11 +34,13 @@ class BartSeq2seqConfig(BartConfig):
     def __init__(
         self,
         share_tgt_emb_and_out: bool=False,
+        share_vocab: bool=False,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.bart_config = BartConfig(**kwargs)
         self.share_tgt_emb_and_out = share_tgt_emb_and_out
+        self.share_vocab = share_vocab
 
 # Class model
 class BartSeq2seq(nn.Module):
@@ -72,6 +74,12 @@ class BartSeq2seq(nn.Module):
         self.decoder = BartDecoder(config.bart_config)
         # out
         self.out = nn.Linear(config.d_model, config.tgt_vocab_size)
+
+        if config.share_tgt_emb_and_out:
+            self.out.weight = self.decoder_inputs_embeds.embed_tokens.weight
+        if config.share_vocab:
+            self.inputs_embeds.embed_tokens.weight = self.decoder_inputs_embeds.embed_tokens.weight
+
         # Initialize weights
         self.apply(lambda module: _init_weights(
             module=module,
