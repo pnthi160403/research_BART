@@ -25,6 +25,7 @@ def read_ds(
         test_ds_path,
         max_num_val=10000,
         max_num_test=2000,
+        max_num_train=100000,
 ):
 
     train_ds, val_ds, test_ds = None, None, None
@@ -63,6 +64,9 @@ def read_ds(
         test_ds = train_ds[:max_num_test]
         train_ds = train_ds[max_num_test:]
         train_ds.reset_index(drop=True, inplace=True)
+
+    if len(train_ds) > max_num_train:
+        train_ds = train_ds[:max_num_train]
 
     print("Read dataset successfully")
     print("Length train dataset: ", len(train_ds))

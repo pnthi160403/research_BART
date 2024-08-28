@@ -66,6 +66,7 @@ def get_config(base_dir: str=None):
     config["test_ds_path"] = None
     config["max_num_test"] = 2000
     config["max_num_val"] = 10000
+    config["max_num_train"] = 200000
     config["corpus"] = None
     config["max_len"] = 200
     config["src_vocab_size_bart_encoder"] = 30000
