@@ -23,9 +23,9 @@ def read_ds(
         train_ds_path,
         val_ds_path,
         test_ds_path,
-        max_num_val=10000,
-        max_num_test=2000,
-        max_num_train=100000,
+        max_num_val: int=10000,
+        max_num_test: int=2000,
+        max_num_train: int=140000,
 ):
 
     train_ds, val_ds, test_ds = None, None, None
