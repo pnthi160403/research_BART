@@ -174,6 +174,7 @@ def get_dataloader(
         test_ds_path: str=None,
         max_num_val: int=15000,
         max_num_test: int=15000,
+        max_num_train: int=200000,
         multi_gpu: bool=False,
 ):
     train_ds, val_ds, test_ds = read_ds(
@@ -182,6 +183,7 @@ def get_dataloader(
         test_ds_path=test_ds_path,
         max_num_val=max_num_val,
         max_num_test=max_num_test,
+        max_num_train=max_num_train,
     )
 
     train_dataset, val_dataset, test_dataset = None, None, None
