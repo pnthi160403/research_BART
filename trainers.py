@@ -61,10 +61,11 @@ class BartTrainerSingleGPU:
         self.global_epoch = 0
         self.max_epoch = config["max_epoch"]
         self.max_global_step = config["max_global_step"]
-        self.lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
-            optimizer=optimizer,
-            lr_lambda=lambda step: self.lambda_lr(),
-        )
+        if config["use_scheduler"]:
+            self.lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
+                optimizer=optimizer,
+                lr_lambda=lambda step: self.lambda_lr(),
+            )
         self.step_accumulation = config["step_accumulation"]
         if state is not None:
             self.model.load_state_dict(state["model_state_dict"])
@@ -72,7 +73,8 @@ class BartTrainerSingleGPU:
             self.global_epoch = state["global_epoch"]
             if self.config["continue_step"] == False:
                 self.optimizer.load_state_dict(state["optimizer_state_dict"])
-                self.lr_scheduler.load_state_dict(state["lr_scheduler_state_dict"])
+                if self.config["use_scheduler"]:
+                    self.lr_scheduler.load_state_dict(state["lr_scheduler_state_dict"])
 
     def lambda_lr(
         self,
@@ -119,7 +121,8 @@ class BartTrainerSingleGPU:
                 })
                 sum_loss_step_accumulation = 0
                 self.optimizer.step()
-                self.lr_scheduler.step()
+                if self.config["use_scheduler"]:
+                    self.lr_scheduler.step()
                 self.optimizer.zero_grad(set_to_none=True)
                 self.model.zero_grad(set_to_none=True)
 
@@ -208,13 +211,21 @@ class BartTrainerSingleGPU:
             step=self.global_step
         )
 
-        torch.save({
-            "global_step": self.global_step,
-            "global_epoch": self.global_epoch,
-            "model_state_dict": self.model.state_dict(),
-            "optimizer_state_dict": self.optimizer.state_dict(),
-            "lr_scheduler_state_dict": self.lr_scheduler.state_dict()
-        }, model_filename)
+        if self.config["use_scheduler"]:
+            torch.save({
+                "global_step": self.global_step,
+                "global_epoch": self.global_epoch,
+                "model_state_dict": self.model.state_dict(),
+                "optimizer_state_dict": self.optimizer.state_dict(),
+                "lr_scheduler_state_dict": self.lr_scheduler.state_dict()
+            }, model_filename)
+        else:
+            torch.save({
+                "global_step": self.global_step,
+                "global_epoch": self.global_epoch,
+                "model_state_dict": self.model.state_dict(),
+                "optimizer_state_dict": self.optimizer.state_dict(),
+            }, model_filename)
         
         print(f"Saved model at {model_filename}")
 

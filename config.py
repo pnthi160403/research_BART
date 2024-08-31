@@ -152,6 +152,7 @@ def get_config(base_dir: str=None):
     config["label_smoothing"] = 0.01
 
     # Scheduler (Noam decay)
+    config["use_scheduler"] = True
     config["warmup_steps"] = 4000
 
     # Device
