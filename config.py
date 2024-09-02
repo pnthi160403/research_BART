@@ -71,6 +71,7 @@ def get_config(base_dir: str=None):
     config["max_len"] = 200
     config["src_vocab_size_bart_encoder"] = 30000
     config["seed"] = 42
+    config["shuffle_index"] = [(0, -1)]
 
     # Train
     config["model_train"] = "bart"

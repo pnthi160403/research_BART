@@ -190,6 +190,7 @@ def get_dataloader(
         max_num_test: int=15000,
         max_num_train: int=200000,
         multi_gpu: bool=False,
+        shuffle_index: list=[(0, -1)],
 ):
     train_ds, val_ds, test_ds = read_ds(
         train_ds_path=train_ds_path,
@@ -198,6 +199,7 @@ def get_dataloader(
         max_num_val=max_num_val,
         max_num_test=max_num_test,
         max_num_train=max_num_train,
+        shuffle_index=shuffle_index,
     )
 
     train_dataset, val_dataset, test_dataset = None, None, None
