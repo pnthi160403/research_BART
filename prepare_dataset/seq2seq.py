@@ -17,6 +17,16 @@ def get_file(file_path, file_name="zip_file.csv"):
         return read_csv_from_zip(file_path, file_name)
     else:
         return pd.read_csv(file_path)
+    
+# Shuffle DataFrame
+def shuffle_dataframe(df, i, j):
+    df_before = df.iloc[:i]
+    df_to_shuffle = df.iloc[i:j].sample(frac=1).reset_index(drop=True)
+    df_after = df.iloc[j:]
+
+    df_shuffled = pd.concat([df_before, df_to_shuffle, df_after]).reset_index(drop=True)
+    
+    return df_shuffled
 
 # read dataset
 def read_ds(
@@ -26,6 +36,7 @@ def read_ds(
         max_num_val: int=10000,
         max_num_test: int=2000,
         max_num_train: int=140000,
+        shuffle_index: list=[(0, -1)],
 ):
 
     train_ds, val_ds, test_ds = None, None, None
@@ -67,6 +78,9 @@ def read_ds(
 
     if len(train_ds) > max_num_train:
         train_ds = train_ds[:max_num_train]
+
+    for i, j in shuffle_index:
+        train_ds = shuffle_dataframe(train_ds, i, j)
 
     print("Read dataset successfully")
     print("Length train dataset: ", len(train_ds))
