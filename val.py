@@ -27,7 +27,14 @@ from .utils.metrics import (
     torcheval_recall,
     torcheval_precision,
     torcheval_f_beta,
-    torchtext_bleu_score
+    # torchtext_bleu_score
+)
+from .models.get_instance_bart import (
+    BART_SEQ2SEQ_FROM_SCRATCH,
+    BART_CLASSIFICATION_FROM_SCRATCH,
+    FINE_TUNE_BART_SEQ2SEQ_FROM_SCRATCH,
+    FINE_TUNE_SEQ2SEQ_WITH_RANDOM_ENCODER_FROM_SCRATCH,
+    BART_SEQ2SEQ_TRANSFORMERS,
 )
 
 def validate(model, config, beam_size, val_dataloader, num_example: int=5):
@@ -43,17 +50,20 @@ def validate(model, config, beam_size, val_dataloader, num_example: int=5):
     )
 
     # get cosine similarity
-    decoder_embeds_matrix = torch.tensor(model.decoder_inputs_embeds.embed_tokens.weight.data.clone().detach().cpu().numpy()).to(device)
-    if config["type_diversity_function"] == NEURAL_EMBEDDING_TYPE_DIVERSITY:
-        top_cosine_similarity_indices = get_cosine_similarity(
-            path=config["cosine_similarity_path"],
-            vocab_size=config["tgt_vocab_size"],
-            k=config["top_k_cosine_similarity"],
-            decoder_embeds_matrix=decoder_embeds_matrix,
-            eos_token_id=tokenizer_tgt.token_to_id("</s>")
-        )
-    else:
-        top_cosine_similarity_indices = None
+    # if config["model_train"] != BART_SEQ2SEQ_TRANSFORMERS:
+    #     decoder_embeds_matrix = torch.tensor(model.decoder_inputs_embeds.embed_tokens.weight.data.clone().detach().cpu().numpy()).to(device)
+    # else:
+    #     decoder_embeds_matrix = torch.tensor(model.bart_model.decoder.embed_tokens.weight.data.clone().detach().cpu().numpy()).to(device)
+    # if config["type_diversity_function"] == NEURAL_EMBEDDING_TYPE_DIVERSITY:
+    #     top_cosine_similarity_indices = get_cosine_similarity(
+    #         path=config["cosine_similarity_path"],
+    #         vocab_size=config["tgt_vocab_size"],
+    #         k=config["top_k_cosine_similarity"],
+    #         decoder_embeds_matrix=decoder_embeds_matrix,
+    #         eos_token_id=tokenizer_tgt.token_to_id("</s>")
+    #     )
+    # else:
+    #     top_cosine_similarity_indices = None
         
     vocab_size=tokenizer_tgt.get_vocab_size()
     pad_token_id = tokenizer_src.token_to_id("<pad>")
@@ -71,6 +81,8 @@ def validate(model, config, beam_size, val_dataloader, num_example: int=5):
 
         rouge_preds = []
         rouge_targets = []
+
+        bleus = None
         
         batch_iterator = tqdm(val_dataloader, desc=f"Testing model...")
         for batch in batch_iterator:
@@ -84,7 +96,7 @@ def validate(model, config, beam_size, val_dataloader, num_example: int=5):
                 tokenizer_src=tokenizer_src,
                 tokenizer_tgt=tokenizer_tgt,
                 src=src_text,
-                top_cosine_similarity_indices=top_cosine_similarity_indices,
+                # top_cosine_similarity_indices=top_cosine_similarity_indices,
             )
             if config["type_search"] in [BEAM_SEARCH, DIVERSE_BEAM_SEARCH]:
                 pred_ids = preds_ids[0].tgt.squeeze()
@@ -125,12 +137,12 @@ def validate(model, config, beam_size, val_dataloader, num_example: int=5):
                         skip_special_tokens=True,
                     )
                     print(f"{f'PREDICTED {i}: ':>12}{text}")
-                if config["use_bleu"]:
-                    scores = torchtext_bleu_score(refs=[[tgt_text.split()]],
-                                            cands=[pred_text.split()])
-                    print(f'BLEU OF SENTENCE {count}')
-                    for i in range(0, len(scores)):
-                        print(f'BLEU_{i + 1}: {scores[i]}')
+                # if config["use_bleu"]:
+                #     scores = torchtext_bleu_score(refs=[[tgt_text.split()]],
+                #                             cands=[pred_text.split()])
+                #     print(f'BLEU OF SENTENCE {count}')
+                #     for i in range(0, len(scores)):
+                #         print(f'BLEU_{i + 1}: {scores[i]}')
                     
                 if not config["use_pytorch_metric"]:
                     if config["use_recall"]:
@@ -223,9 +235,9 @@ def validate(model, config, beam_size, val_dataloader, num_example: int=5):
                     device=device
                 )
 
-        if config["use_bleu"]:
-            bleus = torchtext_bleu_score(refs=expected,
-                                        cands=predicted)
+        # if config["use_bleu"]:
+        #     bleus = torchtext_bleu_score(refs=expected,
+        #                                 cands=predicted)
             
         zip_directory(
             directory_path=config["generated_dir"],
@@ -233,7 +245,7 @@ def validate(model, config, beam_size, val_dataloader, num_example: int=5):
         )
         
         res = {}
-        if config["use_bleu"]:
+        if config["use_bleu"] and bleus is not None:
             for i in range(0, len(bleus)):
                 res[f"bleu_{i+1}"] = bleus[i]
         if recall is not None and config["use_recall"]:

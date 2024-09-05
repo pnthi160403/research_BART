@@ -233,7 +233,7 @@ def get_dataloader(
         train_dataloader = DataLoader(
             train_dataset,
             batch_size=batch_train,
-            shuffle=True,
+            shuffle=False,
             collate_fn=lambda batch: collate_fn(
                 batch=batch,
                 tokenizer_src=tokenizer_src,

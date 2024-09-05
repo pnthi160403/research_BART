@@ -1,6 +1,6 @@
 import torch
 from torcheval.metrics.functional.classification import multiclass_accuracy, multiclass_recall, multiclass_precision
-from torchtext.data.metrics import bleu_score
+# from torchtext.data.metrics import bleu_score
 from torchmetrics import Recall, Precision, FBetaScore, Accuracy
 from torchmetrics.text.rouge import ROUGEScore
 
@@ -44,15 +44,15 @@ def torcheval_f_beta(recall: torch.tensor, precision: torch.tensor, beta: float)
 
     return torch.tensor((1 + beta ** 2) * (precision_item * recall_item) / (beta ** 2 * precision_item + recall_item + esi), dtype=recall.dtype).to(recall.device)
 
-def torchtext_bleu_score(refs, cands):
-    scores = []
-    for j in range(1, 5):
-        weights = [1 / j] * j
-        scores.append(bleu_score(candidate_corpus=cands,
-                                 references_corpus=refs,
-                                 max_n=j,
-                                 weights=weights))
-    return scores
+# def torchtext_bleu_score(refs, cands):
+#     scores = []
+#     for j in range(1, 5):
+#         weights = [1 / j] * j
+#         scores.append(bleu_score(candidate_corpus=cands,
+#                                  references_corpus=refs,
+#                                  max_n=j,
+#                                  weights=weights))
+#     return scores
 
 __all__ = [
     "torchmetrics_recall",
@@ -63,5 +63,5 @@ __all__ = [
     "torcheval_recall",
     "torcheval_precision",
     "torcheval_f_beta",
-    "torchtext_bleu_score"
+    # "torchtext_bleu_score"
 ]

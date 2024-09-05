@@ -26,6 +26,11 @@ from .fine_tune_seq2seq_with_random_encoder import (
     FineTuneBartWithRandomEncoderConfig,
 )
 
+from .seq2seq_transformers import (
+    BartSeq2seq,
+    get_model,
+)
+
 from .utils import (
     load_model,
     freeze_model,

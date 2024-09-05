@@ -5,6 +5,13 @@ from .utils.search import (
     DIVERSE_BEAM_SEARCH,
     SearchNode,
 )
+from .models.get_instance_bart import (
+    BART_SEQ2SEQ_FROM_SCRATCH,
+    BART_CLASSIFICATION_FROM_SCRATCH,
+    FINE_TUNE_BART_SEQ2SEQ_FROM_SCRATCH,
+    FINE_TUNE_SEQ2SEQ_WITH_RANDOM_ENCODER_FROM_SCRATCH,
+    BART_SEQ2SEQ_TRANSFORMERS,
+)
 
 # length penalty
 def sequence_length_penalty(length: int, alpha: float=0.6) -> float:
@@ -14,11 +21,11 @@ def sequence_length_penalty(length: int, alpha: float=0.6) -> float:
 def generate(
     model,
     config,
-    top_cosine_similarity_indices,
     beam_size,
     tokenizer_src,
     tokenizer_tgt,
-    src
+    src,
+    top_cosine_similarity_indices=None,
 ):
     # Search Module
     # special token id
