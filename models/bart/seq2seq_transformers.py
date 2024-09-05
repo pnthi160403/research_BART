@@ -40,6 +40,9 @@ class BartSeq2seq(nn.Module):
         self.bart_model = BartModel(config=self.config)
         self.out  = nn.Linear(config.d_model, self.config.vocab_size, bias=False)
 
+        # Share weights
+        self.bart_model._tie_weights()
+        
         # Initialize weights
         self.out.apply(_init_weights)
 
@@ -48,7 +51,7 @@ class BartSeq2seq(nn.Module):
         attention_mask: torch.Tensor,
         decoder_input_ids: torch.Tensor,
         decoder_attention_mask: torch.Tensor,
-        label: torch.Tensor=None,
+        labels: torch.Tensor=None,
         input_ids: torch.Tensor=None,
         inputs_embeds: torch.Tensor=None,
     ):
@@ -71,16 +74,17 @@ class BartSeq2seq(nn.Module):
             )
         logits = self.out(outputs.last_hidden_state)
 
-        if label is not None:
+        if labels is not None:
             if self.config.pad_token_id is not None:
                 loss_fn = nn.CrossEntropyLoss(
                     ignore_index=self.config.pad_token_id,
                 )
             else:
                 loss_fn = nn.CrossEntropyLoss()
-            loss = loss_fn(logits.view(-1, self.config.vocab_size), label.view(-1))
+            loss = loss_fn(logits.view(-1, self.config.vocab_size), labels.view(-1))
             return logits, loss
-        else:
+        
+        if labels is None:
             return logits
     
     def get_encoder_out(

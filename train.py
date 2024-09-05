@@ -53,6 +53,8 @@ def train(config):
     if config["src_vocab_size"] == config["tgt_vocab_size"] and config["share_vocab"]:
         config["vocab_size"] = config["src_vocab_size"]
     config["pad_idx"] = tokenizer_src.token_to_id("<pad>")
+    config["pad_token_id"] = tokenizer_src.token_to_id("<pad>")
+    config["tie_word_embeddings"] = config["share_vocab"]
 
     # BART model
     model = get_model(

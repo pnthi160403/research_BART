@@ -91,7 +91,7 @@ class BartSeq2seq(nn.Module):
         attention_mask: torch.Tensor,
         decoder_input_ids: torch.Tensor,
         decoder_attention_mask: torch.Tensor,
-        label: torch.Tensor=None,
+        labels: torch.Tensor=None,
         input_ids: torch.Tensor=None,
         inputs_embeds: torch.Tensor=None,
         encoder_head_mask: torch.Tensor=None,
@@ -128,7 +128,7 @@ class BartSeq2seq(nn.Module):
         # out
         logits = self.out(decoder_hidden_states)
 
-        if label is not None:
+        if labels is not None:
             if self.config.pad_idx is not None:
                 loss_fn = nn.CrossEntropyLoss(
                     ignore_index=self.config.pad_idx,
@@ -136,7 +136,7 @@ class BartSeq2seq(nn.Module):
                 )
             else:
                 loss_fn = nn.CrossEntropyLoss(label_smoothing=self.config.label_smoothing)
-            loss = loss_fn(logits.view(-1, self.config.tgt_vocab_size), label.view(-1))
+            loss = loss_fn(logits.view(-1, self.config.tgt_vocab_size), labels.view(-1))
             return logits, loss
         else:
             return logits
