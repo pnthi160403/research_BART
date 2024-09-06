@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from .architecture import (
     _init_weights,
+    BartEmbeds,
 )
 from transformers import BartModel, BartConfig
 
@@ -36,15 +37,33 @@ class BartSeq2seq(nn.Module):
 
         # config
         self.config = config
+        # encoder_embeds
+        self.inputs_embeds = nn.Embedding(
+            num_embeddings=self.config.vocab_size,
+            embedding_dim=config.d_model,
+            padding_idx=config.pad_token_id,
+        )
+        # decoder_embeds
+        self.decoder_inputs_embeds = nn.Embedding(
+            num_embeddings=self.config.vocab_size,
+            embedding_dim=config.d_model,
+            padding_idx=config.pad_token_id,
+        )
 
         self.bart_model = BartModel(config=self.config)
         self.out  = nn.Linear(config.d_model, self.config.vocab_size, bias=False)
 
-        # Share weights
-        self.bart_model._tie_weights()
-        
+        # Share embeddings
+        self.inputs_embeds.weight = self.decoder_inputs_embeds.weight
+        self.out.weight = self.inputs_embeds.weight
+
+        # Delete input embeddings
+        del self.bart_model.shared
+        del self.bart_model.encoder.embed_tokens
+        del self.bart_model.decoder.embed_tokens
+
         # Initialize weights
-        self.out.apply(_init_weights)
+        self.inputs_embeds.apply(_init_weights)
 
     def forward(
         self,
@@ -59,13 +78,15 @@ class BartSeq2seq(nn.Module):
         # decoder_head_mask (decoder_layers, decoder_attention_heads)
         # encoder
         if input_ids is not None:
+            inputs_embeds = self.inputs_embeds(input_ids)
+            decoder_inputs_embeds = self.decoder_inputs_embeds(decoder_input_ids)
             outputs = self.bart_model(
-                input_ids=input_ids,
+                inputs_embeds=inputs_embeds,
                 attention_mask=attention_mask,
-                decoder_input_ids=decoder_input_ids,
+                decoder_inputs_embeds=decoder_inputs_embeds,
                 decoder_attention_mask=decoder_attention_mask,
             )
-        if inputs_embeds is not None:
+        elif inputs_embeds is not None:
             outputs = self.bart_model(
                 inputs_embeds=inputs_embeds,
                 attention_mask=attention_mask,
@@ -94,11 +115,12 @@ class BartSeq2seq(nn.Module):
         inputs_embeds: torch.Tensor=None,
     ):
         if input_ids is not None:
+            inputs_embeds = self.inputs_embeds(input_ids)
             outputs = self.bart_model.encoder(
-                input_ids=input_ids,
+                inputs_embeds=inputs_embeds,
                 attention_mask=attention_mask,
             )
-        if inputs_embeds is not None:
+        elif inputs_embeds is not None:
             outputs = self.bart_model.encoder(
                 inputs_embeds=inputs_embeds,
                 attention_mask=attention_mask,
@@ -119,8 +141,9 @@ class BartSeq2seq(nn.Module):
         use_cache: bool=False,
         pos_idx: int=None,
     ):
+        inputs_embeds = self.decoder_inputs_embeds(input_ids)
         outputs = self.bart_model.decoder(
-            input_ids=input_ids,
+            inputs_embeds=inputs_embeds,
             encoder_hidden_states=encoder_hidden_states,
             attention_mask=attention_mask,
             encoder_attention_mask=encoder_attention_mask,
