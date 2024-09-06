@@ -151,7 +151,7 @@ class BartTrainerSingleGPU:
                     attention_mask=src_attention_mask,
                     decoder_input_ids=tgt,
                     decoder_attention_mask=tgt_attention_mask,
-                    label=label,
+                    labels=label,
                 )
                 sum_loss += loss.item()
                 self.loss_val_step_figure.update(
