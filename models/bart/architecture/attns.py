@@ -51,7 +51,7 @@ class MultiheadScaledDotProductAttention(nn.Module):
         # attention_scores (batch, num_heads, tgt_len, src_len)
         attention_scores = torch.matmul(query, key.transpose(-2, -1)) / self.scaling
         if mask is not None and not use_cache:
-            attention_scores.masked_fill_(mask == 0, -1e9)
+            attention_scores.masked_fill_(mask == 0, float("-inf"))
         attention_scores = attention_scores.softmax(dim=-1)
         if layer_head_mask is not None:
             attention_scores = layer_head_mask.view(1, -1, 1, 1) * attention_scores
@@ -184,7 +184,7 @@ class MultiqueryScaledDotProductAttention(nn.Module):
     ) -> torch.Tensor:
         attention_scores = torch.matmul(query, key.transpose(-2, -1)) / self.scaling
         if mask is not None and not use_cache:
-            attention_scores.masked_fill_(mask == 0, -1e9)
+            attention_scores.masked_fill_(mask == 0, float("-inf"))
         attention_scores = attention_scores.softmax(dim=-1)
         if dropout is not None:
             attention_scores = dropout(attention_scores)
@@ -489,7 +489,7 @@ class MutiheadRelativeAttention(nn.Module):
         # (batch, num_heads, q_len, k_len)
         score_edges = ((score_1 + score_2) / self.scaling)
         if mask is not None:
-            score_edges = score_edges.masked_fill_(mask == 0, -1e9)
+            score_edges = score_edges.masked_fill_(mask == 0, float("-inf"))
         score_edges = self.dropout(nn.functional.softmax(
             input=score_edges,
             dim=-1,
@@ -621,7 +621,7 @@ class MultiheadSlidingWindowSelfAttention(nn.Module):
             score = torch.matmul(q_slice, k_slice.transpose(-2, -1)) / self.scaling
             if attention_mask is not None:
                 attn_mask_slice = attention_mask[:, :, i, start:end].unsqueeze(2)
-                score.masked_fill_(attn_mask_slice == 0, -1e9)
+                score.masked_fill_(attn_mask_slice == 0, float("-inf"))
             score = self.dropout(score)
             score = nn.functional.softmax(score, dim=-1)
 
