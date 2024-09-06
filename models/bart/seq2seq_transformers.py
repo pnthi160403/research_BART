@@ -72,27 +72,18 @@ class BartSeq2seq(nn.Module):
         decoder_attention_mask: torch.Tensor,
         labels: torch.Tensor=None,
         input_ids: torch.Tensor=None,
-        inputs_embeds: torch.Tensor=None,
     ):
         # encoder_head_mask (encoder_layers, encoder_attention_heads)
         # decoder_head_mask (decoder_layers, decoder_attention_heads)
         # encoder
-        if input_ids is not None:
-            inputs_embeds = self.inputs_embeds(input_ids)
-            decoder_inputs_embeds = self.decoder_inputs_embeds(decoder_input_ids)
-            outputs = self.bart_model(
-                inputs_embeds=inputs_embeds,
-                attention_mask=attention_mask,
-                decoder_inputs_embeds=decoder_inputs_embeds,
-                decoder_attention_mask=decoder_attention_mask,
-            )
-        elif inputs_embeds is not None:
-            outputs = self.bart_model(
-                inputs_embeds=inputs_embeds,
-                attention_mask=attention_mask,
-                decoder_input_ids=decoder_input_ids,
-                decoder_attention_mask=decoder_attention_mask,
-            )
+        inputs_embeds = self.inputs_embeds(input_ids)
+        decoder_inputs_embeds = self.decoder_inputs_embeds(decoder_input_ids)
+        outputs = self.bart_model(
+            inputs_embeds=inputs_embeds,
+            attention_mask=attention_mask,
+            decoder_inputs_embeds=decoder_inputs_embeds,
+            decoder_attention_mask=decoder_attention_mask,
+        )
         logits = self.out(outputs.last_hidden_state)
 
         if labels is None:
@@ -112,19 +103,12 @@ class BartSeq2seq(nn.Module):
         self,
         attention_mask: torch.Tensor=None,
         input_ids: torch.Tensor=None,
-        inputs_embeds: torch.Tensor=None,
     ):
-        if input_ids is not None:
-            inputs_embeds = self.inputs_embeds(input_ids)
-            outputs = self.bart_model.encoder(
-                inputs_embeds=inputs_embeds,
-                attention_mask=attention_mask,
-            )
-        elif inputs_embeds is not None:
-            outputs = self.bart_model.encoder(
-                inputs_embeds=inputs_embeds,
-                attention_mask=attention_mask,
-            )
+        inputs_embeds = self.inputs_embeds(input_ids)
+        outputs = self.bart_model.encoder(
+            inputs_embeds=inputs_embeds,
+            attention_mask=attention_mask,
+        )
         logits = outputs.last_hidden_state
         return BartEncoderSeq2seqOut(
             logits=logits,
