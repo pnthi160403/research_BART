@@ -55,11 +55,6 @@ def train(config):
     config["pad_idx"] = tokenizer_src.token_to_id("<pad>")
     config["pad_token_id"] = tokenizer_src.token_to_id("<pad>")
     config["tie_word_embeddings"] = config["share_vocab"]
-    config["force_bos_token_id"] = tokenizer_tgt.token_to_id("<s>")
-    config["force_eos_token_id"] = tokenizer_tgt.token_to_id("</s>")
-    config["bos_token_id"] = tokenizer_tgt.token_to_id("<s>")
-    config["eos_token_id"] = tokenizer_tgt.token_to_id("</s>")
-
 
     # BART model
     model = get_model(
