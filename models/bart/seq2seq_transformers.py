@@ -41,6 +41,7 @@ class BartSeq2seq(nn.Module):
         self.out  = nn.Linear(
             config.d_model,
             self.config.vocab_size,
+            bias=False,
         )
 
     def forward(
