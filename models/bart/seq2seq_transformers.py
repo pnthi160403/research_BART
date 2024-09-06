@@ -38,7 +38,7 @@ class BartSeq2seq(nn.Module):
         self.config = config
 
         self.bart_model = BartModel(config=self.config)
-        self.out  = nn.Linear(config.d_model, self.config.vocab_size, bias=True)
+        self.out  = nn.Linear(config.d_model, self.config.vocab_size, bias=False)
 
         # Share weights
         self.bart_model._tie_weights()
