@@ -117,6 +117,7 @@ def get_config(base_dir: str=None):
     config["window_size"] = 32
     config["use_cache"] = True
     config["multi_gpu"] = False
+    config["tie_word_embeddings"] = True
 
     # GELU activation function
     config["approximate_gelu"] = 'none'

@@ -38,11 +38,14 @@ class BartSeq2seq(nn.Module):
         # config
         self.config = config
         self.bart_model = BartModel(config=self.config)
+        self.bart_model._tie_weights()
         self.out  = nn.Linear(
             config.d_model,
             self.config.vocab_size,
             bias=False,
         )
+        if config.tie_word_embeddings:
+            self.out.weight = self.bart_model.shared.weight
 
     def forward(
         self,
