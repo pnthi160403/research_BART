@@ -5,6 +5,7 @@ import torch
 import os
 import zipfile
 from torch.utils.data.distributed import DistributedSampler
+import random
 
 def read_csv_from_zip(zip_path, csv_filename):
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
@@ -17,16 +18,17 @@ def get_file(file_path, file_name="zip_file.csv"):
         return read_csv_from_zip(file_path, file_name)
     else:
         return pd.read_csv(file_path)
-    
-# Shuffle DataFrame
-def shuffle_dataframe(df, i, j):
-    df_before = df.iloc[:i]
-    df_to_shuffle = df.iloc[i:j].sample(frac=1).reset_index(drop=True)
-    df_after = df.iloc[j:]
 
-    df_shuffled = pd.concat([df_before, df_to_shuffle, df_after]).reset_index(drop=True)
-    
-    return df_shuffled
+def shuffle_dataframe(train_ds, shuffle_index):
+    # shuffle shuffle_index
+    random.shuffle(shuffle_index)
+
+    sub_datasets = []
+    for i, j in shuffle_index:
+        sub_dataset = train_ds.iloc[i:j].sample(frac=1).reset_index(drop=True)
+        sub_datasets.append(sub_dataset)
+    shuffle_dataset = pd.concat(sub_datasets).reset_index(drop=True)
+    return shuffle_dataset
 
 # read dataset
 def read_ds(
@@ -79,8 +81,7 @@ def read_ds(
     if len(train_ds) > max_num_train:
         train_ds = train_ds[:max_num_train]
 
-    for i, j in shuffle_index:
-        train_ds = shuffle_dataframe(train_ds, i, j)
+    train_ds = shuffle_dataframe(train_ds, shuffle_index)
 
     print("Read dataset successfully")
     print("Length train dataset: ", len(train_ds))
