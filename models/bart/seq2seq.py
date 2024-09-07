@@ -73,7 +73,7 @@ class BartSeq2seq(nn.Module):
         self.encoder = BartEncoder(config.bart_config)
         self.decoder = BartDecoder(config.bart_config)
         # out
-        self.out = nn.Linear(config.d_model, config.tgt_vocab_size)
+        self.out = nn.Linear(config.d_model, config.tgt_vocab_size, bias=False)
 
         if config.share_tgt_emb_and_out:
             self.out.weight = self.decoder_inputs_embeds.embed_tokens.weight
