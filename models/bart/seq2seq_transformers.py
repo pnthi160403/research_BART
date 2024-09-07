@@ -27,24 +27,45 @@ class BartDecoderSeq2seqOut:
         self.past_attn_scores = past_attn_scores
         self.past_layer_key_values = past_layer_key_values
 
+# Class config
+class BartSeq2seqConfig(BartConfig):
+    def __init__(
+        self,
+        share_tgt_emb_and_out: bool=False,
+        share_vocab: bool=False,
+        label_smoothing: float=0.01,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.bart_config = BartConfig(**kwargs)
+        self.share_tgt_emb_and_out = share_tgt_emb_and_out
+        self.share_vocab = share_vocab
+        self.label_smoothing = label_smoothing
+
 # Class model
 class BartSeq2seq(nn.Module):
     def __init__(
         self,
-        config: BartConfig,
+        config: BartSeq2seqConfig,
     ):
         super().__init__()
 
         # config
         self.config = config
-        self.bart_model = BartModel(config=self.config)
-        self.bart_model._tie_weights()
+        self.bart_model = BartModel(config=self.config.bart_config)
         self.out  = nn.Linear(
             config.d_model,
             self.config.vocab_size,
             bias=False,
         )
-        if config.tie_word_embeddings:
+
+        # Initialize weights
+        self.out.apply(_init_weights)
+
+        # Share embeddings
+        if config.tie_word_embeddings and config.share_vocab:
+            self.bart_model._tie_weights()
+        if config.share_tgt_emb_and_out:
             self.out.weight = self.bart_model.shared.weight
 
     def forward(
@@ -65,6 +86,7 @@ class BartSeq2seq(nn.Module):
         logits = self.out(last_hidden_state)
         loss_fn = nn.CrossEntropyLoss(
             ignore_index=self.config.pad_token_id,
+            label_smoothing=self.config.label_smoothing,
         )
         loss = loss_fn(logits.view(-1, self.config.vocab_size), labels.view(-1))
         return logits, loss
@@ -109,7 +131,7 @@ class BartSeq2seq(nn.Module):
 def get_model(
     **kwargs,
 ):
-    config = BartConfig(**kwargs)
+    config = BartSeq2seqConfig(**kwargs)
     model = BartSeq2seq(
         config=config,
     )
@@ -117,5 +139,6 @@ def get_model(
     
 __all__ = [
     "BartSeq2seq",
+    "BartSeq2seqConfig",
     "get_model"
 ]
