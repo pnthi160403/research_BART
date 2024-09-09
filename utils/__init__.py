@@ -5,6 +5,7 @@ from .optimizers import (
     GET_OPTIMIZER,
     ADAMW,
     RADAM,
+    ADAFACTOR,
 )
 from .folders import (
     join_base,

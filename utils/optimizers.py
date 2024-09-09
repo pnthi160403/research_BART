@@ -1,4 +1,5 @@
 import torch
+from transformers import Adafactor
 
 def get_AdamW(
     model,
@@ -30,13 +31,29 @@ def get_RAdam(
         weight_decay=weight_decay,
     )
 
+def get_Adafactor(
+    model,
+    lr=None,
+    **kwargs,
+):
+    return Adafactor(
+        filter(lambda p: p.requires_grad, model.parameters()),
+    )
+
 # const optimizer
 ADAMW = "AdamW"
 RADAM = "RAdam"
+ADAFACTOR = "Adafactor"
 
 GET_OPTIMIZER = {
     ADAMW: get_AdamW,
     RADAM: get_RAdam,
+    ADAFACTOR: get_Adafactor,
 }
 
-__all__ = ["GET_OPTIMIZER", "ADAMW", "RADAM"]
+__all__ = [
+    "GET_OPTIMIZER",
+    "ADAMW",
+    "RADAM",
+    "ADAFACTOR",
+]
