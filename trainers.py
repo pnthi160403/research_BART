@@ -125,7 +125,6 @@ class BartTrainerSingleGPU:
                     self.lr_scheduler.step()
                 self.optimizer.zero_grad(set_to_none=True)
                 self.model.zero_grad(set_to_none=True)
-                print(f"{self.optimizer.param_groups[0]['lr'] = }")
 
         self.loss_train_epoch_figure.update(
             value=sum_loss / len(self.train_dataloader),
