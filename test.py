@@ -23,10 +23,15 @@ def test(config):
     tokenizer_src, tokenizer_tgt = read_tokenizer(
         tokenizer_src_path=config["tokenizer_src_path"],
         tokenizer_tgt_path=config["tokenizer_tgt_path"],
+        share_vocab=config["share_vocab"],
     )
     config["src_vocab_size"] = tokenizer_src.get_vocab_size()
     config["tgt_vocab_size"] = tokenizer_tgt.get_vocab_size()
+    if config["src_vocab_size"] == config["tgt_vocab_size"] and config["share_vocab"]:
+        config["vocab_size"] = config["src_vocab_size"]
     config["pad_idx"] = tokenizer_src.token_to_id("<pad>")
+    config["pad_token_id"] = tokenizer_src.token_to_id("<pad>")
+    config["tie_word_embeddings"] = config["share_vocab"]
 
     # get dataloader
     train_dataloader, val_dataloader, test_dataloader = get_dataloader(
