@@ -3,6 +3,8 @@ from torcheval.metrics.functional.classification import multiclass_accuracy, mul
 # from torchtext.data.metrics import bleu_score
 from torchmetrics import Recall, Precision, FBetaScore, Accuracy
 from torchmetrics.text.rouge import ROUGEScore
+import evaluate
+rouge = evaluate.load('rouge')
 
 # metrics
 def torchmetrics_recall(preds, target, tgt_vocab_size: int, pad_index: int, device):
@@ -44,15 +46,17 @@ def torcheval_f_beta(recall: torch.tensor, precision: torch.tensor, beta: float)
 
     return torch.tensor((1 + beta ** 2) * (precision_item * recall_item) / (beta ** 2 * precision_item + recall_item + esi), dtype=recall.dtype).to(recall.device)
 
-# def torchtext_bleu_score(refs, cands):
-#     scores = []
-#     for j in range(1, 5):
-#         weights = [1 / j] * j
-#         scores.append(bleu_score(candidate_corpus=cands,
-#                                  references_corpus=refs,
-#                                  max_n=j,
-#                                  weights=weights))
-#     return scores
+def compute_rouges(preds, refs, device):
+    preds = [pred.to(device) for pred in preds]
+    refs = [ref.to(device) for ref in refs]
+    rouge = evaluate.load('rouge')
+    res = rouge.compute(predictions=preds, references=refs)
+    ans = {
+        "rouge1_fmeasure": res['rouge1'],
+        "rouge2_fmeasure": res['rouge2'],
+        "rougeL_fmeasure": res['rougeL'],
+    }
+    return ans
 
 __all__ = [
     "torchmetrics_recall",
@@ -63,5 +67,4 @@ __all__ = [
     "torcheval_recall",
     "torcheval_precision",
     "torcheval_f_beta",
-    # "torchtext_bleu_score"
 ]

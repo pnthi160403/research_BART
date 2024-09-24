@@ -27,7 +27,7 @@ from .utils.metrics import (
     torcheval_recall,
     torcheval_precision,
     torcheval_f_beta,
-    # torchtext_bleu_score
+    compute_rouges,
 )
 from .models.get_instance_bart import (
     BART_SEQ2SEQ_FROM_SCRATCH,
@@ -137,12 +137,6 @@ def validate(model, config, beam_size, val_dataloader, num_example: int=5):
                         skip_special_tokens=True,
                     )
                     print(f"{f'PREDICTED {i}: ':>12}{text}")
-                # if config["use_bleu"]:
-                #     scores = torchtext_bleu_score(refs=[[tgt_text.split()]],
-                #                             cands=[pred_text.split()])
-                #     print(f'BLEU OF SENTENCE {count}')
-                #     for i in range(0, len(scores)):
-                #         print(f'BLEU_{i + 1}: {scores[i]}')
                     
                 if not config["use_pytorch_metric"]:
                     if config["use_recall"]:
@@ -216,9 +210,14 @@ def validate(model, config, beam_size, val_dataloader, num_example: int=5):
                     device=device
                 )
             if config["use_rouge"]:
-                rouges = torchmetrics_rouge(
+                # rouges = torchmetrics_rouge(
+                #     preds=rouge_preds,
+                #     target=rouge_targets,
+                #     device=device
+                # )
+                rouges = compute_rouges(
                     preds=rouge_preds,
-                    target=rouge_targets,
+                    refs=rouge_targets,
                     device=device
                 )
         else:
@@ -235,10 +234,6 @@ def validate(model, config, beam_size, val_dataloader, num_example: int=5):
                     device=device
                 )
 
-        # if config["use_bleu"]:
-        #     bleus = torchtext_bleu_score(refs=expected,
-        #                                 cands=predicted)
-            
         zip_directory(
             directory_path=config["generated_dir"],
             output_zip_path=f"{config['generated_dir']}_{config['sub_test_id']}.zip",
