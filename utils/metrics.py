@@ -47,8 +47,8 @@ def torcheval_f_beta(recall: torch.tensor, precision: torch.tensor, beta: float)
     return torch.tensor((1 + beta ** 2) * (precision_item * recall_item) / (beta ** 2 * precision_item + recall_item + esi), dtype=recall.dtype).to(recall.device)
 
 def compute_rouges(preds, refs, device):
-    preds = [pred.to(device) for pred in preds]
-    refs = [ref.to(device) for ref in refs]
+    preds = preds.to(device)
+    refs = refs.to(device)
     rouge = evaluate.load('rouge')
     res = rouge.compute(predictions=preds, references=refs)
     ans = {
