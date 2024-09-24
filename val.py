@@ -218,7 +218,6 @@ def validate(model, config, beam_size, val_dataloader, num_example: int=5):
                 rouges = compute_rouges(
                     preds=rouge_preds,
                     refs=rouge_targets,
-                    device=device
                 )
         else:
             if config["use_recall"]:
