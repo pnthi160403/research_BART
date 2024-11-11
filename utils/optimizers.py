@@ -33,7 +33,6 @@ def get_RAdam(
 
 def get_Adafactor(
     model,
-    lr=None,
     **kwargs,
 ):
     return Adafactor(

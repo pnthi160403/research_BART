@@ -23,9 +23,9 @@ def un_freeze_model(model, modules=[]):
 # load model state dict
 def load_model(checkpoint, model):
     if torch.cuda.is_available():
-        state = torch.load(checkpoint)
+        state = torch.load(checkpoint, weights_only=True)
     else:
-        state = torch.load(checkpoint, map_location=torch.device('cpu'))
+        state = torch.load(checkpoint, map_location=torch.device('cpu'), weights_only=True)
     model.load_state_dict(state["model_state_dict"])
     return model
 

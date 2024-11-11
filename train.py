@@ -108,7 +108,7 @@ def train(config):
         model_filename = None
     state = None
     if model_filename:
-        state = torch.load(model_filename, map_location=device)
+        state = torch.load(model_filename, map_location=device, weights_only=True)
         print(f"Loaded model from {model_filename}")
     else:
         print("No model to preload, start training from scratch")
